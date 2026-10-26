@@ -7,6 +7,8 @@ import { ElementScreen } from '@/ui/factsheet/ElementScreen'
 import { ModelScreen } from '@/ui/factsheet/ModelScreen'
 import { GraphScreen } from '@/ui/graph/GraphScreen'
 import { ViewScreen } from '@/ui/views/ViewScreen'
+import { RolloutScreen } from '@/ui/rollout/RolloutScreen'
+import { RolloutsScreen } from '@/ui/rollout/RolloutsScreen'
 import { GuideScreen } from '@/ui/guide/GuideScreen'
 import { ValidatorScreen } from '@/ui/validator/ValidatorScreen'
 import { ValidatorProvider } from '@/ui/validator/ValidatorProvider'
@@ -36,6 +38,15 @@ function KeyedElementScreen() {
 function KeyedViewScreen() {
   const { id = '' } = useParams()
   return <ViewScreen key={id} />
+}
+
+/**
+ * Same reason again (#211): a rollout's filters, selection, picked-up card and
+ * open dialog are all per rollout, so `/rollout/a` → `/rollout/b` remounts.
+ */
+function KeyedRolloutScreen() {
+  const { id = '' } = useParams()
+  return <RolloutScreen key={id} />
 }
 
 /**
@@ -99,6 +110,8 @@ function AppRoutes() {
         <Route path="/model" element={<ModelScreen />} />
         <Route path="/graph" element={<GraphScreen />} />
         <Route path="/view/:id" element={<KeyedViewScreen />} />
+        <Route path="/rollouts" element={<RolloutsScreen />} />
+        <Route path="/rollout/:id" element={<KeyedRolloutScreen />} />
         <Route path="/validate" element={<ValidatorScreen />} />
         <Route path="/guide" element={<GuideScreen />} />
         <Route path="/folder" element={<SharedFolderScreen />} />

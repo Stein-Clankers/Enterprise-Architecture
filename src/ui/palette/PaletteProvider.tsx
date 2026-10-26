@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toggleTheme } from '@/app/theme'
 import { useModelStoreContext } from '@/store'
+import { useRolloutActions } from '@/ui/rollout/palette-actions'
 import { useCreateView } from '@/ui/views/use-create-view'
 import { useSaveWorkspace } from '@/ui/shell/use-save-workspace'
 import { useUndoRedo } from '@/ui/shell/use-undo-redo'
@@ -28,6 +29,9 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
   const createView = useCreateView()
   const { validate } = useValidator()
   const [screenActions, setScreenActions] = useState<PaletteAction[]>([])
+  // ── Rollouts (#211) ── "Go to rollouts" and one "Go to rollout: …" each.
+  const rolloutActions = useRolloutActions()
+  // ── end Rollouts (#211) ──
 
   const openPalette = useCallback(() => setOpen(true), [])
   const closePalette = useCallback(() => setOpen(false), [])
@@ -60,9 +64,13 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
       ...(role === 'writer'
         ? [{ id: 'new-view', label: 'New view', glyph: 'VW', run: () => void createView() }]
         : []),
+      // ── Rollouts (#211) ──
+      ...rolloutActions,
+      // ── end Rollouts (#211) ──
       ...screenActions,
     ],
     [
+      rolloutActions,
       navigate,
       validate,
       saveFile,

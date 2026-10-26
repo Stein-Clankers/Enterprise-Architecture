@@ -1,5 +1,5 @@
-import { NavLink } from 'react-router-dom'
-import { COMPLETENESS_CONFIG } from '@/model'
+import { NavLink, useLocation } from 'react-router-dom'
+import { COMPLETENESS_CONFIG, rolloutPlanOf } from '@/model'
 import { useModelSelector } from '@/store'
 import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 
@@ -36,9 +36,12 @@ export interface LeftNavProps {
 }
 
 export function LeftNav({ treeOpen, treeId, onToggleTree }: LeftNavProps) {
+  const { pathname } = useLocation()
   const stats = useModelSelector((store) => {
     let missingOwner = 0
+    let rollouts = 0
     for (const element of store.elements()) {
+      if (rolloutPlanOf(element)) rollouts += 1
       const owner = element.properties[COMPLETENESS_CONFIG.ownerProperty]
       if (typeof owner !== 'string' || !owner.trim()) missingOwner += 1
     }
@@ -48,6 +51,7 @@ export function LeftNav({ treeOpen, treeId, onToggleTree }: LeftNavProps) {
       relationships: store.relationshipCount,
       health: store.health(),
       missingOwner,
+      rollouts,
     }
   })
 
@@ -71,6 +75,16 @@ export function LeftNav({ treeOpen, treeId, onToggleTree }: LeftNavProps) {
       >
         <span className="nav__glyph" aria-hidden="true" />
         <span className="nav__text">Dependency graph</span>
+      </NavLink>
+      <NavLink
+        to="/rollouts"
+        className={({ isActive }) =>
+          `nav__item${isActive || pathname.startsWith('/rollout/') ? ' nav__item--active' : ''}`
+        }
+      >
+        <span className="nav__glyph" aria-hidden="true" />
+        <span className="nav__text">Rollouts</span>
+        <span className="nav__badge">{stats.rollouts || ''}</span>
       </NavLink>
       <NavLink
         to="/validate"
