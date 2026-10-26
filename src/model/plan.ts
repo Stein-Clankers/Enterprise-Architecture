@@ -614,14 +614,15 @@ export function waveIdOf(
   rolloutId: string,
   element: (id: string) => Element | undefined,
 ): string | undefined {
-  if (!isId(value)) return undefined
-  return wavePlanOf(element(value))?.rollout === rolloutId ? value : undefined
+  // `typeof` is for the compiler: an id that is no wave of the rollout, `''`
+  // included, fails the membership check, which is what refuses at run time.
+  const wave = typeof value === 'string' ? element(value) : undefined
+  return wavePlanOf(wave)?.rollout === rolloutId ? wave?.id : undefined
 }
 
 /** The write path's door for an archetype: an archetype id of `plan`, or `undefined`. */
 export function archetypeIdOf(value: unknown, plan: RolloutPlan): string | undefined {
-  if (!isId(value)) return undefined
-  return plan.archetypes.some((archetype) => archetype.id === value) ? value : undefined
+  return plan.archetypes.find((archetype) => archetype.id === value)?.id
 }
 
 /** Code-unit order: collation depends on the machine's locale (ADR 0004). */

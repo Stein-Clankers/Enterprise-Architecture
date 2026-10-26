@@ -354,6 +354,38 @@ describe('as a reader (#209)', () => {
       expect(() => command(s)).toThrow(ReadOnlyModelError)
     },
   )
+
+  /**
+   * Every command, each with arguments it refuses as a writer. A command that
+   * refuses dispatches nothing, so the store's own refusal never runs: only
+   * the command's check can say "read-only" instead of a quiet `false`.
+   */
+  const refused: [string, (s: ModelStore) => unknown][] = [
+    ['createRollout', (s) => createRollout(s, { name: 1 as unknown as string })],
+    ['renameRollout', (s) => renameRollout(s, waveId(1), 'R')],
+    ['deleteRollout', (s) => deleteRollout(s, waveId(1))],
+    ['createWave', (s) => createWave(s, waveId(1), { name: 'W', label: 'W' })],
+    ['renameWave', (s) => renameWave(s, ROLLOUT_ID, 'W')],
+    ['deleteWave', (s) => deleteWave(s, ROLLOUT_ID)],
+    ['addSites', (s) => addSites(s, ROLLOUT_ID, [])],
+    ['removeSites', (s) => removeSites(s, ROLLOUT_ID, [])],
+    ['assignSites', (s) => assignSites(s, ROLLOUT_ID, forty, '')],
+    ['unassignSites', (s) => unassignSites(s, 'nope', forty)],
+    ['setArchetype', (s) => setArchetype(s, ROLLOUT_ID, forty, 'warehouse')],
+  ]
+
+  it.each(refused)('%s refuses this input as a writer', (_, command) => {
+    const s = store()
+    const before = state(s)
+    expect(command(s)).toBeFalsy()
+    expect(state(s)).toEqual(before)
+  })
+
+  it.each(refused)('%s throws for a reader even on input it would refuse', (_, command) => {
+    const s = store()
+    s.setWritable(false)
+    expect(() => command(s)).toThrow(ReadOnlyModelError)
+  })
 })
 
 describe('what each command refuses, and what it records nothing for (#209)', () => {
