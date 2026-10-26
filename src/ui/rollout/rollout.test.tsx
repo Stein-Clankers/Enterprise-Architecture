@@ -3,9 +3,10 @@ import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { rolloutPlanOf, validate, wavePlanOf, type Workspace } from '@/model'
 import { toCanonicalJson } from '@/io'
-import { ModelStore, addSites, assignSites, createRollout, createWave } from '@/store'
+import { ModelStore, addSites, assignSites, createRollout, createWave, deleteWave } from '@/store'
 import { renderApp, renderScreenAs } from '@/test/render'
 import { TakesFocusAsReader } from '@/test/takes-focus-as-reader'
+import { stubDownloads } from '@/test/downloads'
 import { ROLLOUT_ID, rolloutWorkspace, siteId, waveId } from '@/test/rollout-fixture'
 import { LIST_WINDOW } from '@/ui/inventory/list-window'
 import { ElementScreen } from '@/ui/factsheet/ElementScreen'
@@ -429,6 +430,40 @@ describe('the wave controls (#211)', () => {
   })
 })
 
+describe('what the rollout screens say when there is nothing to show (#211)', () => {
+  it('says so for an id that is no rollout', () => {
+    renderApp(workspace(), { route: `/rollout/${waveId(1)}` })
+    expect(screen.getByText(waveId(1))).toBeInTheDocument()
+    expect(screen.getByText(/No rollout with the id/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'All rollouts' })).toBeInTheDocument()
+  })
+
+  it('says the model refused a wave deleted while its dialog was open, and keeps the dialog', async () => {
+    const h = board()
+    await h.user.click(screen.getByRole('button', { name: 'Edit W1' }))
+    act(() => void deleteWave(h.store, waveId(1)))
+    await h.user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(screen.getByRole('dialog', { name: 'Edit wave' })).toHaveTextContent(
+      'Not saved: the model refused this wave.',
+    )
+  })
+
+  it('draws no timeline, and exports none, for a rollout with no waves or no windows', async () => {
+    const store = storeOf()
+    const rollout = createRollout(store, { name: 'Network refresh' })!
+    renderScreenAs('writer', store, {
+      route: `/rollout/${rollout.id}?tab=timeline`,
+      path: '/rollout/:id',
+      screen: <RolloutScreen />,
+    })
+    expect(screen.getByText('This rollout has no waves yet.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Export SVG' })).toBeDisabled()
+    act(() => void createWave(store, rollout.id, { name: 'Network W1', label: 'NW1' }))
+    expect(screen.getByText(/No wave has a window yet/)).toBeInTheDocument()
+    expect(screen.getByText('No window yet: NW1')).toBeInTheDocument()
+  })
+})
+
 describe('Delete on a wave’s fact sheet cascades the plan (#222)', () => {
   it('unassigns its sites, so validate() finds nothing dangling', async () => {
     const store = storeOf()
@@ -464,6 +499,19 @@ describe('the wave timeline (#211)', () => {
     await h.user.click(screen.getByRole('button', { name: 'RAG' }))
     expect(within(legend).getByText('Worst site red')).toBeInTheDocument()
     expect(within(legend).queryByText('Over capacity')).toBeNull()
+  })
+
+  it('exports the timeline as an SVG of the bars on screen', async () => {
+    const downloads = stubDownloads()
+    const h = board()
+    await h.user.click(screen.getByRole('button', { name: 'Timeline' }))
+    await h.user.click(screen.getByRole('button', { name: 'Export SVG' }))
+    const blob = downloads.createObjectURL.mock.calls[0]![0] as Blob
+    const svg = await blob.text()
+    expect(svg).toMatch(/^<svg xmlns="http:\/\/www.w3.org\/2000\/svg"/)
+    expect(svg).toContain('Local data to the central lake: wave timeline')
+    expect(svg.match(/<rect x=/g)).toHaveLength(5)
+    expect(svg).toContain('2 / 5 sites')
   })
 })
 
