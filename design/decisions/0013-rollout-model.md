@@ -9,6 +9,8 @@ tags: [transformation, rollout, model, archimate]
 
 # ADR 0013 — Rollout model: one template, waves, and site plans keyed by location
 
+Points 5 and 10 are amended by [ADR 0015](0015-plan-dates-and-rollout-exchange-mapping.md): how a plan date is stored, and how rollouts travel in the exchange format.
+
 ## Context
 
 ADR 0012 starts multi-site rollout planning (#206) alongside the editor. The model it needs is laid out in `design/specs/migration-planning-proposal.md` §3–§4 and §8. The proposal's §11 left four points for this ADR: D2, D5, D6 and D7. The sponsor accepted all four as proposed on 2026-10-26 (#207).
