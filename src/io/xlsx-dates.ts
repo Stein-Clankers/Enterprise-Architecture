@@ -5,7 +5,10 @@
  * London. `xlsx-dates.test.ts` runs this file in child processes under
  * `TZ=UTC` and `TZ=Pacific/Auckland` to hold it to that.
  *
- * This module imports nothing, so that test can load it with plain Node.
+ * This module imports nothing, so that test can load it with plain Node. Node
+ * runs it by stripping its types (on by default in the Node 24 that CI runs),
+ * which works only for erasable syntax: no `enum`, no `namespace`, no
+ * parameter properties, no `import =`. Keep it to type annotations.
  *
  * A serial counts days from an epoch that depends on the workbook's date
  * system:

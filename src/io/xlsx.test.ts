@@ -143,6 +143,12 @@ describe('escaping (#208)', () => {
     '_x000D_',
     '_x005F_x000D_',
     '_x00_ and _xZZZZ_',
+    // The escape of the next character would supply the closing underscore (#216 review, B1).
+    '_x0041\u0001',
+    '_x0041\ud800',
+    'a_x005F\u0007b',
+    '_x0041\r',
+    '_x0041\ufffe',
     'bell \u0007 and nul \u0000',
     'lone surrogate \ud800 here',
     'noncharacters \ufffe\uffff',
@@ -196,9 +202,31 @@ describe('escaping (#208)', () => {
     )
   })
 
-  it('a sheet name with markup characters survives', async () => {
-    const result = await roundTrip({ sheets: [{ name: `A & B <"c">`, rows: [[textCell('x')]] }] })
-    expect(result.workbook?.sheets[0]?.name).toBe(`A & B <"c">`)
+  it('a sheet name with markup characters, or a character outside the BMP, survives', async () => {
+    const result = await roundTrip({
+      sheets: [
+        { name: `A & B <"c">`, rows: [[textCell('x')]] },
+        { name: '🗺️ Map', rows: [] },
+      ],
+    })
+    expect(result.workbook?.sheets.map((sheet) => sheet.name)).toEqual([`A & B <"c">`, '🗺️ Map'])
+  })
+
+  it('writes a carriage return as _x000D_, as Office does, and reads it or &#13; back', async () => {
+    const strings = await partOf(
+      writeXlsx({ sheets: [{ name: 'S', rows: [[textCell('a\r\nb')]] }] }),
+      'xl/sharedStrings.xml',
+    )
+    expect(strings).toContain('>a_x000D_\nb<')
+    expect(strings).not.toContain('&#13;')
+    const { rows, problems } = await readOne({
+      strings: '<si><t>a&#13;b</t></si><si><t>c_x000D_d</t></si>',
+      sheets: [
+        { name: 'S', data: row('<c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c>') },
+      ],
+    })
+    expect(problems).toEqual([])
+    expect(rows).toEqual([[textCell('a\rb'), textCell('c\rd')]])
   })
 })
 
@@ -225,6 +253,10 @@ describe('the writer refuses what Excel cannot open', () => {
     ['tab\there', 'control character'],
     ['History', 'reserved'],
     ['history', 'reserved'],
+    ['lone \ud800 high surrogate', 'XML cannot hold'],
+    ['lone \udc00 low surrogate', 'XML cannot hold'],
+    ['non\ufffecharacter', 'XML cannot hold'],
+    ['non\uffffcharacter', 'XML cannot hold'],
   ])('a sheet named %j', (name, reason) => {
     expect(write({ sheets: [sheet(name)] })).toThrow(reason)
   })
@@ -399,6 +431,42 @@ describe('reading what other writers write', () => {
     expect(rows).toEqual([[textCell('inline'), textCell('ab'), textCell('')]])
   })
 
+  it('decodes each rich-text run on its own, as an escape never spans two', async () => {
+    const { rows, problems } = await readOne({
+      strings:
+        '<si><r><t>_x00</t></r><r><t>41_</t></r></si><si><r><t>_x0041_</t></r><r><t>!</t></r></si>',
+      sheets: [
+        {
+          name: 'S',
+          data: row(
+            '<c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c><c r="C1" t="inlineStr"><is><r><t>_x00</t></r><r><t>41_</t></r></is></c>',
+          ),
+        },
+      ],
+    })
+    expect(problems).toEqual([])
+    expect(rows).toEqual([[textCell('_x0041_'), textCell('A!'), textCell('_x0041_')]])
+  })
+
+  it('a bare <c/> or <row/> with no reference still takes its place', async () => {
+    const { rows, problems } = await readOne({
+      sheets: [
+        {
+          name: 'S',
+          data: '<row><c><v>1</v></c><c/><c><v>3</v></c></row><row/><row><c></c><c><v>5</v></c></row><row></row><row><c><v>7</v></c></row>',
+        },
+      ],
+    })
+    expect(problems).toEqual([])
+    expect(rows).toEqual([
+      [numberCell(1), EMPTY, numberCell(3)],
+      [],
+      [EMPTY, numberCell(5)],
+      [],
+      [numberCell(7)],
+    ])
+  })
+
   it('rows and cells that leave out their reference follow the one before', async () => {
     const { rows } = await readOne({
       sheets: [
@@ -428,6 +496,21 @@ describe('reading what other writers write', () => {
       ],
     })
     expect(rows).toEqual([[numberCell(1), EMPTY, numberCell(3)]])
+  })
+
+  it('a t="d" date at midnight reads with no problem, whatever its offset says when the day holds in UTC', async () => {
+    const { rows, problems } = await readOne({
+      sheets: [
+        {
+          name: 'S',
+          data: row(
+            '<c r="A1" t="d"><v>2027-05-12T00:00:00-05:00</v></c><c r="B1" t="d"><v>2027-05-12T00:00Z</v></c><c r="C1" t="d"><v>2027-05-12T00:00:00.000+00:00</v></c>',
+          ),
+        },
+      ],
+    })
+    expect(problems).toEqual([])
+    expect(rows).toEqual([[dateCell('2027-05-12'), dateCell('2027-05-12'), dateCell('2027-05-12')]])
   })
 
   it('booleans and ISO dates (t="d")', async () => {
@@ -722,6 +805,37 @@ describe('a cell the reader cannot type is a problem naming its sheet and cell, 
     expect(none.problem).toEqual(named('xlsx.style-missing'))
   })
 
+  it.each([
+    ['empty', ''],
+    ['not a number', 'abc'],
+    ['negative', '-1'],
+  ])('a style index that is %s', async (_, s) => {
+    const { found, problem } = await cell(`<c r="C3" s="${s}"><v>46519</v></c>`, {
+      styles: styles([0, 14]),
+    })
+    expect(found).toEqual({ kind: 'unreadable', text: '46519' })
+    expect(problem).toEqual(named('xlsx.cell-malformed'))
+    expect(problem.message).toContain(`style ${JSON.stringify(s)}`)
+  })
+
+  it('a t="d" date whose offset puts it on another day in UTC says so, and keeps the day as written', async () => {
+    const midnight = await cell('<c r="C3" t="d"><v>2027-05-12T00:00:00+01:00</v></c>')
+    expect(midnight.found).toEqual(dateCell('2027-05-12'))
+    expect(midnight.problem).toEqual(named('xlsx.date-offset-shifts-day'))
+    expect(midnight.problem.message).toContain(
+      'offset +01:00, that moment is on the day before in UTC',
+    )
+    const late = await cell('<c r="C3" t="d"><v>2027-05-12T23:30:00-05:00</v></c>')
+    expect(late.found).toEqual(dateCell('2027-05-12'))
+    expect(late.problem).toEqual(named('xlsx.date-time-dropped'))
+    expect(late.problem.message).toContain('offset -05:00, that moment is on the day after in UTC')
+    const sameDay = await cell('<c r="C3" t="d"><v>2027-05-12T18:00:00+02:00</v></c>')
+    expect(sameDay.problem).toEqual(named('xlsx.date-time-dropped'))
+    expect(sameDay.problem.message).not.toContain('UTC')
+    const fraction = await cell('<c r="C3" t="d"><v>2027-05-12T00:00:00.5Z</v></c>')
+    expect(fraction.problem).toEqual(named('xlsx.date-time-dropped'))
+  })
+
   it('a built-in format whose meaning depends on Excel’s language reads as a number, said', async () => {
     const { found, problem } = await cell('<c r="C3" s="1"><v>46519</v></c>', {
       styles: styles([0, 30]),
@@ -771,6 +885,40 @@ describe('cells and rows that cannot be placed', () => {
   it('a cell the file holds twice keeps the first', async () => {
     const { rows, problems } = await problemsOf(row('<c r="A1"><v>1</v></c><c r="A1"><v>2</v></c>'))
     expect(rows).toEqual([[numberCell(1)]])
+    expect(onlyProblem(problems)).toEqual(
+      expect.objectContaining({ code: 'xlsx.cell-repeated', sheet: 'Plan', cell: 'A1' }),
+    )
+  })
+
+  it('a repeated formula cell is tallied once, and its copy is not read (#216 review, B2)', async () => {
+    const { rows, problems } = await problemsOf(
+      row('<c r="A1"><f>1+1</f><v>2</v></c><c r="A1"><f>1+1</f><v>2</v></c>'),
+    )
+    expect(rows).toEqual([[numberCell(2)]])
+    expect(problems).toEqual([
+      expect.objectContaining({ code: 'xlsx.cell-repeated', sheet: 'Plan', cell: 'A1' }),
+      expect.objectContaining({
+        code: 'xlsx.formula-results-read',
+        message: expect.stringContaining('1 cell holds a formula'),
+      }),
+    ])
+  })
+
+  it('a repeated cell holding an error reports only the repeat, never its value', async () => {
+    const { rows, problems } = await problemsOf(
+      row('<c r="B1"><v>1</v></c><c r="B1" t="e"><v>#N/A</v></c>'),
+    )
+    expect(rows).toEqual([[EMPTY, numberCell(1)]])
+    expect(onlyProblem(problems)).toEqual(
+      expect.objectContaining({ code: 'xlsx.cell-repeated', sheet: 'Plan', cell: 'B1' }),
+    )
+  })
+
+  it('an empty cell is still the first copy: a second one is not read', async () => {
+    const { rows, problems } = await problemsOf(
+      row('<c r="A1" s="0"/><c r="B1"><v>1</v></c><c r="A1"><v>2</v></c>'),
+    )
+    expect(rows).toEqual([[EMPTY, numberCell(1)]])
     expect(onlyProblem(problems)).toEqual(
       expect.objectContaining({ code: 'xlsx.cell-repeated', sheet: 'Plan', cell: 'A1' }),
     )

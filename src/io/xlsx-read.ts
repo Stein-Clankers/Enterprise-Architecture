@@ -1,7 +1,7 @@
 import { XMLParser } from 'fast-xml-parser'
 import { readZipDirectory, readZipEntry, ZipError, type ZipEntry } from './zip'
 import { serialToIsoDay, parseIsoDay } from './xlsx-dates'
-import type { ProblemSeverity } from './problems'
+import { problem, type ProblemSeverity } from './problems'
 import {
   cellReference,
   MAX_ROWS,
@@ -54,7 +54,8 @@ const parser = new XMLParser({
   parseTagValue: false,
   // Cell text is data: leading and trailing spaces are kept as written.
   trimValues: false,
-  // Numeric character references, so `&#13;` is a carriage return.
+  // Numeric character references, so `&#13;` is a carriage return (we write
+  // `_x000D_`, as Office does; other writers use the reference).
   htmlEntities: true,
   isArray: (name, _path, _leaf, isAttribute) => !isAttribute && LISTS.has(name),
 })
@@ -73,15 +74,6 @@ class FatalProblem extends Error {
   constructor(readonly found: XlsxProblem) {
     super(found.message)
   }
-}
-
-function xlsxProblem(
-  severity: ProblemSeverity,
-  code: string,
-  message: string,
-  where: { file?: string; sheet?: string; cell?: string },
-): XlsxProblem {
-  return { severity, code, message, ...where }
 }
 
 export async function readXlsx(bytes: Uint8Array, file?: string): Promise<XlsxReadResult> {
@@ -104,8 +96,8 @@ async function readPackage(
   const fail = (code: string, message: string, sheet?: string): never => {
     throw new FatalProblem(
       sheet === undefined
-        ? xlsxProblem('error', code, message, where)
-        : xlsxProblem('error', code, `Sheet “${sheet}”: ${message}`, { ...where, sheet }),
+        ? problem<XlsxProblem>('error', code, message, where)
+        : problem<XlsxProblem>('error', code, `Sheet “${sheet}”: ${message}`, { ...where, sheet }),
     )
   }
 
@@ -195,9 +187,7 @@ async function readPackage(
   const stylesRel = workbookRels.find((rel) => typeOf(rel) === 'styles')
   const formats = stylesRel ? numberFormats(await root(target(stylesRel), 'styleSheet')) : undefined
   const stringsRel = workbookRels.find((rel) => typeOf(rel) === 'sharedStrings')
-  const strings = stringsRel
-    ? list((await root(target(stringsRel), 'sst')).si).map((si) => decodeEscapes(richText(si)))
-    : []
+  const strings = stringsRel ? list((await root(target(stringsRel), 'sst')).si).map(richText) : []
 
   const sheets: Sheet<ReadCell>[] = []
   for (const entry of list(asNode(workbookXml.sheets).sheet).filter(isNode)) {
@@ -214,7 +204,7 @@ async function readPackage(
     const type = typeOf(rel)
     if (type !== 'worksheet') {
       problems.push(
-        xlsxProblem(
+        problem<XlsxProblem>(
           'warning',
           'xlsx.sheet-not-worksheet',
           `Sheet “${name}”: it is a ${type}, not a worksheet of cells, so it was not read.`,
@@ -248,7 +238,7 @@ function readRows(worksheet: Node, sheet: SheetContext, problems: XlsxProblem[])
   const cells = new Map<number, Map<number, ReadCell>>()
   const report = (severity: ProblemSeverity, code: string, message: string, cell?: string) =>
     problems.push(
-      xlsxProblem(
+      problem<XlsxProblem>(
         severity,
         code,
         `Sheet “${sheet.name}”${cell ? `, cell ${cell}` : ''}: ${message}`,
@@ -260,9 +250,13 @@ function readRows(worksheet: Node, sheet: SheetContext, problems: XlsxProblem[])
       ),
     )
   const formulas: string[] = []
+  /** Every cell position met, kept or not, so a second copy of one is never read. */
+  const placed = new Map<number, Set<number>>()
 
   let rowIndex = -1
-  for (const row of list(asNode(worksheet.sheetData).row).filter(isNode)) {
+  // An element with nothing in it parses as '': a bare `<row/>` or `<c/>` is
+  // still a row or a cell, and its position counts for the ones after it.
+  for (const row of list(asNode(worksheet.sheetData).row).map(asNode)) {
     const written = attribute(row, 'r')
     if (written === undefined) rowIndex++
     else if (/^[1-9]\d*$/.test(written) && Number(written) <= MAX_ROWS)
@@ -277,7 +271,7 @@ function readRows(worksheet: Node, sheet: SheetContext, problems: XlsxProblem[])
       continue
     }
     let columnIndex = -1
-    for (const c of list(row.c).filter(isNode)) {
+    for (const c of list(row.c).map(asNode)) {
       const ref = attribute(c, 'r')
       if (ref === undefined) columnIndex++
       else {
@@ -293,12 +287,11 @@ function readRows(worksheet: Node, sheet: SheetContext, problems: XlsxProblem[])
         columnIndex = parsed.column
       }
       const at = cellReference(rowIndex, columnIndex)
-      const value = readCell(c, at, sheet, report)
-      if ('f' in c && value.kind !== 'unreadable' && value.kind !== 'empty') formulas.push(at)
-      if (value.kind === 'empty') continue
-      let line = cells.get(rowIndex)
-      if (!line) cells.set(rowIndex, (line = new Map()))
-      if (line.has(columnIndex)) {
+      // Before the cell is read: a copy that is not kept must add nothing to a
+      // tally and report nothing about its value.
+      let seen = placed.get(rowIndex)
+      if (!seen) placed.set(rowIndex, (seen = new Set()))
+      if (seen.has(columnIndex)) {
         report(
           'warning',
           'xlsx.cell-repeated',
@@ -307,6 +300,12 @@ function readRows(worksheet: Node, sheet: SheetContext, problems: XlsxProblem[])
         )
         continue
       }
+      seen.add(columnIndex)
+      const value = readCell(c, at, sheet, report)
+      if ('f' in c && value.kind !== 'unreadable' && value.kind !== 'empty') formulas.push(at)
+      if (value.kind === 'empty') continue
+      let line = cells.get(rowIndex)
+      if (!line) cells.set(rowIndex, (line = new Map()))
       line.set(columnIndex, value)
     }
   }
@@ -391,7 +390,7 @@ function readCell(c: Node, at: string, sheet: SheetContext, report: Report): Rea
           v ?? '',
         )
       }
-      return { kind: 'string', value: decodeEscapes(richText(c.is)) }
+      return { kind: 'string', value: richText(c.is) }
     case 'str':
       return { kind: 'string', value: decodeEscapes(v!) }
     case 'b':
@@ -410,7 +409,7 @@ function readCell(c: Node, at: string, sheet: SheetContext, report: Report): Rea
       )
     case 'd': {
       const match =
-        /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})?)?$/.exec(
+        /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(\.\d+)?)?(Z|([+-])(\d{2}):(\d{2}))?)?$/.exec(
           v!,
         )
       if (!match || !parseIsoDay(match[1]!)) {
@@ -420,7 +419,7 @@ function readCell(c: Node, at: string, sheet: SheetContext, report: Report): Rea
           v!,
         )
       }
-      if (/[1-9]/.test(v!.slice(10))) timeNotRead(at, report)
+      isoDateTime(match, at, report)
       return { kind: 'date', value: match[1]! }
     }
   }
@@ -461,7 +460,16 @@ function readNumber(
     )
   }
   const value = Number(v)
-  const style = Number(attribute(c, 's') ?? '0')
+  const written = attribute(c, 's') ?? '0'
+  // `Number('')` is 0 and `Number('abc')` is NaN: either would decide the cell's format in silence.
+  if (!/^\d+$/.test(written)) {
+    return unreadable(
+      'xlsx.cell-malformed',
+      `the cell's style ${JSON.stringify(written)} is not a style number, so whether it is a date cannot be told; it was not read.`,
+      v,
+    )
+  }
+  const style = Number(written)
   const format = sheet.formats ? sheet.formats[style] : style === 0 ? 'number' : undefined
   if (format === undefined) {
     report(
@@ -502,13 +510,40 @@ function readNumber(
   return { kind: 'date', value: iso }
 }
 
-function timeNotRead(at: string, report: Report): void {
+function timeNotRead(at: string, report: Report, more = ''): void {
   report(
     'warning',
     'xlsx.date-time-dropped',
-    'the cell holds a date and a time of day; the day was read and the time was not.',
+    `the cell holds a date and a time of day; the day was read and the time was not.${more}`,
     at,
   )
+}
+
+/**
+ * What a `t="d"` cell's time part says beyond its day. Only the time is
+ * tested for a time of day, never the offset (`00:00:00+01:00` is midnight).
+ * An offset is reported when it puts the moment on another day in UTC, since
+ * then which day the writer meant is in doubt; the day as written is read.
+ */
+function isoDateTime(match: RegExpExecArray, at: string, report: Report): void {
+  const [, day, hour = '0', minute = '0', second = '0', fraction = '', offset = ''] = match
+  const hasTime = Number(hour) + Number(minute) + Number(second) > 0 || /[1-9]/.test(fraction)
+  const sign = match[7] === '-' ? -1 : 1
+  const offsetMinutes = sign * (Number(match[8] ?? 0) * 60 + Number(match[9] ?? 0))
+  const utcMinutes = Number(hour) * 60 + Number(minute) - offsetMinutes
+  const shift = utcMinutes < 0 ? 'the day before' : utcMinutes >= 24 * 60 ? 'the day after' : ''
+  const shifted = shift
+    ? ` With its offset ${offset}, that moment is on ${shift} in UTC; the day as written, ${day}, was read.`
+    : ''
+  if (hasTime) timeNotRead(at, report, shifted)
+  else if (shifted) {
+    report(
+      'warning',
+      'xlsx.date-offset-shifts-day',
+      `the cell holds a date at midnight with an offset.${shifted}`,
+      at,
+    )
+  }
 }
 
 type FormatKind = 'number' | 'date' | 'time' | 'unknown'
@@ -561,13 +596,18 @@ export function formatKind(code: string): FormatKind {
   return hasTime ? 'time' : 'number'
 }
 
-/** A shared or inline string: its `<t>`, or its rich-text runs joined. Phonetic guides (`<rPh>`) are not text. */
+/**
+ * A shared or inline string: its `<t>`, or its rich-text runs joined.
+ * Phonetic guides (`<rPh>`) are not text. Each `<t>` is decoded on its own,
+ * before the join: an `_xHHHH_` escape never spans two runs, so `_x00` in one
+ * and `41_` in the next is the text `_x0041_`, not `A`.
+ */
 function richText(node: unknown): string {
-  if (!isNode(node)) return textOf(node) ?? ''
+  if (!isNode(node)) return decodeEscapes(textOf(node) ?? '')
   return (
-    (textOf(node.t) ?? '') +
+    decodeEscapes(textOf(node.t) ?? '') +
     list(node.r)
-      .map((run) => (isNode(run) ? (textOf(run.t) ?? '') : ''))
+      .map((run) => (isNode(run) ? decodeEscapes(textOf(run.t) ?? '') : ''))
       .join('')
   )
 }

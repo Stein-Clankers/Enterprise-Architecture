@@ -18,8 +18,10 @@ import { cellReference, MAX_COLUMNS, MAX_ROWS, type Cell, type Workbook } from '
  * - **Text is escaped twice over:** for XML, and for OOXML's own `_xHHHH_`
  *   escape, which Excel uses for characters XML cannot hold. Text that already
  *   looks like such an escape has its underscore escaped, so it reads back as
- *   written. A carriage return is a character reference, because XML parsers
- *   turn a literal one into a line feed.
+ *   written, including when the escape of the character after it would
+ *   supply the closing underscore (`_x0041` then NUL). A carriage return is
+ *   escaped as `_x000D_`, as Office writes it ([MS-OI29500] §2.1.1747), since
+ *   an XML parser turns a literal one into a line feed.
  * - **The same workbook makes the same bytes**: no timestamps, no generated ids.
  *
  * What it refuses, with an `XlsxWriteError`: a workbook with no sheets, a sheet
@@ -137,11 +139,13 @@ function checkSheetNames(names: readonly string[]): void {
               ? 'starts or ends with an apostrophe'
               : CONTROL.test(name)
                 ? 'contains a control character'
-                : name.toUpperCase() === 'HISTORY'
-                  ? 'is reserved by Excel'
-                  : seen.has(name.toUpperCase())
-                    ? 'is used twice (Excel compares sheet names ignoring case)'
-                    : undefined
+                : NOT_XML.test(name)
+                  ? 'contains a character XML cannot hold (a lone surrogate, U+FFFE or U+FFFF)'
+                  : name.toUpperCase() === 'HISTORY'
+                    ? 'is reserved by Excel'
+                    : seen.has(name.toUpperCase())
+                      ? 'is used twice (Excel compares sheet names ignoring case)'
+                      : undefined
     if (reason) throw new XlsxWriteError(`The sheet name ${JSON.stringify(name)} ${reason}.`)
     seen.add(name.toUpperCase())
   }
@@ -150,6 +154,13 @@ function checkSheetNames(names: readonly string[]): void {
 // Written as escapes: a raw control character in a source file is a hazard of its own.
 // eslint-disable-next-line no-control-regex -- the class is the point
 const CONTROL = /[\u0000-\u001f\u007f]/
+/**
+ * A character XML 1.0 cannot hold that is not a control character. An
+ * attribute has no `_xHHHH_` escape, and `TextEncoder` would write a lone
+ * surrogate as U+FFFD, so a sheet name holding one would not read back.
+ */
+const NOT_XML =
+  /[\ufffe\uffff]|[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/
 
 function sheetXml(
   name: string,
@@ -251,13 +262,24 @@ class SharedStrings {
 }
 
 /**
- * OOXML's `_xHHHH_` escape (the `ST_Xstring` type of ECMA-376) for each
- * character XML 1.0 cannot hold, including an unpaired surrogate, and for the
- * underscore that starts text which already looks like such an escape.
+ * Each character the writer escapes as `_xHHHH_` (the `ST_Xstring` type of
+ * ECMA-376): what XML 1.0 cannot hold, including an unpaired surrogate, and a
+ * carriage return, which Office escapes too ([MS-OI29500] §2.1.1747) and which
+ * an XML parser would otherwise read as a line feed.
  */
-const NEEDS_OOXML_ESCAPE =
-  // eslint-disable-next-line no-control-regex -- the control characters are what is matched
-  /_(?=x[0-9A-Fa-f]{4}_)|[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffe\uffff]|[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/g
+const ESCAPED_CHARACTER = String.raw`[\u0000-\u0008\u000b-\u001f\ufffe\uffff]|[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]`
+
+/**
+ * What the writer escapes: each `ESCAPED_CHARACTER`, and the underscore that
+ * starts text which already looks like an escape. Text looks like one when
+ * `_xHHHH` is followed by an underscore, **or by a character escaped here**,
+ * whose own escape starts with the underscore that would close it: `_x0041`
+ * then NUL would otherwise be written `_x0041_x0000_` and read back as `A`.
+ */
+const NEEDS_OOXML_ESCAPE = new RegExp(
+  `_(?=x[0-9A-Fa-f]{4}(?:_|${ESCAPED_CHARACTER}))|${ESCAPED_CHARACTER}`,
+  'g',
+)
 
 function escapeText(value: string): string {
   return value
@@ -265,7 +287,7 @@ function escapeText(value: string): string {
       NEEDS_OOXML_ESCAPE,
       (ch) => `_x${ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}_`,
     )
-    .replace(/[&<>\r]/g, (ch) => XML_ESCAPES[ch]!)
+    .replace(/[&<>]/g, (ch) => XML_ESCAPES[ch]!)
 }
 
 const XML_ESCAPES: Record<string, string> = {
@@ -273,7 +295,6 @@ const XML_ESCAPES: Record<string, string> = {
   '<': '&lt;',
   '>': '&gt;',
   '"': '&quot;',
-  '\r': '&#13;',
 }
 
 function escapeAttribute(value: string): string {

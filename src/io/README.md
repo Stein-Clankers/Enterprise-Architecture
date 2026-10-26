@@ -55,11 +55,14 @@ technical keys, row 2 the labels.
 **The writer** stores every string as a shared string, so no cell is ever a
 formula: `=SUM(A1)` is text, and text starting with `=`, `+`, `-` or `@` also
 carries Excel's quote prefix, which keeps it text when someone edits the cell.
-Dates are serials with a `yyyy-mm-dd` format. Text is escaped for XML, a carriage
-return as `&#13;` (a parser turns a literal one into a line feed), and for OOXML's
-`_xHHHH_` escape: a character XML cannot hold is escaped that way, and so is the
-underscore of text that already looks like an escape, so `_x000D_` reads back as
-written. The same workbook always makes the same bytes. What Excel would refuse to
+Dates are serials with a `yyyy-mm-dd` format. Text is escaped for XML, and for
+OOXML's `_xHHHH_` escape: a character XML cannot hold is escaped that way, and so
+is a carriage return, as Office writes it (MS-OI29500 §2.1.1747; a parser turns a
+literal one into a line feed). So is the underscore of text that already looks
+like an escape, so `_x000D_` reads back as written; text looks like one also when
+`_xHHHH` is followed by a character the writer escapes, whose escape would supply
+the closing underscore. The reader decodes `_x000D_` and `&#13;` alike, and decodes
+each rich-text run on its own. The same workbook always makes the same bytes. What Excel would refuse to
 open (no sheets, a bad sheet name, a cell outside the grid, a non-finite number,
 an over-long string, a date that is no day) throws `XlsxWriteError`.
 
@@ -77,11 +80,14 @@ with no stored result, a serial that is no day and a time of day become an
 `UnreadableCell`, each with an `XlsxProblem` naming its sheet and cell
 (`xlsx.cell-error`, `xlsx.cell-type-unknown`, `xlsx.cell-malformed`,
 `xlsx.formula-uncached`, `xlsx.date-out-of-range`, `xlsx.time-cell`). A date with
-a time keeps its day (`xlsx.date-time-dropped`); a number whose style is missing
-or whose built-in format depends on Excel's language is read as a number and
-said (`xlsx.style-missing`, `xlsx.number-format-unknown`). A row or cell
-reference that places nothing, a cell held twice, and a chart sheet are reported
-too. Formula cells read as their stored result, said once per sheet. A file that
+a time keeps its day (`xlsx.date-time-dropped`), and so does an ISO date whose
+offset puts it on another day in UTC (`xlsx.date-offset-shifts-day`); a number
+whose style is missing or whose built-in format depends on Excel's language is
+read as a number and said (`xlsx.style-missing`, `xlsx.number-format-unknown`),
+and one whose style index is not a number is unreadable. A row or cell
+reference that places nothing, a cell held twice (the second copy is not read
+at all, so it adds nothing to a tally), and a chart sheet are reported too. A
+bare `<row/>` or `<c/>` with no reference still takes its place. Formula cells read as their stored result, said once per sheet. A file that
 cannot be read (a damaged archive, a missing part, a part that is not XML)
 yields no workbook at all: a sheet missing from a workbook would read as
 columns to leave untouched.
