@@ -180,6 +180,7 @@ function describeElementUpdate(before: Element, after: Element): string {
     changed.push('properties')
   }
   if (JSON.stringify(before.profile) !== JSON.stringify(after.profile)) changed.push('assessment')
+  if (JSON.stringify(before.plan) !== JSON.stringify(after.plan)) changed.push('plan')
   const what = changed.length ? changed.join(', ') : 'element'
   return `Updated ${what} of “${after.name}”`
 }

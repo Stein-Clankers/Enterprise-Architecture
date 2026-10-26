@@ -78,6 +78,7 @@ import {
 } from './profile-properties'
 import { LEGEND_FEATURE, parseLegendFeature } from './legend-feature'
 import { setKey } from './records'
+import { foldPlans } from './plan-exchange'
 import { ARCHI_NAMESPACE, isArchiNamespace, rootUnreadable, xmlRoot } from './xml-root'
 
 /**
@@ -430,6 +431,9 @@ export function importArchimate(xml: string, file?: string): ImportResult {
     countConversions(member, reader)
   }
 
+  // Before views: a drawing of a folded site plan's Work Package is reported there (#209).
+  const plans = foldPlans(elements, relationships, reader)
+
   const diagrams = members.filter((member) => classify(member.type) === 'diagram')
   const modelNames = new Map(
     members.map((member) => [
@@ -464,8 +468,10 @@ export function importArchimate(xml: string, file?: string): ImportResult {
 
   const viewIds = new Set(diagrams.map((member) => asString(member.raw['@id'])).filter(isString))
   const context: ViewContext = {
-    elements: new Map(elements.map((element) => [element.id, element])),
-    relationships: relationshipsById,
+    elements: new Map(plans.elements.map((element) => [element.id, element])),
+    relationships: new Map(
+      plans.relationships.map((relationship) => [relationship.id, relationship]),
+    ),
     viewIds,
     modelNames,
     reader,
@@ -512,8 +518,8 @@ export function importArchimate(xml: string, file?: string): ImportResult {
     id: asString(model['@id']) || 'ws-imported',
     name: asString(model['@name']) || 'Imported model',
     schemaVersion: SCHEMA_VERSION,
-    elements,
-    relationships,
+    elements: plans.elements,
+    relationships: plans.relationships,
     views,
     folders,
     reports: reports ?? [],

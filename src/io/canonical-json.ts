@@ -33,6 +33,7 @@ import {
   readFolders,
   readViews,
 } from './canonical-views'
+import { canonicalPlan, readElementPlan } from './canonical-plans'
 
 /**
  * Canonical JSON — the native format (concept §5.3 item 1).
@@ -280,6 +281,7 @@ function canonicalElement(element: Element): Record<string, unknown> {
     junctionKind: element.junctionKind === DEFAULT_JUNCTION_KIND ? undefined : element.junctionKind,
     properties: emptyToUndefined(element.properties),
     profile: element.profile ? prune({ ...element.profile }) : undefined,
+    plan: element.plan && canonicalPlan(element.plan),
     folder: element.folder,
   })
 }
@@ -411,6 +413,10 @@ function readElement(
     const { profile, dropped } = readPortfolioProfile(candidate.profile)
     if (profile) element.profile = profile
     reportDroppedProfileFields('Element', id, dropped, problems, where)
+  }
+  if (candidate.plan !== undefined) {
+    const plan = readElementPlan(candidate.plan, element, problems, where)
+    if (plan) element.plan = plan
   }
   return element
 }

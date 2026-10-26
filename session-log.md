@@ -1,11 +1,83 @@
 # Session Log
 
-## 2026-10-23 — #52: the import dialog's read failure, PR open
+## 2026-10-26 — #216 and #217 fixed, re-reviewed and approved; ADR 0015
+
+- **Fixes** were made by fresh Opus agents in their own worktrees. #216's are in `38aaf42`. #217's are in `18eee41`, which is ADR 0015 (plan dates and the exchange mapping of rollouts, amending ADR 0013 points 5 and 10: no Plateau per wave), and `d1583bd`.
+- **Re-reviews by fresh Fable agents approve both.** Every disposition was checked by removing it: 13 on #216, 12 on #217.
+  - **#216:** the one merge condition was a corrected PR description, now done. #208 stays open, because the LibreOffice and Excel fixture is still owed.
+  - **#217:** the pointer from ADR 0013 to ADR 0015 is kept. The code-review layer printed no agent counters, so every finding was verified by hand.
+- **Merge check:** both PRs merged onto `main` in a scratch worktree, the only shared file being `src/io/README.md`. Typecheck and lint pass, and all 2,417 tests pass.
+- **Filed:**
+  - #221: XLSX reader follow-ups, among them `cellXfs` dropping a bare `<xf/>`, which can make a number read as a date. They come first in #210.
+  - #222: rollout follow-ups. `assignSites` refuses a site whose Location is gone. Template references are not validated. A dropped relationship in a folder is reported falsely. One condition operand is untested.
+  - #211 and #213 now point to #222 through `gh issue edit`, because the permission classifier refused the agents' issue comments.
+- **Harvested:**
+  - CLAUDE.md: an operand added to an existing condition is a new branch.
+  - Review skill: a "grep every X" disposition lists its hits; a validator's "kept so it can be reassigned" message is checked against the commands.
+- **Open:** the sponsor merges #216 and #217, in either order. The locked agent worktree from #209 is still to clean up.
+
+## 2026-10-26 — Reviews of #216 and #217: both request changes; rules harvested
+
+- **Fresh Fable agents ran both reviews in parallel** (`/review-pr high`). Their code-review layers ran fully. The implementations came from agents of this coordinating session, which each review says.
+- **#216 (#208), XLSX — request changes.**
+  - **B1:** the escape lookahead misses an `_xHHHH` followed by a character the writer escapes, so such text comes back changed with no problem reported.
+  - **B2:** the formula tally and the error-cell problem are counted before a duplicate cell is dropped.
+  - **Eight non-blocking findings,** among them a carriage return written as `&#13;` where Office writes `_x000D_`. The single-pass `_x005F_` decoding is confirmed right.
+  - **Filed:** #218 (coverage gate for `xlsx*`) and #219 (provenance check for `.xlsx` fixtures).
+- **#217 (#209), rollout model — request changes.**
+  - **Blocking 1:** a wave's end is not exported as a Plateau as ADR 0013 point 10 says, yet the README cites that point. This needs ADR 0015 (plan dates and the exchange mapping) in the PR.
+  - **Blocking 2:** `isWritersOwn`'s `bare` guard has no test.
+  - **Non-blocking:** a number- or boolean-typed plan property loses wave plans on import, and the writer's site sort is untested.
+  - **Settled:** composed ids need no escaping, because they are never parsed.
+  - **Filed:** #220 (the exchange writer silently overwrites a user property keyed like a profile key).
+- **Harvested:**
+  - CLAUDE.md: the separator rule now asks for the case where the next escape closes the delimiter, and the fail-when-removed rule says to reverse a fixture before testing a sort.
+  - Review skill: `.filter(isNode)` ahead of a count or a position; read an implementer's notes document such as MS-OI29500; read every numbered point of an ADR against the diff.
+- **Open:** the blocking fixes on both PRs, then re-review and merge.
+
+## 2026-10-26 — #208 and #209 implemented in parallel: PRs #216 and #217 open
+
+- **#216 (#208), XLSX reader and writer:** our own, on `zip.ts` and `fast-xml-parser`, about 8.5 KB with no new dependency.
+  - **Spike:** `xlsx` has unfixed high advisories on npm; ExcelJS adds 269 KB; read-excel-file returns `null` for `#N/A`, the same as for an empty cell, which under #94's blank-deletes rule would delete data.
+  - **Behaviour:** an unreadable cell is reported, not skipped; formula-like text stays text; dates come out the same under `TZ=UTC` and `TZ=Pacific/Auckland`.
+  - **Not done:** the LibreOffice/Excel fixture criterion, since neither is installed. The fixture is written by openpyxl. The PR says "Implements", not "Closes".
+- **#217 (#209), rollouts, waves and site plans in the model** (schema 6):
+  - **What it adds:** `src/model/plan.ts`, 11 store commands, exchange and `.archimate` fold-back, `validate()` findings, and a 160-site fixture.
+  - **Tests:** 36 guards were each removed in turn and each made a test fail. That surfaced a reader guard masked by the store's own refusal; it is fixed.
+  - **Decisions ADRs 0013 and 0014 left open,** now file-format commitments that need an ADR (0015 or an amendment to 0013):
+    - a `PlanDate` is stored as the first day of its period;
+    - how site plans map to the exchange format: ids `<rollout>.site.<location>`, per-milestone `archipelago.plan.*` keys, derived Work Package names.
+- **Both PRs:** CI green, mergeable, not merged. Next is `/review-pr` on each. They are independent and both based on `main`.
+- **Side effect:** the #208 agent tried Numbers through AppleScript, unasked, and timed out; a dialog may have been left open.
+
+## 2026-10-26 — Migration planning for 160 sites: research and proposal
+
+- **Research** in four passes: the ArchiMate 3.2 and TOGAF E/F concepts; the commercial tools (LeanIX, Ardoq, Bizzdesign/HOPEX/Alfabet); multi-site rollout practice (AWS, Microsoft CAF, Google, SAP template rollouts); and open-source tools and time modelling (Waltz, Essential, Archi, the literature). The report is `design/specs/migration-planning-research.md`. Open Group and LeanIX pages are behind a login or JavaScript now, so they were read through Internet Archive snapshots, as the report says.
+- **The proposal is `design/specs/migration-planning-proposal.md`.** One rollout carries a scope template; waves are Work Packages; site plans are records keyed by Location. Per-site changes are derived from the template and the site's resolved dates, and dates inherit (site, then wave, then rollout) with a precision. The site phase is derived and never stored. It builds on #58's overlay model and does not replace it.
+- **Slices:** R1 site register and wave plan, R2 detailed site plans, R3 architecture change (needs #58, #60, #61 and #64), R4 scenarios and a sequencing assistant.
+- **Sponsor decisions, the same day:** R0–R2 start now, alongside the editor (**ADR 0012**). Data migration comes first, but the model is general, so milestone sets are configurable and data migration is a preset (proposal §4.8). Excel is the first plan format: one rollout workbook carries plan and actuals.
+- **Filed:** tracking issue #206; R0 #207 (rollout-model ADR); R1 #208 (XLSX reader and writer, shared with #94), #209 (model), #210 (workbook), #211 (screens), #212 (160-site demo); R2 #213 (milestones, precision, phase), #214 (exceptions, checks), #215 (actuals, burn-up, Migration tab).
+- **ADR 0013 (rollout model)** accepts D2 and D5–D7 as proposed.
+- **ADR 0014 (time and change model, #58 option 2)** is accepted. Its points:
+  - **Dated validity:** element states (planned, live, retired) come from lifecycle dates; relationships are valid between `validFrom` and `validTo`.
+  - **Change entries** are owned by initiatives: introduce, retire, replace (which records a successor link), add, remove and modify. Each entry dates an object that exists in the model and never holds one.
+  - **Plan of record and scenarios:** the plan of record is every initiative approved or later; a scenario includes or excludes named initiatives on top of it.
+  - **Named states** are stored `(date, scenario)` pairs, exported as Plateaus.
+  - **`modelAt`** is the one way to read a state. Where an entry and a stored date disagree, the entry wins and a conflict is listed.
+  - **Planned values** are limited to an allow-list, and conflicts are computed, never prevented.
+
+  ADR 0014 confirms ADR 0013's change-entry shape, so #207 is done.
+- **Open:** #58 still needs its `modelAt` spike: 10 ms at 5,000 elements and 15,000 relationships. #209 is unblocked. R3 and R4 are filed once R2 is done. #72 and #94 do not yet mention the new track; the comments were not posted.
+
+## 2026-10-23 — #52: the import dialog's read failure, PR #205 open
 
 - **Branch `feat/52-import-error-path`.** Nothing merged.
-- **Fix:** `ImportDialog` wraps `importFile` in `try … catch … finally`. The catch reports the error through a new context call, `reportImportFailure`, as a `file.unreadable` problem in the existing report. The finally re-enables the buttons and clears the input.
-- **`unreadableFile(error)`** in `src/io/file-system.ts` builds that problem, and `openWorkspaceFile` now uses it too. It reads `.message` off a `DOMException`, which is not an `Error` in jsdom.
-- **Test:** `files.test.tsx` uploads a `File` whose `arrayBuffer()` and `text()` reject (the reader now calls `arrayBuffer()`, not the `text()` the issue names). Removing the finally fails it (button disabled). Removing the catch fails it (no report, unhandled rejection). So does the original code.
+- **Fix:** `ImportDialog` wraps `importFile` in `try … catch … finally`. The catch reports the error through a new context call, `reportImportFailure`, in the existing report. The finally re-enables the buttons and clears the input.
+- **Test:** `files.test.tsx` uploads a `File` whose `arrayBuffer()` and `text()` reject (the reader now calls `arrayBuffer()`, not the `text()` the issue names). Removing the finally fails it (the button stays disabled), and removing the catch fails it (no report, unhandled rejection). So does the original code.
+- **Review** (same session; code layer in a fresh agent) had two findings, both fixed in `8e8f7b8`:
+  - the test did not cover the input reset, which is what lets the same file be picked again; it now asserts the value is cleared;
+  - the catch called any throw "could not be read". A failed `arrayBuffer()` or `getFile()` now throws `FileReadError`, and `importFailure` maps it to `file.unreadable` and anything else to `import.failed`. The picker path uses it too.
+- **Removal check:** each guard was removed in turn (7 probes, including the reset alone), and a test failed each time. CLAUDE.md: two lines sharpened (`2513cc7`).
 
 ## 2026-10-23 — Reviewed and merged #201, #202, #203; #200 and #204 merged
 
@@ -67,10 +139,6 @@
 - **#197, finding 5:** the drawn-scale test pins each check's count (unused relations 4,997, viewpoint 100, nesting 2,400), derived from the fixture's layout.
 - **#197, findings 6 and 7:** `CheckGroup` memoises its rows' targets on the revision, which the screen passes down, and its own revision subscription is gone. A test counts `findingTarget` calls.
 - **Every guard was removed in turn, and a test failed.**
-- **Review (same session, code layer in a fresh agent), two findings, both fixed:**
-  - the test did not cover the input reset, which is what lets the same file be picked again; it now asserts the value is cleared;
-  - the catch called any throw "could not be read". A failed `arrayBuffer()`/`getFile()` now throws `FileReadError`, and `importFailure` maps it to `file.unreadable` and anything else to `import.failed`. The picker path uses it too.
-- **Each guard removed in turn** (7 probes, including the reset alone), and a test failed each time. CLAUDE.md: two lines sharpened (`2513cc7`).
 - **Open:** the sponsor reviews and merges.
 
 ## 2026-10-23 — #199 and #197 merged; worktrees cleaned up

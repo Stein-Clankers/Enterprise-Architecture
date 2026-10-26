@@ -1,7 +1,7 @@
 import { deflateRawSync } from 'node:zlib'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { fixtureBytes } from '@/test/fixture-bytes'
-import { crc32, readZipDirectory, readZipEntry, ZipError, type ZipFault } from './zip'
+import { crc32, readZipDirectory, readZipEntry, writeZip, ZipError, type ZipFault } from './zip'
 
 /**
  * The zip reader is resilience code (#97): every branch but the first runs only
@@ -308,5 +308,36 @@ describe('every way an archive can be outside what the reader reads (#97)', () =
     vi.unstubAllGlobals()
     // Present again: the same archive reads.
     await expect(fault(single())).rejects.toThrow('no fault')
+  })
+})
+
+describe('writing an archive (#208)', () => {
+  it('stores each entry so the reader reads it back, checksum and all, in the same bytes every time', async () => {
+    const entries = [
+      { name: '[Content_Types].xml', data: new TextEncoder().encode('<Types/>') },
+      { name: 'xl/empty.xml', data: new Uint8Array() },
+      { name: 'xl/bytes.bin', data: new Uint8Array([0, 255, 80, 75, 5, 6]) },
+    ]
+    const bytes = writeZip(entries)
+    const directory = readZipDirectory(bytes)
+    expect(
+      directory.map(({ name, method, size, compressedSize }) => ({
+        name,
+        method,
+        size,
+        compressedSize,
+      })),
+    ).toEqual(
+      entries.map(({ name, data }) => ({
+        name,
+        method: 0,
+        size: data.length,
+        compressedSize: data.length,
+      })),
+    )
+    for (const [i, entry] of directory.entries()) {
+      expect([...(await readZipEntry(bytes, entry))]).toEqual([...entries[i]!.data])
+    }
+    expect(writeZip(entries)).toEqual(bytes)
   })
 })

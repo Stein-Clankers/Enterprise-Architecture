@@ -9,6 +9,7 @@ import { LIFECYCLE_PHASES } from './profile'
 import { parseLifecycleDate } from './lifecycle'
 import type { Workspace } from './workspace'
 import { validateViewsAndFolders } from './validate-views'
+import { planFindings } from './validate-plans'
 
 /**
  * Whole-model validation. Findings are structured rather than thrown so the UI
@@ -223,6 +224,7 @@ export function integrityFindings(
   }
 
   validateViewsAndFolders(workspace, findings)
+  planFindings(workspace, elementsById, findings)
 
   if (workspace.schemaVersion <= 0) {
     findings.push({

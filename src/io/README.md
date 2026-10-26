@@ -9,6 +9,8 @@ git-friendly files are what LeanIX does not give you. Concept reference: §5.3.
 | `canonical-views.ts`                       | views and folders in the native format, and their repairs on read         |
 | `exchange-format.ts`                       | Open Group ArchiMate Model Exchange Format, in and out                    |
 | `profile-properties.ts`                    | how the portfolio profile survives an exchange round trip                 |
+| `canonical-plans.ts`                       | rollout and wave plans in the native format, and the readers both formats share |
+| `plan-exchange.ts`                         | rollouts, waves and site plans in the exchange format, and folding them back |
 | `json-schema.ts`                           | the published schema, built from the metamodel                            |
 | `demo.ts`, `demo/archisurance.xml`         | the bundled demo workspace                                                |
 | `fixtures/junction-flow.xml`               | a junction chain as a certified tool writes it                            |
@@ -28,6 +30,78 @@ git-friendly files are what LeanIX does not give you. Concept reference: §5.3.
 | `fixtures/view-objects-edited.*`           | those edited here, and Archi's save and export of our file: the #127 oracle for #134 |
 | `legend-feature.ts`                        | a legend's options in Archi's own `legend` feature spelling, read as Archi reads it |
 | `problems.ts`                              | structured import problems                                                |
+| `xlsx.ts`, `xlsx-read.ts`, `xlsx-write.ts` | spreadsheets: a format-neutral workbook, read from and written to `.xlsx` (#208) |
+| `xlsx-dates.ts`                            | Excel's date serials and ISO days, in whole days with no time zone        |
+| `fixtures/openpyxl-sample.xlsx`            | a workbook as openpyxl 3.1.5 wrote it (`scripts/fixtures/xlsx-with-openpyxl.py`) |
+
+## Spreadsheets (#208)
+
+The rollout workbook (#210, ADR 0012) and the inventory's Excel round trip (#94)
+read and write `.xlsx` through one small layer of our own. A spike (October
+2026) weighed the npm `xlsx` package (0.18.5, last published 2022, with a
+high-severity prototype-pollution and a ReDoS advisory and no fix on npm, about
+141 KB minified and gzipped), ExcelJS (about 269 KB, last stable release 2023, a
+moderate advisory through `uuid`) and read-/write-excel-file (about 35 KB
+together, maintained). read-excel-file 9.3.12 reads openpyxl's fixture with the
+`#N/A` cell and the never-calculated formula as `null`, exactly as it reads an
+empty cell, and says nothing, which #94's blank-deletes rule cannot live with.
+Ours is about 8.5 KB, `zip.ts` included, on `fast-xml-parser`, which the bundle
+already has, and fetches nothing.
+
+**The shape** (`xlsx.ts`) is a list of sheets, each a list of rows of typed
+cells: string, number, boolean, date (an ISO day) or empty. Rows are ragged and
+trimmed: a row ends at its last cell holding something, and `cellAt` reads past
+the end as empty. `tableRows` lays out a table sheet as #94 does: row 1 holds the
+technical keys, row 2 the labels.
+
+**The writer** stores every string as a shared string, so no cell is ever a
+formula: `=SUM(A1)` is text, and text starting with `=`, `+`, `-` or `@` also
+carries Excel's quote prefix, which keeps it text when someone edits the cell.
+Dates are serials with a `yyyy-mm-dd` format. Text is escaped for XML, and for
+OOXML's `_xHHHH_` escape: a character XML cannot hold is escaped that way, and so
+is a carriage return, as Office writes it (MS-OI29500 §2.1.1747; a parser turns a
+literal one into a line feed). So is the underscore of text that already looks
+like an escape, so `_x000D_` reads back as written; text looks like one also when
+`_xHHHH` is followed by a character the writer escapes, whose escape would supply
+the closing underscore. The reader decodes `_x000D_` and `&#13;` alike, and decodes
+each rich-text run on its own. The same workbook always makes the same bytes. What Excel would refuse to
+open (no sheets, a bad sheet name, a cell outside the grid, a non-finite number,
+an over-long string, a date that is no day) throws `XlsxWriteError`.
+
+**Dates have no time zone.** A serial converts to a day with integer arithmetic
+and no `Date`, in the 1900 system (with Lotus's 1900-02-29, which the reader
+refuses) or the 1904 system, as the workbook says. A number is a date when its
+format is: one of Excel's built-in date ids, or a custom code with date tokens
+once quoted text, colours and `AM/PM` are taken out. `xlsx-dates.test.ts` runs
+the conversion in Node processes started under `TZ=UTC` and
+`TZ=Pacific/Auckland`, and the whole reader under each zone in turn.
+
+**Nothing unreadable is read as empty**, because to #94 an empty cell deletes a
+value. An error cell (`#N/A`), an unknown cell type, a malformed value, a formula
+with no stored result, a serial that is no day and a time of day become an
+`UnreadableCell`, each with an `XlsxProblem` naming its sheet and cell
+(`xlsx.cell-error`, `xlsx.cell-type-unknown`, `xlsx.cell-malformed`,
+`xlsx.formula-uncached`, `xlsx.date-out-of-range`, `xlsx.time-cell`). A date with
+a time keeps its day (`xlsx.date-time-dropped`), and so does an ISO date whose
+offset puts it on another day in UTC (`xlsx.date-offset-shifts-day`); a number
+whose style is missing or whose built-in format depends on Excel's language is
+read as a number and said (`xlsx.style-missing`, `xlsx.number-format-unknown`),
+and one whose style index is not a number is unreadable. A row or cell
+reference that places nothing, a cell held twice (the second copy is not read
+at all, so it adds nothing to a tally), and a chart sheet are reported too. A
+bare `<row/>` or `<c/>` with no reference still takes its place. Formula cells read as their stored result, said once per sheet. A file that
+cannot be read (a damaged archive, a missing part, a part that is not XML)
+yields no workbook at all: a sheet missing from a workbook would read as
+columns to leave untouched.
+
+Presentation is not read: styles beyond the number format, widths, merges,
+comments, and phonetic guides on East Asian text.
+
+**Fixtures.** `openpyxl-sample.xlsx` is openpyxl's own output, written by
+`scripts/fixtures/xlsx-with-openpyxl.py`; re-run it, never edit the file. #208's
+acceptance asks for a fixture saved by LibreOffice headless as well, which needs
+LibreOffice on the machine that makes it; until then no file here claims to be
+Excel's or LibreOffice's.
 
 ## Shared folders (#147)
 
@@ -287,6 +361,51 @@ the first character for `[` is a guess, and it was wrong for a tag spelled like
 the escaped form (`["a"]` came back as the single tag `a`; `[]` took
 `profile.tags` with it). One function, `asTagArray`, decides — and the writer
 refuses the comma form for anything the reader would take as JSON.
+
+## Rollouts, waves and site plans (#209)
+
+**Canonical JSON.** A rollout's or wave's plan is the element's `plan`. The
+milestone set and the template keep their author's order, because the order
+means something; archetypes and blackouts are sorted by id and site plans by
+location id (proposal §8). A plan is read part by part: a malformed milestone
+must not cost a rollout its 160 site plans, so each unreadable part is dropped
+and named in one `json.invalid-plan` problem. Only a field the plan cannot
+exist without (a rollout's template version, a wave's rollout, label, order or
+template version) drops the whole plan, and that is reported too.
+
+**Exchange format** (ADR 0015, which amends ADR 0013 point 10: a wave's
+window travels as two properties, and no Plateau is written for it):
+
+| Plan object | Written as |
+|---|---|
+| Rollout | its own Work Package; `archipelago.plan.kind` and `templateVersion` as properties, the milestone set, template, constraints and archetypes as canonical JSON, one property each |
+| Wave | its own Work Package; label, order, window, capacity and template version as properties, a window end as `2027-Q2` or `2027-W19` |
+| Site plan | a Work Package only the file holds, aggregated by its wave (or by the rollout when unassigned) and associated with its Location; each field a property, each milestone under `archipelago.plan.milestone.<id>`, each actual under `archipelago.plan.actual.<id>`, the notes as its documentation |
+
+A site plan's Work Package and its two relationships get ids derived from the
+rollout's and the Location's, claimed like every other xs:ID, so the same model
+writes the same file, and the file's ids are written into the plan's
+references when an id had to be rewritten. They are never parsed: a reader
+recognises a site plan by `archipelago.plan.kind = site` alone. Plan
+properties are declared `string`, since `2027-Q2` is no `xs:date`; where a
+carried `propertyTypes` declares one `number` or `boolean`, the readers read
+the value's text, which is what was written. Both readers fold them back
+(`foldPlans`), before views and folders are read. What a fold cannot put back
+is reported, never dropped quietly: a plan value it cannot read stays an
+ordinary property (`exchange.plan-unreadable`), as an unreadable profile key
+does; a site plan's Work Package with no rollout in the file, or a second one
+for a Location, stays a Work Package (`exchange.plan-site-unfolded`);
+whatever another tool added to one (a property, an assessment, a new name) is
+named (`exchange.plan-site-content-dropped`), and so is a relationship drawn to
+one, or one of the writer's own given a name or a property
+(`exchange.plan-relationship-dropped`). A site plan's Work Package or
+relationship filed in a folder is folded, and the filing is reported with one
+code from both readers (`exchange.plan-folder-ignored`). On the way out, a site plan whose
+Location or wave is gone is still written, with its ids in its properties, and
+said (`exchange.plan-location-missing`, `exchange.plan-wave-missing`).
+
+`npm run validate:xsd` validates a 160-site rollout as written and as it comes
+back out of a round trip.
 
 ## Import problems are data, not exceptions
 

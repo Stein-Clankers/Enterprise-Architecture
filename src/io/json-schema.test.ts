@@ -98,6 +98,32 @@ describe('published JSON Schema', () => {
     expect(validate(workspace('xor'))).toBe(false)
   })
 
+  it('accepts a plan on a Work Package, and rejects the same plan on any other element', () => {
+    const validate = validator()
+    const workspace = (type: string) => ({
+      schemaVersion: 6,
+      id: 'ws',
+      name: 'W',
+      elements: [
+        {
+          id: 'w1',
+          type,
+          name: 'Wave 1',
+          plan: { kind: 'wave', rollout: 'r', label: 'W1', order: 1, templateVersion: 1 },
+        },
+      ],
+      relationships: [],
+    })
+    expect(validate(workspace('WorkPackage')), JSON.stringify(validate.errors)).toBe(true)
+    expect(validate(workspace('Location'))).toBe(false)
+    expect(validate.errors).toContainEqual(
+      expect.objectContaining({
+        instancePath: '/elements/0/type',
+        params: { allowedValue: 'WorkPackage' },
+      }),
+    )
+  })
+
   it('requires the fields an agent would need to write a valid file', () => {
     const validate = validator()
     expect(validate({ id: 'ws', name: 'W' })).toBe(false)
