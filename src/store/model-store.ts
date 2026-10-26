@@ -9,6 +9,9 @@ import {
   elementsInView,
   relationshipsInView,
   removeConnections,
+  rolloutPlanOf,
+  wavePlanOf,
+  wavesOf,
   removeNodes,
   viewsReferencedBy,
   withoutElement,
@@ -475,9 +478,12 @@ export class ModelStore {
    * undoable command.
    */
   removeElement(id: string): void {
-    // One element is one command; none when there is no such element.
-    const [command] = this.removalCommands([id])
-    if (command) this.dispatch(command)
+    // One step, whatever it cascades to; none when there is no such element.
+    // A plan element's cascade is more than one command (#222).
+    const commands = this.removalCommands([id])
+    const [only] = commands
+    if (commands.length === 1 && only) this.dispatch(only)
+    else if (commands.length) this.dispatch({ kind: 'batch', commands })
   }
 
   /**
@@ -496,10 +502,21 @@ export class ModelStore {
    * first, but a connection the validator would flag (drawn between the wrong
    * nodes) can draw a relationship in a view that does not draw its element,
    * and must not outlive it either.
+   *
+   * **Plans cascade too** (#222), so no caller can leave a plan dangling: a
+   * rollout takes its waves with it, and a wave going unassigns its sites in
+   * its rollout, in an update that comes first in the list, unless that
+   * rollout is going as well. Without this, Delete on a wave's fact sheet left
+   * every site of it pointing at a wave that no longer existed.
    */
   removalCommands(ids: Iterable<string>): Command[] {
+    const requested = new Set(ids)
+    for (const id of [...requested]) {
+      if (!rolloutPlanOf(this.#elements.get(id))) continue
+      for (const wave of wavesOf(this.#elements.values(), id)) requested.add(wave.id)
+    }
     const elements: Element[] = []
-    for (const id of new Set(ids)) {
+    for (const id of requested) {
       const element = this.#elements.get(id)
       if (element) elements.push(element)
     }
@@ -525,12 +542,49 @@ export class ModelStore {
         after = withoutRelationship(after, relationshipId) ?? after
       return after === view ? undefined : after
     })
-    return removals.map(({ element, cascaded }, index): Command => ({
-      kind: 'remove-element',
-      element,
-      cascaded,
-      ...(index === 0 && cascadedViews.length ? { cascadedViews } : {}),
-    }))
+    return [
+      ...this.#unassignCommands(elements, requested),
+      ...removals.map(({ element, cascaded }, index): Command => ({
+        kind: 'remove-element',
+        element,
+        cascaded,
+        ...(index === 0 && cascadedViews.length ? { cascadedViews } : {}),
+      })),
+    ]
+  }
+
+  /**
+   * One update per rollout that keeps sites in a wave among `elements`,
+   * taking those sites out of it. The sites stay in the rollout with their
+   * dates (ADR 0015 point 6). A rollout that is itself going needs none.
+   */
+  #unassignCommands(elements: Element[], going: Set<string>): Command[] {
+    const byRollout = new Map<string, Set<string>>()
+    for (const element of elements) {
+      const wave = wavePlanOf(element)
+      if (!wave || going.has(wave.rollout)) continue
+      const waves = byRollout.get(wave.rollout) ?? new Set<string>()
+      waves.add(element.id)
+      byRollout.set(wave.rollout, waves)
+    }
+    const commands: Command[] = []
+    for (const [rolloutId, waves] of byRollout) {
+      const rollout = this.#elements.get(rolloutId)
+      const plan = rolloutPlanOf(rollout)
+      if (!rollout || !plan) continue
+      if (!plan.sites.some((site) => site.wave !== undefined && waves.has(site.wave))) continue
+      const sites = plan.sites.map((site) => {
+        if (site.wave === undefined || !waves.has(site.wave)) return site
+        const { wave: _, ...rest } = site
+        return rest
+      })
+      commands.push({
+        kind: 'update-element',
+        before: rollout,
+        after: { ...rollout, plan: { ...plan, sites } },
+      })
+    }
+    return commands
   }
 
   addRelationship(relationship: Relationship): Relationship {
