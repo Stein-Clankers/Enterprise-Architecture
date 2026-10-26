@@ -86,7 +86,15 @@ a time keeps its day (`xlsx.date-time-dropped`), and so does an ISO date whose
 offset puts it on another day in UTC (`xlsx.date-offset-shifts-day`); a number
 whose style is missing or whose built-in format depends on Excel's language is
 read as a number and said (`xlsx.style-missing`, `xlsx.number-format-unknown`),
-and one whose style index is not a number is unreadable. A row or cell
+and one whose style index is not a number, or whose style names a number format
+that is no id, has no code or is not defined, is unreadable (#221). A bare
+`<xf/>` keeps its place among the styles. An element written twice where the
+schema allows one (two `<v>`, two `<t>`) makes the cell unreadable rather than
+empty. A date before 1900-03-01, the first day the writer writes, is unreadable
+too, so whatever reads can be written back. A workbook that lists no sheets, or
+a sheet with no name, is not read at all. Relationship targets are
+percent-decoded, and sheet names compare case one character at a time, so `Maß`
+and `MASS` are two names. A row or cell
 reference that places nothing, a cell held twice (the second copy is not read
 at all, so it adds nothing to a tally), and a chart sheet are reported too. A
 bare `<row/>` or `<c/>` with no reference still takes its place. Formula cells read as their stored result, said once per sheet. A file that
