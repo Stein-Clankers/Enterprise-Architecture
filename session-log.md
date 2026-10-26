@@ -1,5 +1,21 @@
 # Session Log
 
+## 2026-10-26 — #216 and #217 fixed, re-reviewed and approved; ADR 0015
+
+- **Fixes** were made by fresh Opus agents in their own worktrees. #216's are in `38aaf42`. #217's are in `18eee41`, which is ADR 0015 (plan dates and the exchange mapping of rollouts, amending ADR 0013 points 5 and 10: no Plateau per wave), and `d1583bd`.
+- **Re-reviews by fresh Fable agents approve both.** Every disposition was checked by removing it: 13 on #216, 12 on #217.
+  - **#216:** the one merge condition was a corrected PR description, now done. #208 stays open, because the LibreOffice and Excel fixture is still owed.
+  - **#217:** the pointer from ADR 0013 to ADR 0015 is kept. The code-review layer printed no agent counters, so every finding was verified by hand.
+- **Merge check:** both PRs merged onto `main` in a scratch worktree, the only shared file being `src/io/README.md`. Typecheck and lint pass, and all 2,417 tests pass.
+- **Filed:**
+  - #221: XLSX reader follow-ups, among them `cellXfs` dropping a bare `<xf/>`, which can make a number read as a date. They come first in #210.
+  - #222: rollout follow-ups. `assignSites` refuses a site whose Location is gone. Template references are not validated. A dropped relationship in a folder is reported falsely. One condition operand is untested.
+  - #211 and #213 now point to #222 through `gh issue edit`, because the permission classifier refused the agents' issue comments.
+- **Harvested:**
+  - CLAUDE.md: an operand added to an existing condition is a new branch.
+  - Review skill: a "grep every X" disposition lists its hits; a validator's "kept so it can be reassigned" message is checked against the commands.
+- **Open:** the sponsor merges #216 and #217, in either order. The locked agent worktree from #209 is still to clean up.
+
 ## 2026-10-26 — Reviews of #216 and #217: both request changes; rules harvested
 
 - **Fresh Fable agents ran both reviews in parallel** (`/review-pr high`). Their code-review layers ran fully. The implementations came from agents of this coordinating session, which each review says.
