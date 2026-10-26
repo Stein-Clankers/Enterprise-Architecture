@@ -1,5 +1,24 @@
 # Session Log
 
+## 2026-10-26 — Reviews of #216 and #217: both request changes; rules harvested
+
+- **Fresh Fable agents ran both reviews in parallel** (`/review-pr high`). Their code-review layers ran fully. The implementations came from agents of this coordinating session, which each review says.
+- **#216 (#208), XLSX — request changes.**
+  - **B1:** the escape lookahead misses an `_xHHHH` followed by a character the writer escapes, so such text comes back changed with no problem reported.
+  - **B2:** the formula tally and the error-cell problem are counted before a duplicate cell is dropped.
+  - **Eight non-blocking findings,** among them a carriage return written as `&#13;` where Office writes `_x000D_`. The single-pass `_x005F_` decoding is confirmed right.
+  - **Filed:** #218 (coverage gate for `xlsx*`) and #219 (provenance check for `.xlsx` fixtures).
+- **#217 (#209), rollout model — request changes.**
+  - **Blocking 1:** a wave's end is not exported as a Plateau as ADR 0013 point 10 says, yet the README cites that point. This needs ADR 0015 (plan dates and the exchange mapping) in the PR.
+  - **Blocking 2:** `isWritersOwn`'s `bare` guard has no test.
+  - **Non-blocking:** a number- or boolean-typed plan property loses wave plans on import, and the writer's site sort is untested.
+  - **Settled:** composed ids need no escaping, because they are never parsed.
+  - **Filed:** #220 (the exchange writer silently overwrites a user property keyed like a profile key).
+- **Harvested:**
+  - CLAUDE.md: the separator rule now asks for the case where the next escape closes the delimiter, and the fail-when-removed rule says to reverse a fixture before testing a sort.
+  - Review skill: `.filter(isNode)` ahead of a count or a position; read an implementer's notes document such as MS-OI29500; read every numbered point of an ADR against the diff.
+- **Open:** the blocking fixes on both PRs, then re-review and merge.
+
 ## 2026-10-26 — #208 and #209 implemented in parallel: PRs #216 and #217 open
 
 - **#216 (#208), XLSX reader and writer:** our own, on `zip.ts` and `fast-xml-parser`, about 8.5 KB with no new dependency.
