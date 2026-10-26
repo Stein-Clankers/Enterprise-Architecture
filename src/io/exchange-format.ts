@@ -71,6 +71,14 @@ import {
   stripProfileKeys,
 } from './profile-properties'
 import { isArchiNamespace, rootUnreadable, xmlRoot } from './xml-root'
+import {
+  foldPlans,
+  planToProperties,
+  reportFoldedFiling,
+  sitePlanExports,
+  type PlanElementOut,
+  type PlanRelationshipOut,
+} from './plan-exchange'
 
 /**
  * The Open Group ArchiMate Model Exchange File Format (concept §5.3 item 2).
@@ -204,7 +212,19 @@ export function exportExchange(workspace: Workspace): ExchangeExportResult {
   const problems: ImportProblem[] = []
   const ids = exchangeIdentifiers(workspace, problems)
   const modelProperties = modelLevelProperties(workspace)
-  const definitions = collectPropertyDefinitions(workspace, modelProperties, ids, problems)
+  // Site plans are records, so their Work Packages exist only in the file (#209).
+  const planned = sitePlanExports(workspace, ids, problems)
+  // A rollout's or wave's plan as properties, worked out once for both passes below.
+  const planProperties = new Map(
+    workspace.elements.map((element) => [element, planToProperties(element.plan, ids.of)]),
+  )
+  const definitions = collectPropertyDefinitions(
+    workspace,
+    modelProperties,
+    { ...planned, planProperties },
+    ids,
+    problems,
+  )
   const lang = writtenLanguage(workspace, problems)
   const lines: string[] = []
 
@@ -224,7 +244,11 @@ export function exportExchange(workspace: Workspace): ExchangeExportResult {
   if (workspace.elements.length) {
     lines.push('  <elements>')
     for (const element of workspace.elements) {
-      const properties = { ...element.properties, ...profileToProperties(element.profile) }
+      const properties = {
+        ...element.properties,
+        ...profileToProperties(element.profile),
+        ...planProperties.get(element),
+      }
       lines.push(
         `    <element identifier="${attr(ids.of(element.id))}" xsi:type="${attr(exchangeType(element))}">`,
       )
@@ -237,6 +261,7 @@ export function exportExchange(workspace: Workspace): ExchangeExportResult {
       lines.push(...propertyLines(properties, definitions, lang, 6))
       lines.push('    </element>')
     }
+    for (const site of planned.elements) lines.push(...sitePlanLines(site, definitions, lang))
     lines.push('  </elements>')
   }
 
@@ -254,7 +279,7 @@ export function exportExchange(workspace: Workspace): ExchangeExportResult {
     return false
   })
 
-  if (relationships.length) {
+  if (relationships.length || planned.relationships.length) {
     lines.push('  <relationships>')
     for (const relationship of relationships) {
       const properties = {
@@ -274,6 +299,9 @@ export function exportExchange(workspace: Workspace): ExchangeExportResult {
       }
       lines.push(...propertyLines(properties, definitions, lang, 6))
       lines.push('    </relationship>')
+    }
+    for (const relationship of planned.relationships) {
+      lines.push(...sitePlanRelationshipLines(relationship))
     }
     lines.push('  </relationships>')
   }
@@ -336,6 +364,34 @@ export function exportExchange(workspace: Workspace): ExchangeExportResult {
 
   lines.push('</model>')
   return { xml: `${lines.join('\n')}\n`, problems }
+}
+
+/** A site plan's Work Package (#209): an element only the file holds. */
+function sitePlanLines(
+  site: PlanElementOut,
+  definitions: Map<string, PropertyDefinition>,
+  lang: string,
+): string[] {
+  const lines = [
+    `    <element identifier="${attr(site.id)}" xsi:type="WorkPackage">`,
+    `      <name xml:lang="${lang}">${text(site.name)}</name>`,
+  ]
+  if (site.documentation) {
+    lines.push(
+      `      <documentation xml:lang="${lang}">${text(site.documentation)}</documentation>`,
+    )
+  }
+  lines.push(...propertyLines(site.properties, definitions, lang, 6))
+  lines.push('    </element>')
+  return lines
+}
+
+/** A relationship the writer adds for a site plan; its ids are the file's already. */
+function sitePlanRelationshipLines(relationship: PlanRelationshipOut): string[] {
+  return [
+    `    <relationship identifier="${attr(relationship.id)}" source="${attr(relationship.source)}" target="${attr(relationship.target)}" xsi:type="${relationship.type}">`,
+    '    </relationship>',
+  ]
 }
 
 /**
@@ -505,6 +561,10 @@ function propertyLines(
 function collectPropertyDefinitions(
   workspace: Workspace,
   modelProperties: Record<string, PropertyValue>,
+  planned: {
+    elements: readonly PlanElementOut[]
+    planProperties: ReadonlyMap<Element, Record<string, string>>
+  },
   ids: ExchangeIdentifiers,
   problems: ImportProblem[],
 ): Map<string, PropertyDefinition> {
@@ -521,7 +581,9 @@ function collectPropertyDefinitions(
   for (const element of workspace.elements) {
     remember(element.properties)
     remember(profileToProperties(element.profile))
+    remember(planned.planProperties.get(element) ?? {})
   }
+  for (const site of planned.elements) remember(site.properties)
   for (const relationship of workspace.relationships) {
     remember(relationship.properties)
     remember(relationshipProfileToProperties(relationship.profile))
@@ -753,6 +815,9 @@ export function importExchangeXml(xml: string, file?: string): ImportResult {
     relationships.push(relationship)
   }
 
+  // Before views and folders: a drawing of a folded Work Package is reported there.
+  const plans = foldPlans(elements, relationships, reader)
+
   const modelProperties = readProperties(model, reader, false)
   const reports =
     carried(modelProperties[REPORTS_KEY], isReportDefinition, 'saved reports', reader) ??
@@ -762,19 +827,23 @@ export function importExchangeXml(xml: string, file?: string): ImportResult {
   reportForeignModelProperties(modelProperties, problems, where)
 
   const views = readViews(model, {
-    elements: new Map(elements.map((element) => [element.id, element])),
-    relationships: new Map(relationships.map((relationship) => [relationship.id, relationship])),
+    elements: new Map(plans.elements.map((element) => [element.id, element])),
+    relationships: new Map(
+      plans.relationships.map((relationship) => [relationship.id, relationship]),
+    ),
     readProperties: (raw) => readProperties(raw, reader),
     problems,
     where,
     ledger,
   })
-  const { folders, membership } = readOrganizations(
-    model,
-    memberGroups(elements, relationships, views),
-    problems,
-    where,
-    ledger,
+  // A folded site plan's Work Package is filed nowhere now, which is said once below.
+  const groups = memberGroups(plans.elements, plans.relationships, views)
+  for (const id of plans.foldedElements) groups.set(id, 'implementation')
+  for (const id of plans.foldedRelationships) groups.set(id, 'relations')
+  const { folders, membership } = readOrganizations(model, groups, problems, where, ledger)
+  reportFoldedFiling(
+    [...plans.foldedElements, ...plans.foldedRelationships].filter((id) => membership.has(id)),
+    reader,
   )
   const fileIn = <T extends { id: string; folder?: string }>(item: T): T => {
     const folder = membership.get(item.id)
@@ -800,8 +869,8 @@ export function importExchangeXml(xml: string, file?: string): ImportResult {
     id: asString(model['@identifier']) || 'ws-imported',
     name: langString(model.name) || 'Imported model',
     schemaVersion: SCHEMA_VERSION,
-    elements: elements.map(fileIn),
-    relationships: relationships.map(fileIn),
+    elements: plans.elements.map(fileIn),
+    relationships: plans.relationships.map(fileIn),
     views: views.map(fileIn),
     folders,
     reports: reports ?? [],

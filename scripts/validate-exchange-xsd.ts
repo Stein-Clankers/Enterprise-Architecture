@@ -27,6 +27,7 @@ import { importArchimate } from '../src/io/archimate-native'
 import { exportExchange, importExchangeXml } from '../src/io/exchange-format'
 import type { Workspace } from '../src/model'
 import { drawnWorkspace } from '../src/test/fixtures'
+import { rolloutWorkspace } from '../src/test/rollout-fixture'
 
 const XSD_BASE = 'https://www.opengroup.org/xsd/archimate/3.1/'
 /** The Diagram schema includes View, which includes Model; all three sit together. */
@@ -208,6 +209,19 @@ targets.push({ label: 'declared currency/date/time/number types, re-exported', p
   const awkwardPath = join(work, 'awkward-views.xml')
   writeFileSync(awkwardPath, exportExchange(awkward).xml)
   targets.push({ label: 'views the writer had to shift, round and flatten', path: awkwardPath })
+}
+
+// A rollout of 160 sites (#209): the rollout and its waves as Work Packages,
+// and a Work Package per site plan, aggregated by its wave and associated with
+// its Location, written by us and then as it comes back out of a round trip.
+{
+  const rolloutPath = join(work, 'rollout.xml')
+  const { xml } = exportExchange(rolloutWorkspace(160))
+  writeFileSync(rolloutPath, xml)
+  targets.push({ label: '160-site rollout, written by us', path: rolloutPath })
+  const againPath = join(work, 'rollout-round-tripped.xml')
+  writeFileSync(againPath, exportExchange(imported(xml, 'rollout.xml')).xml)
+  targets.push({ label: '160-site rollout, round-tripped', path: againPath })
 }
 
 // Directed associations and influence modifiers (#84), read from what Archi

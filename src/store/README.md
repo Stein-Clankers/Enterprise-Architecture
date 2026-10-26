@@ -8,6 +8,7 @@ and the React binding. Concept reference: `design/specs/open-ea-repository-conce
 | ------------------------ | -------------------------------------------------------------------- |
 | `model-store.ts`         | the graph: id maps, adjacency indexes, undo/redo, dirty counter      |
 | `commands.ts`            | the command type, its inverse, and its human description             |
+| `rollouts.ts`            | rollout, wave and site-plan commands, each one undo step (#209)      |
 | `persistence.ts`         | IndexedDB via `idb` — snapshots, rolling generations, workspace list |
 | `autosave.ts`            | debounced idle-scheduled writes from a live store                    |
 | `tab-lock.ts`            | Web Locks writer election + BroadcastChannel takeover                |

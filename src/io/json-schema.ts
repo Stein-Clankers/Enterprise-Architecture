@@ -1,6 +1,10 @@
 import {
   ACCESS_TYPES,
   BUSINESS_CRITICALITY_LABELS,
+  CHANGE_KINDS,
+  MILESTONE_PHASES,
+  PLAN_DATE_PRECISIONS,
+  SITE_RAGS,
   ELEMENT_TYPE_NAMES,
   FOLDER_ROOTS,
   FONT_STYLES,
@@ -111,9 +115,17 @@ export function buildWorkspaceJsonSchema(): Record<string, unknown> {
           },
           properties: { $ref: '#/$defs/properties' },
           profile: { $ref: '#/$defs/portfolioProfile' },
+          plan: { $ref: '#/$defs/plan' },
           folder: { $ref: '#/$defs/folderRef' },
         },
+        allOf: [
+          {
+            if: { required: ['plan'] },
+            then: { properties: { type: { const: 'WorkPackage' } } },
+          },
+        ],
       },
+      ...planDefinitions(),
       relationship: {
         type: 'object',
         required: ['id', 'type', 'source', 'target'],
@@ -410,6 +422,201 @@ export function buildWorkspaceJsonSchema(): Record<string, unknown> {
             },
           },
         },
+      },
+    },
+  }
+}
+
+/**
+ * Rollouts, waves and site plans (#209, ADR 0013). Each object is closed
+ * (`additionalProperties: false`), as the model's guards are strict.
+ */
+function planDefinitions(): Record<string, unknown> {
+  const id = { type: 'string', minLength: 1 }
+  const positive = { type: 'integer', minimum: 1 }
+  const isoDay = { type: 'string', format: 'date', pattern: '^\\d{4}-\\d{2}-\\d{2}$' }
+  return {
+    plan: {
+      description:
+        "A Work Package's plan profile: a rollout with its site plans, or one of its waves. Only a Work Package carries one.",
+      oneOf: [{ $ref: '#/$defs/rolloutPlan' }, { $ref: '#/$defs/wavePlan' }],
+    },
+    planDate: {
+      type: 'object',
+      description:
+        'A date with a precision. date is the first day of the period: of the quarter or month, the Monday of the ISO week, or the day itself.',
+      required: ['date', 'precision'],
+      additionalProperties: false,
+      properties: { date: isoDay, precision: { enum: [...PLAN_DATE_PRECISIONS] } },
+    },
+    anchoredDate: {
+      type: 'object',
+      description: 'A milestone of the rollout plus whole days; negative is before it.',
+      required: ['anchor', 'offsetDays'],
+      additionalProperties: false,
+      properties: { anchor: id, offsetDays: { type: 'integer' } },
+    },
+    rolloutPlan: {
+      type: 'object',
+      required: ['kind', 'templateVersion'],
+      additionalProperties: false,
+      properties: {
+        kind: { const: 'rollout' },
+        templateVersion: positive,
+        milestones: {
+          type: 'array',
+          description: 'Ordered: the site phase is derived walking them in this order.',
+          items: { $ref: '#/$defs/milestone' },
+        },
+        template: {
+          type: 'array',
+          description: 'The scope template: change entries written relative to a site, in order.',
+          items: { $ref: '#/$defs/templateChange' },
+        },
+        constraints: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            blackouts: { type: 'array', items: { $ref: '#/$defs/blackout' } },
+            defaultCapacity: positive,
+          },
+        },
+        archetypes: { type: 'array', items: { $ref: '#/$defs/archetype' } },
+        sites: {
+          type: 'array',
+          description: 'One plan per Location, sorted by location id.',
+          items: { $ref: '#/$defs/sitePlan' },
+        },
+      },
+    },
+    wavePlan: {
+      type: 'object',
+      required: ['kind', 'rollout', 'label', 'order', 'templateVersion'],
+      additionalProperties: false,
+      properties: {
+        kind: { const: 'wave' },
+        rollout: { ...id, description: 'id of the rollout Work Package that aggregates the wave' },
+        label: { type: 'string' },
+        order: { type: 'integer' },
+        window: {
+          type: 'object',
+          additionalProperties: false,
+          properties: { start: { $ref: '#/$defs/planDate' }, end: { $ref: '#/$defs/planDate' } },
+        },
+        capacity: { ...positive, description: 'Maximum number of sites.' },
+        templateVersion: {
+          ...positive,
+          description: 'The template version the wave is locked to.',
+        },
+      },
+    },
+    milestone: {
+      type: 'object',
+      required: ['id', 'label', 'startsPhase'],
+      additionalProperties: false,
+      properties: { id, label: { type: 'string' }, startsPhase: { enum: [...MILESTONE_PHASES] } },
+    },
+    templateChange: {
+      type: 'object',
+      description:
+        'A change entry (ADR 0014): it dates something in the model, here relative to each site it applies to.',
+      required: ['id', 'kind', 'subject', 'date', 'applicability'],
+      additionalProperties: false,
+      properties: {
+        id,
+        kind: { enum: [...CHANGE_KINDS] },
+        subject: { ...id, description: 'id of the element or relationship it dates' },
+        successor: {
+          ...id,
+          description: "kind 'replace': id of the element that replaces subject",
+        },
+        field: { enum: ['functionalFit', 'technicalFit', 'timeClassification'] },
+        value: {
+          description: "kind 'modify': the planned value of field",
+          oneOf: [{ type: 'integer', minimum: 1, maximum: 4 }, { enum: [...TIME_CLASSIFICATIONS] }],
+        },
+        date: { oneOf: [{ $ref: '#/$defs/planDate' }, { $ref: '#/$defs/anchoredDate' }] },
+        applicability: {
+          oneOf: [
+            {
+              type: 'object',
+              required: ['kind'],
+              additionalProperties: false,
+              properties: { kind: { const: 'all' } },
+            },
+            {
+              type: 'object',
+              required: ['kind', 'archetypes'],
+              additionalProperties: false,
+              properties: {
+                kind: { const: 'archetypes' },
+                archetypes: { type: 'array', minItems: 1, uniqueItems: true, items: id },
+              },
+            },
+            {
+              type: 'object',
+              required: ['kind', 'element'],
+              additionalProperties: false,
+              properties: { kind: { const: 'aggregating' }, element: id },
+            },
+          ],
+        },
+      },
+      allOf: [
+        {
+          if: { properties: { kind: { const: 'replace' } } },
+          then: { required: ['successor'] },
+          else: { not: { required: ['successor'] } },
+        },
+        {
+          if: { properties: { kind: { const: 'modify' } } },
+          then: { required: ['field', 'value'] },
+          else: { not: { anyOf: [{ required: ['field'] }, { required: ['value'] }] } },
+        },
+      ],
+    },
+    archetype: {
+      type: 'object',
+      required: ['id', 'label'],
+      additionalProperties: false,
+      properties: {
+        id,
+        label: { type: 'string' },
+        durations: {
+          type: 'object',
+          description: 'Default days from the previous milestone, by milestone id.',
+          additionalProperties: { type: 'integer', minimum: 0 },
+        },
+      },
+    },
+    blackout: {
+      type: 'object',
+      description: 'A period no cutover should fall in, both days inclusive.',
+      required: ['id', 'start', 'end'],
+      additionalProperties: false,
+      properties: { id, label: { type: 'string' }, start: isoDay, end: isoDay },
+    },
+    sitePlan: {
+      type: 'object',
+      description: "One Location's plan within its rollout.",
+      required: ['location'],
+      additionalProperties: false,
+      properties: {
+        location: { ...id, description: 'id of the Location element' },
+        wave: { ...id, description: 'id of a wave of the same rollout; absent is unassigned' },
+        archetype: { ...id, description: 'id of an archetype of the rollout' },
+        milestones: {
+          type: 'object',
+          description: 'Planned dates that override the inherited ones, by milestone id.',
+          additionalProperties: { $ref: '#/$defs/planDate' },
+        },
+        actuals: {
+          type: 'object',
+          description: 'The day each milestone was actually reached, by milestone id.',
+          additionalProperties: isoDay,
+        },
+        rag: { enum: [...SITE_RAGS] },
+        notes: { type: 'string', minLength: 1 },
       },
     },
   }

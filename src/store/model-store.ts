@@ -475,32 +475,62 @@ export class ModelStore {
    * undoable command.
    */
   removeElement(id: string): void {
-    const element = this.#elements.get(id)
-    if (!element) return
-    const cascaded = this.relationshipsOf(id)
-    // Every view drawing the element or one of the relationships going with it.
-    // Normally the second set is inside the first, but a connection the validator
-    // would flag (drawn between the wrong nodes) can draw a relationship in a
-    // view that does not draw its element, and must not outlive it either.
-    const touched = new Set(this.#indexes.viewsByElement.get(id))
-    for (const relationship of cascaded) {
-      for (const viewId of this.#indexes.viewsByRelationship.get(relationship.id) ?? []) {
+    // One element is one command; none when there is no such element.
+    const [command] = this.removalCommands([id])
+    if (command) this.dispatch(command)
+  }
+
+  /**
+   * The commands that delete several elements together, worked out but not
+   * dispatched, so a caller can put them in one batch with its own (#209: a
+   * wave goes, and its sites are unassigned, in one step).
+   *
+   * Each element carries the relationships it cascades, each relationship
+   * once even when it joins two of the elements going, so undo restores it
+   * once. The drawings come off every view in one change per view, carried by
+   * the first command: two changes to one view, each worked out from the view
+   * as it stands now, would each put back what the other took away.
+   *
+   * The views touched are every view drawing one of the elements or one of
+   * the relationships going with them. Normally the second set is inside the
+   * first, but a connection the validator would flag (drawn between the wrong
+   * nodes) can draw a relationship in a view that does not draw its element,
+   * and must not outlive it either.
+   */
+  removalCommands(ids: Iterable<string>): Command[] {
+    const elements: Element[] = []
+    for (const id of new Set(ids)) {
+      const element = this.#elements.get(id)
+      if (element) elements.push(element)
+    }
+    const taken = new Set<string>()
+    const removals = elements.map((element) => {
+      const cascaded = this.relationshipsOf(element.id).filter((r) => !taken.has(r.id))
+      for (const relationship of cascaded) taken.add(relationship.id)
+      return { element, cascaded }
+    })
+    const touched = new Set<string>()
+    for (const { element } of removals) {
+      for (const viewId of this.#indexes.viewsByElement.get(element.id) ?? []) touched.add(viewId)
+    }
+    for (const relationshipId of taken) {
+      for (const viewId of this.#indexes.viewsByRelationship.get(relationshipId) ?? []) {
         touched.add(viewId)
       }
     }
     const cascadedViews = this.#viewChanges(touched, (view) => {
-      let after = withoutElement(view, id) ?? view
-      for (const relationship of cascaded) {
-        after = withoutRelationship(after, relationship.id) ?? after
-      }
+      let after = view
+      for (const { element } of removals) after = withoutElement(after, element.id) ?? after
+      for (const relationshipId of taken)
+        after = withoutRelationship(after, relationshipId) ?? after
       return after === view ? undefined : after
     })
-    this.dispatch({
+    return removals.map(({ element, cascaded }, index): Command => ({
       kind: 'remove-element',
       element,
       cascaded,
-      ...(cascadedViews.length ? { cascadedViews } : {}),
-    })
+      ...(index === 0 && cascadedViews.length ? { cascadedViews } : {}),
+    }))
   }
 
   addRelationship(relationship: Relationship): Relationship {
