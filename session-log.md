@@ -1,5 +1,15 @@
 # Session Log
 
+## 2026-10-26 — Migration planning for 160 sites: research and proposal
+
+- **Research** in four passes: the ArchiMate 3.2 and TOGAF E/F concepts; the commercial tools (LeanIX, Ardoq, Bizzdesign/HOPEX/Alfabet); multi-site rollout practice (AWS, Microsoft CAF, Google, SAP template rollouts); and open-source tools and time modelling (Waltz, Essential, Archi, the literature). The report is `design/specs/migration-planning-research.md`. Open Group and LeanIX pages are behind a login or JavaScript now, so they were read through Internet Archive snapshots, as the report says.
+- **The proposal is `design/specs/migration-planning-proposal.md`.** One rollout carries a scope template; waves are Work Packages; site plans are records keyed by Location. Per-site changes are derived from the template and the site's resolved dates, and dates inherit (site, then wave, then rollout) with a precision. The site phase is derived and never stored. It builds on #58's overlay model and does not replace it.
+- **Slices:** R1 site register and wave plan, R2 detailed site plans, R3 architecture change (needs #58, #60, #61 and #64), R4 scenarios and a sequencing assistant.
+- **Sponsor decisions, the same day:** R0–R2 start now, alongside the editor (**ADR 0012**). Data migration comes first, but the model is general, so milestone sets are configurable and data migration is a preset (proposal §4.8). Excel is the first plan format: one rollout workbook carries plan and actuals.
+- **Filed:** tracking issue #206; R0 #207 (rollout-model ADR); R1 #208 (XLSX reader and writer, shared with #94), #209 (model), #210 (workbook), #211 (screens), #212 (160-site demo); R2 #213 (milestones, precision, phase), #214 (exceptions, checks), #215 (actuals, burn-up, Migration tab).
+- **ADR 0013 (rollout model)** accepts D2 and D5–D7 as proposed. #207 stays open until the #58 ADR confirms the change-entry shape.
+- **Open:** The #58 ADR is now a prerequisite of #209. R3 and R4 are filed once R2 is done. #72 and #94 do not yet mention the new track; the comments were not posted.
+
 ## 2026-10-23 — Reviewed and merged #201, #202, #203; #200 and #204 merged
 
 - **#200 (#195) and #204 (#198) merged** after their review fixes. Branches deleted.

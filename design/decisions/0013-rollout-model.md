@@ -1,0 +1,50 @@
+---
+adr: '0013'
+title: 'Rollout model: one template, waves, and site plans keyed by location'
+date: 2026-10-26
+status: Accepted
+scope: project
+tags: [transformation, rollout, model, archimate]
+---
+
+# ADR 0013 — Rollout model: one template, waves, and site plans keyed by location
+
+## Context
+
+ADR 0012 starts multi-site rollout planning (#206) alongside the editor. The model it needs is laid out in `design/specs/migration-planning-proposal.md` §3–§4 and §8. The proposal's §11 left four points for this ADR: D2, D5, D6 and D7. The sponsor accepted all four as proposed on 2026-10-26 (#207).
+
+The research behind the proposal (`migration-planning-research.md`) found that no EA tool has a first-class site wave. ArchiMate 3.2 gives a plateau no dates. ArchiMate 4 removes Gap and Implementation Event (ADR 0011).
+
+## Decision
+
+1. **A rollout is a Work Package** with a plan profile of `kind: 'rollout'`. It carries:
+   - a scope template;
+   - a template version;
+   - an ordered milestone set;
+   - constraints: blackouts and default capacity;
+   - archetypes.
+2. **A wave is a Work Package aggregated by its rollout.** It carries a label, an order, a window, a capacity and the template version it is locked to.
+3. **Site plans are records inside the rollout, keyed by Location id** (D2), not Work Package elements. A Location can have one plan in each rollout it belongs to. On exchange export each site plan becomes a Work Package, aggregated by its wave and associated with its Location.
+4. **The template is written once, and per-site changes are derived.** A template change is a change entry relative to a site. It has an anchor milestone plus an offset, and an applicability rule. A site stores only its deviations from the template, as exceptions classed `legal`, `operational` or `preference`.
+5. **Dates inherit and carry a precision.** A site milestone resolves from the site, else its wave, else its rollout. A `PlanDate` is `{ date, precision }`, with precision one of quarter, month, week or day. The UI shows whether each date is set or inherited.
+6. **The site phase is derived, never stored.** It is the phase started by the last milestone reached, with actual dates taking precedence over planned ones. This is the lifecycle rule of ADR UI-3. The phase set is fixed: Unplanned, Planned, Preparing, Cutover, Hypercare, Migrated and Done. Milestone sets are data. A preset (generic, data migration, later others) is a milestone set plus defaults, never code.
+7. **No map view in R1–R3** (D5). Map tiles would be a runtime fetch. Sites are grouped by their region hierarchy instead.
+8. **Site fields start as interim properties** (D6) under `archipelago.site.*`, handled as `profile-properties.ts` handles the portfolio profile. A `migrate.ts` step moves them to #70's custom fields when #70 lands.
+9. **Site phases reuse the lifecycle ramp** (D7):
+
+   | Site phase | Token |
+   |---|---|
+   | Unplanned | neutral ink |
+   | Planned | `--lc-plan` |
+   | Preparing, Cutover, Hypercare | `--lc-in` |
+   | Migrated, Done | `--lc-act` |
+
+   No new tokens.
+10. **What the exchange format carries.** Rollout, waves and site plans travel as Work Packages. A wave's end travels as a Plateau. Milestones and plan fields travel as namespaced `archipelago.plan.*` properties. The template and exceptions travel as canonical JSON in a property. Implementation Event and Gap are not used. Anything the exchange cannot carry is reported, never dropped.
+
+## Consequences
+
+- **The change-entry shape in point 4 is provisional until the #58 ADR is written.** If the two differ, one is amended in the same PR, so the rollout's template changes are #60's change entries from the start.
+- **Data migration is not special in code.** It is a preset of milestones plus its own checks (proposal §4.8).
+- **Hiding work packages:** 160 site plans add no elements to the inventory, but an exchange export holds one Work Package per site plan. A model re-imported from Archi has to recognise them by their `archipelago.plan.*` properties and fold them back into records. The reader reports any it cannot match.
+- **Migrating the site fields:** when #70 lands, its migration has a test that moves `archipelago.site.*` properties to custom fields byte-stably.
