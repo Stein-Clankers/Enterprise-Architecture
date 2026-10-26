@@ -1,5 +1,20 @@
 # Session Log
 
+## 2026-10-26 — #208 and #209 implemented in parallel: PRs #216 and #217 open
+
+- **#216 (#208), XLSX reader and writer:** our own, on `zip.ts` and `fast-xml-parser`, about 8.5 KB with no new dependency.
+  - **Spike:** `xlsx` has unfixed high advisories on npm; ExcelJS adds 269 KB; read-excel-file returns `null` for `#N/A`, the same as for an empty cell, which under #94's blank-deletes rule would delete data.
+  - **Behaviour:** an unreadable cell is reported, not skipped; formula-like text stays text; dates come out the same under `TZ=UTC` and `TZ=Pacific/Auckland`.
+  - **Not done:** the LibreOffice/Excel fixture criterion, since neither is installed. The fixture is written by openpyxl. The PR says "Implements", not "Closes".
+- **#217 (#209), rollouts, waves and site plans in the model** (schema 6):
+  - **What it adds:** `src/model/plan.ts`, 11 store commands, exchange and `.archimate` fold-back, `validate()` findings, and a 160-site fixture.
+  - **Tests:** 36 guards were each removed in turn and each made a test fail. That surfaced a reader guard masked by the store's own refusal; it is fixed.
+  - **Decisions ADRs 0013 and 0014 left open,** now file-format commitments that need an ADR (0015 or an amendment to 0013):
+    - a `PlanDate` is stored as the first day of its period;
+    - how site plans map to the exchange format: ids `<rollout>.site.<location>`, per-milestone `archipelago.plan.*` keys, derived Work Package names.
+- **Both PRs:** CI green, mergeable, not merged. Next is `/review-pr` on each. They are independent and both based on `main`.
+- **Side effect:** the #208 agent tried Numbers through AppleScript, unasked, and timed out; a dialog may have been left open.
+
 ## 2026-10-26 — Migration planning for 160 sites: research and proposal
 
 - **Research** in four passes: the ArchiMate 3.2 and TOGAF E/F concepts; the commercial tools (LeanIX, Ardoq, Bizzdesign/HOPEX/Alfabet); multi-site rollout practice (AWS, Microsoft CAF, Google, SAP template rollouts); and open-source tools and time modelling (Waltz, Essential, Archi, the literature). The report is `design/specs/migration-planning-research.md`. Open Group and LeanIX pages are behind a login or JavaScript now, so they were read through Internet Archive snapshots, as the report says.
