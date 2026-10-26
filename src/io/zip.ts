@@ -1,5 +1,6 @@
 /**
- * Just enough of the zip format to open an Archi model saved with images (#97):
+ * Just enough of the zip format to open an Archi model saved with images (#97)
+ * and a spreadsheet, and to write one (`writeZip`, #208):
  * the central directory, and stored or deflated entries, inflated by the
  * browser's own `DecompressionStream('deflate-raw')`. No dependency, and
  * nothing is fetched.
@@ -266,3 +267,78 @@ export function crc32(bytes: Uint8Array): number {
   for (const byte of bytes) c = CRC_TABLE[(c ^ byte) & 0xff]! ^ (c >>> 8)
   return (c ^ 0xffffffff) >>> 0
 }
+
+export interface ZipInput {
+  /** ASCII, as every part name in a workbook is. */
+  name: string
+  data: Uint8Array
+}
+
+/**
+ * An archive of `entries`, each stored uncompressed (#208). Storing keeps the
+ * writer synchronous and dependency-free; every spreadsheet tool reads stored
+ * entries, and a workbook of a few hundred rows stays small. Every timestamp is
+ * the zip epoch (1980-01-01 00:00), so the same entries always make the same
+ * bytes.
+ */
+export function writeZip(entries: readonly ZipInput[]): Uint8Array {
+  const encoder = new TextEncoder()
+  const parts: Uint8Array[] = []
+  const centrals: Uint8Array[] = []
+  let offset = 0
+  for (const entry of entries) {
+    const name = encoder.encode(entry.name)
+    const crc = crc32(entry.data)
+    const local = new Uint8Array(LOCAL_SIZE + name.length)
+    const l = new DataView(local.buffer)
+    l.setUint32(0, LOCAL_SIGNATURE, true)
+    l.setUint16(4, 20, true) // version needed: 2.0
+    l.setUint16(6, 0x0800, true) // names are UTF-8
+    l.setUint16(8, 0, true) // stored
+    l.setUint16(10, 0, true) // time 00:00
+    l.setUint16(12, DOS_EPOCH_DATE, true)
+    l.setUint32(14, crc, true)
+    l.setUint32(18, entry.data.length, true)
+    l.setUint32(22, entry.data.length, true)
+    l.setUint16(26, name.length, true)
+    local.set(name, LOCAL_SIZE)
+    const central = new Uint8Array(CENTRAL_SIZE + name.length)
+    const c = new DataView(central.buffer)
+    c.setUint32(0, CENTRAL_SIGNATURE, true)
+    c.setUint16(4, 20, true)
+    c.setUint16(6, 20, true)
+    c.setUint16(8, 0x0800, true)
+    c.setUint16(10, 0, true)
+    c.setUint16(12, 0, true)
+    c.setUint16(14, DOS_EPOCH_DATE, true)
+    c.setUint32(16, crc, true)
+    c.setUint32(20, entry.data.length, true)
+    c.setUint32(24, entry.data.length, true)
+    c.setUint16(28, name.length, true)
+    c.setUint32(42, offset, true)
+    central.set(name, CENTRAL_SIZE)
+    parts.push(local, entry.data)
+    centrals.push(central)
+    offset += local.length + entry.data.length
+  }
+  const directorySize = centrals.reduce((n, central) => n + central.length, 0)
+  const end = new Uint8Array(END_SIZE)
+  const e = new DataView(end.buffer)
+  e.setUint32(0, END_SIGNATURE, true)
+  e.setUint16(8, entries.length, true)
+  e.setUint16(10, entries.length, true)
+  e.setUint32(12, directorySize, true)
+  e.setUint32(16, offset, true)
+  const out = new Uint8Array(offset + directorySize + END_SIZE)
+  let at = 0
+  for (const part of [...parts, ...centrals, end]) {
+    out.set(part, at)
+    at += part.length
+  }
+  // No ZIP64: a workbook has a handful of entries, and one over 4 GB could not
+  // be built in a browser tab to begin with.
+  return out
+}
+
+/** 1980-01-01 in MS-DOS date format: day 1, month 1, year 0. */
+const DOS_EPOCH_DATE = (0 << 9) | (1 << 5) | 1

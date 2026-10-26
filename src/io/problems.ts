@@ -34,13 +34,17 @@ export interface ImportResult {
   ok: boolean
 }
 
-export function problem(
+/**
+ * A problem of any kind that extends `ImportProblem` and adds only optional
+ * fields, such as the spreadsheet reader's `XlsxProblem` with its sheet and cell.
+ */
+export function problem<P extends ImportProblem = ImportProblem>(
   severity: ProblemSeverity,
   code: string,
   message: string,
-  extra: Omit<ImportProblem, 'severity' | 'code' | 'message'> = {},
-): ImportProblem {
-  return { severity, code, message, ...extra }
+  extra: Omit<P, 'severity' | 'code' | 'message'> = {} as Omit<P, 'severity' | 'code' | 'message'>,
+): P {
+  return { severity, code, message, ...extra } as P
 }
 
 export function failed(problems: ImportProblem[]): ImportResult {
