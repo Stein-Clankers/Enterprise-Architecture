@@ -111,6 +111,25 @@ describe('reading plans from canonical JSON (#209)', () => {
     ])
   })
 
+  it('drops a second plan for a Location whole, and names none of its fields as lost from the first', () => {
+    const { workspace, problems } = fromCanonicalJson(
+      json((raw) =>
+        rawPlan(raw, ROLLOUT_ID).sites.push({ location: siteId(1), rag: 'blue', wave: '' }),
+      ),
+    )
+    const plan = rolloutOf(workspace!)!
+    expect(plan.sites).toHaveLength(12)
+    expect(plan.sites.find((site) => site.location === siteId(1))?.wave).toBe(waveId(0))
+    expect(problems).toEqual([
+      expect.objectContaining({
+        code: 'json.invalid-plan',
+        message: expect.stringContaining(
+          `has 1 part that could not be read and was dropped: sites[12], a second plan for "${siteId(1)}"`,
+        ),
+      }),
+    ])
+  })
+
   it('reads empty notes as no notes, which is the same model', () => {
     const text = json((raw) => (rawPlan(raw, ROLLOUT_ID).sites[0]!.notes = ''))
     const { workspace, problems } = fromCanonicalJson(text)
@@ -287,6 +306,31 @@ describe('reading plans from exchange XML (#209)', () => {
     ])
   })
 
+  it.each([
+    ['a name', '<name xml:lang="en">contains</name>'],
+    ['documentation', '<documentation xml:lang="en">Added in Archi.</documentation>'],
+    ['a property', `<properties>${property(EXPORTED, 'owner', 'PMO')}</properties>`],
+  ])('drops, and reports, the writer’s own Aggregation once someone gave it %s', (_, added) => {
+    const own = `${SITE_WP(3)}.in`
+    const start = EXPORTED.indexOf(`<relationship identifier="${own}"`)
+    expect(start).toBeGreaterThan(-1)
+    const open = EXPORTED.indexOf('>', start) + 1
+    // It is the Aggregation from the site's own wave, which the fold would take as its own.
+    expect(EXPORTED.slice(start, open)).toContain(
+      `source="${waveId(4)}" target="${SITE_WP(3)}" xsi:type="Aggregation"`,
+    )
+    const { workspace, problems } = read(EXPORTED.slice(0, open) + added + EXPORTED.slice(open))
+    const site = rolloutOf(workspace)!.sites.find((candidate) => candidate.location === siteId(3))
+    expect(site?.wave).toBe(waveId(4))
+    expect(workspace.relationships.find((r) => r.id === own)).toBeUndefined()
+    expect(problems).toEqual([
+      expect.objectContaining({
+        code: 'exchange.plan-relationship-dropped',
+        message: expect.stringContaining(own),
+      }),
+    ])
+  })
+
   it('reports a site plan filed in a folder, and nothing for one filed in its group', () => {
     const xml = EXPORTED.replace(
       '  <propertyDefinitions>',
@@ -304,8 +348,10 @@ describe('reading plans from exchange XML (#209)', () => {
     )
     const { workspace, problems } = read(xml)
     expect(rolloutOf(workspace)?.sites).toHaveLength(12)
+    // One loss, one code and one severity, from both readers (the Archi model's test below).
     expect(problems).toEqual([
       expect.objectContaining({
+        severity: 'warning',
         code: 'exchange.plan-folder-ignored',
         message: expect.stringContaining(SITE_WP(3)),
       }),
@@ -447,10 +493,39 @@ describe('reading plans from an Archi model (#209)', () => {
     expect(rolloutPlanOf(element(result.workspace!, 'r'))?.sites).toEqual([
       { location: 'loc', wave: 'w' },
     ])
+    // The same code and severity as the exchange reader's.
     expect(result.problems).toEqual([
       expect.objectContaining({
-        code: 'exchange.plan-site-content-dropped',
-        message: expect.stringContaining('its folder "f-plans"'),
+        severity: 'warning',
+        code: 'exchange.plan-folder-ignored',
+        message: expect.stringContaining('(sp)'),
+      }),
+    ])
+  })
+
+  it('folds the writer’s own relationship filed in a folder, and reports only the filing', () => {
+    const own =
+      '<element xsi:type="archimate:AggregationRelationship" id="r-in" source="w" target="sp"/>'
+    const xml =
+      archimate(`<element xsi:type="archimate:WorkPackage" name="Rollout: Hamburg" id="sp">
+      <property key="${PLAN_KEYS.kind}" value="site"/>
+      <property key="${PLAN_KEYS.rollout}" value="r"/>
+      <property key="${PLAN_KEYS.location}" value="loc"/>
+      <property key="${PLAN_KEYS.wave}" value="w"/>
+    </element>`)
+    expect(xml).toContain(own)
+    const result = importArchimate(
+      xml.replace(own, `<folder name="Plan links" id="f-links">${own}</folder>`),
+    )
+    expect(rolloutPlanOf(element(result.workspace!, 'r'))?.sites).toEqual([
+      { location: 'loc', wave: 'w' },
+    ])
+    expect(result.workspace!.relationships).toEqual([])
+    expect(result.problems).toEqual([
+      expect.objectContaining({
+        severity: 'warning',
+        code: 'exchange.plan-folder-ignored',
+        message: expect.stringContaining('(r-in)'),
       }),
     ])
   })
@@ -700,6 +775,60 @@ describe('each exchange plan value that cannot be read is said (#209)', () => {
       }),
     ])
   })
+
+  /**
+   * A carried `propertyTypes` entry makes the writer declare a plan key
+   * `number` or `boolean`, and the exchange reader then reads the value as
+   * one. The plan reader reads its text, which is what was written, so the
+   * plan comes back, and keeps coming back, whole.
+   */
+  const typed: [string, string, 'number' | 'boolean', (workspace: Workspace) => void][] = [
+    ['a wave’s order', PLAN_KEYS.order, 'number', () => {}],
+    ['the template version', PLAN_KEYS.templateVersion, 'number', () => {}],
+    [
+      'a wave’s label',
+      PLAN_KEYS.label,
+      'boolean',
+      (workspace) => {
+        const wave = workspace.elements.find((candidate) => candidate.id === waveId(1))!
+        wave.plan = { ...wavePlanOf(wave)!, label: 'true' }
+      },
+    ],
+    [
+      'a site’s archetype',
+      PLAN_KEYS.archetype,
+      'number',
+      (workspace) => {
+        rolloutOf(workspace)!.sites.find((site) => site.location === siteId(1))!.archetype = '7'
+      },
+    ],
+    [
+      'the Location of a site whose Location is gone',
+      PLAN_KEYS.location,
+      'number',
+      (workspace) => {
+        rolloutOf(workspace)!.sites.find((site) => site.location === siteId(5))!.location = '42'
+      },
+    ],
+  ]
+
+  it.each(typed)(
+    'reads %s (%s) by its text when the file declares it %s',
+    (_, key, type, prepare) => {
+      const workspace = rolloutWorkspace(12)
+      prepare(workspace)
+      workspace.propertyTypes = { [key]: type }
+      const { xml } = exportExchange(workspace)
+      expect(xml).toMatch(
+        new RegExp(
+          `<propertyDefinition identifier="[^"]+" type="${type}">\\s*<name xml:lang="en">${key.replace(/\./g, '\\.')}</name>`,
+        ),
+      )
+      const back = read(xml)
+      expect(back.problems).toEqual([])
+      expect(toCanonicalJson(back.workspace)).toBe(toCanonicalJson(workspace))
+    },
+  )
 
   it('drops, and reports, a relationship between two site plans’ Work Packages', () => {
     const xml = EXPORTED.replace(

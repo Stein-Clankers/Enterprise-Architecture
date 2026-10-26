@@ -32,7 +32,8 @@ export type PlanDatePrecision = (typeof PLAN_DATE_PRECISIONS)[number]
  * names: the first day of the quarter or month, the Monday of an ISO week, or
  * the day itself. One period therefore has one spelling, so two plans that say
  * the same thing write the same bytes (ADR 0004), and `isPlanDate` refuses a
- * day that does not start its period rather than guessing which one was meant.
+ * day that does not start its period rather than guessing which one was meant
+ * (ADR 0015 point 1).
  */
 export interface PlanDate {
   date: string
@@ -646,7 +647,8 @@ function isId(value: unknown): value is string {
   return typeof value === 'string' && value !== ''
 }
 
-function isPositiveInteger(value: unknown): value is number {
+/** A whole number from 1: a template version, a capacity. Shared with the readers, so they cannot drift. */
+export function isPositiveInteger(value: unknown): value is number {
   return Number.isSafeInteger(value) && (value as number) >= 1
 }
 

@@ -301,7 +301,8 @@ and named in one `json.invalid-plan` problem. Only a field the plan cannot
 exist without (a rollout's template version, a wave's rollout, label, order or
 template version) drops the whole plan, and that is reported too.
 
-**Exchange format** (ADR 0013 point 10):
+**Exchange format** (ADR 0015, which amends ADR 0013 point 10: a wave's
+window travels as two properties, and no Plateau is written for it):
 
 | Plan object | Written as |
 |---|---|
@@ -312,16 +313,22 @@ template version) drops the whole plan, and that is reported too.
 A site plan's Work Package and its two relationships get ids derived from the
 rollout's and the Location's, claimed like every other xs:ID, so the same model
 writes the same file, and the file's ids are written into the plan's
-references when an id had to be rewritten. Both readers fold them back
+references when an id had to be rewritten. They are never parsed: a reader
+recognises a site plan by `archipelago.plan.kind = site` alone. Plan
+properties are declared `string`, since `2027-Q2` is no `xs:date`; where a
+carried `propertyTypes` declares one `number` or `boolean`, the readers read
+the value's text, which is what was written. Both readers fold them back
 (`foldPlans`), before views and folders are read. What a fold cannot put back
 is reported, never dropped quietly: a plan value it cannot read stays an
 ordinary property (`exchange.plan-unreadable`), as an unreadable profile key
 does; a site plan's Work Package with no rollout in the file, or a second one
 for a Location, stays a Work Package (`exchange.plan-site-unfolded`);
-whatever another tool added to one (a property, an assessment, a new name, a
-folder) is named (`exchange.plan-site-content-dropped`,
-`exchange.plan-folder-ignored`), and so is a relationship drawn to one
-(`exchange.plan-relationship-dropped`). On the way out, a site plan whose
+whatever another tool added to one (a property, an assessment, a new name) is
+named (`exchange.plan-site-content-dropped`), and so is a relationship drawn to
+one, or one of the writer's own given a name or a property
+(`exchange.plan-relationship-dropped`). A site plan's Work Package or
+relationship filed in a folder is folded, and the filing is reported with one
+code from both readers (`exchange.plan-folder-ignored`). On the way out, a site plan whose
 Location or wave is gone is still written, with its ids in its properties, and
 said (`exchange.plan-location-missing`, `exchange.plan-wave-missing`).
 

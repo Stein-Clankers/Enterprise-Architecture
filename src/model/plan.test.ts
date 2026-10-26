@@ -26,7 +26,7 @@ import {
 } from './plan'
 import type { Element } from './workspace'
 
-describe('plan dates (#209, ADR 0013 point 5)', () => {
+describe('plan dates (#209, ADR 0013 point 5, ADR 0015 point 1)', () => {
   it('reads and writes each precision in the form people write it', () => {
     const cases: [string, PlanDate][] = [
       ['2027-Q2', { date: '2027-04-01', precision: 'quarter' }],

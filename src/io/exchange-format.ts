@@ -74,6 +74,7 @@ import { isArchiNamespace, rootUnreadable, xmlRoot } from './xml-root'
 import {
   foldPlans,
   planToProperties,
+  reportFoldedFiling,
   sitePlanExports,
   type PlanElementOut,
   type PlanRelationshipOut,
@@ -213,7 +214,17 @@ export function exportExchange(workspace: Workspace): ExchangeExportResult {
   const modelProperties = modelLevelProperties(workspace)
   // Site plans are records, so their Work Packages exist only in the file (#209).
   const planned = sitePlanExports(workspace, ids, problems)
-  const definitions = collectPropertyDefinitions(workspace, modelProperties, planned, ids, problems)
+  // A rollout's or wave's plan as properties, worked out once for both passes below.
+  const planProperties = new Map(
+    workspace.elements.map((element) => [element, planToProperties(element.plan, ids.of)]),
+  )
+  const definitions = collectPropertyDefinitions(
+    workspace,
+    modelProperties,
+    { ...planned, planProperties },
+    ids,
+    problems,
+  )
   const lang = writtenLanguage(workspace, problems)
   const lines: string[] = []
 
@@ -236,7 +247,7 @@ export function exportExchange(workspace: Workspace): ExchangeExportResult {
       const properties = {
         ...element.properties,
         ...profileToProperties(element.profile),
-        ...planToProperties(element.plan, ids.of),
+        ...planProperties.get(element),
       }
       lines.push(
         `    <element identifier="${attr(ids.of(element.id))}" xsi:type="${attr(exchangeType(element))}">`,
@@ -550,7 +561,10 @@ function propertyLines(
 function collectPropertyDefinitions(
   workspace: Workspace,
   modelProperties: Record<string, PropertyValue>,
-  planned: { elements: readonly PlanElementOut[] },
+  planned: {
+    elements: readonly PlanElementOut[]
+    planProperties: ReadonlyMap<Element, Record<string, string>>
+  },
   ids: ExchangeIdentifiers,
   problems: ImportProblem[],
 ): Map<string, PropertyDefinition> {
@@ -567,7 +581,7 @@ function collectPropertyDefinitions(
   for (const element of workspace.elements) {
     remember(element.properties)
     remember(profileToProperties(element.profile))
-    remember(planToProperties(element.plan, ids.of))
+    remember(planned.planProperties.get(element) ?? {})
   }
   for (const site of planned.elements) remember(site.properties)
   for (const relationship of workspace.relationships) {
@@ -1339,23 +1353,6 @@ export function carried<T>(
     )
   }
   return kept
-}
-
-/**
- * A site plan's Work Package, or one of its relationships, that the file
- * filed in a folder (#209). The plan is a record of its rollout now, and a
- * record has no folder, so the filing is said, not dropped quietly.
- */
-function reportFoldedFiling(ids: readonly string[], reader: ProblemSink): void {
-  if (!ids.length) return
-  reader.problems.push(
-    problem(
-      'info',
-      'exchange.plan-folder-ignored',
-      `${ids.length} site plan${ids.length === 1 ? '' : 's'}' Work Packages or relationships (${listed(ids)}) ${ids.length === 1 ? 'was' : 'were'} filed in a folder. Site plans are records of their rollout, so the folder was not kept.`,
-      reader.where,
-    ),
-  )
 }
 
 /** Model-level properties are read for what is ours; the rest have nowhere to go. */

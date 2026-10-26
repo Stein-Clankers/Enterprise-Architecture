@@ -475,32 +475,9 @@ export class ModelStore {
    * undoable command.
    */
   removeElement(id: string): void {
-    const element = this.#elements.get(id)
-    if (!element) return
-    const cascaded = this.relationshipsOf(id)
-    // Every view drawing the element or one of the relationships going with it.
-    // Normally the second set is inside the first, but a connection the validator
-    // would flag (drawn between the wrong nodes) can draw a relationship in a
-    // view that does not draw its element, and must not outlive it either.
-    const touched = new Set(this.#indexes.viewsByElement.get(id))
-    for (const relationship of cascaded) {
-      for (const viewId of this.#indexes.viewsByRelationship.get(relationship.id) ?? []) {
-        touched.add(viewId)
-      }
-    }
-    const cascadedViews = this.#viewChanges(touched, (view) => {
-      let after = withoutElement(view, id) ?? view
-      for (const relationship of cascaded) {
-        after = withoutRelationship(after, relationship.id) ?? after
-      }
-      return after === view ? undefined : after
-    })
-    this.dispatch({
-      kind: 'remove-element',
-      element,
-      cascaded,
-      ...(cascadedViews.length ? { cascadedViews } : {}),
-    })
+    // One element is one command; none when there is no such element.
+    const [command] = this.removalCommands([id])
+    if (command) this.dispatch(command)
   }
 
   /**
@@ -513,6 +490,12 @@ export class ModelStore {
    * once. The drawings come off every view in one change per view, carried by
    * the first command: two changes to one view, each worked out from the view
    * as it stands now, would each put back what the other took away.
+   *
+   * The views touched are every view drawing one of the elements or one of
+   * the relationships going with them. Normally the second set is inside the
+   * first, but a connection the validator would flag (drawn between the wrong
+   * nodes) can draw a relationship in a view that does not draw its element,
+   * and must not outlive it either.
    */
   removalCommands(ids: Iterable<string>): Command[] {
     const elements: Element[] = []

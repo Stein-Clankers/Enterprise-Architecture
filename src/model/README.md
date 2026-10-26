@@ -221,8 +221,8 @@ phase, presets, exceptions, dependencies and plan checks are #213 and #214.
   quarter or month, the Monday of the ISO week, or the day itself. So a
   period has one spelling and one file (ADR 0004), and `isPlanDate` refuses a
   day that does not start its period rather than guessing which period was
-  meant. `formatPlanDate` and `parsePlanDate` read and write the forms people
-  type: `2027-Q2`, `2027-05`, `2027-W19`, `2027-05-12`.
+  meant (ADR 0015 point 1). `formatPlanDate` and `parsePlanDate` read and
+  write the forms people type: `2027-Q2`, `2027-05`, `2027-W19`, `2027-05-12`.
 - **A template change is ADR 0014's change entry** with an applicability rule.
   Its date is a `PlanDate` or an anchor milestone plus whole days. Which
   template changes apply to an archetype is said by each change's
@@ -237,5 +237,6 @@ phase, presets, exceptions, dependencies and plan checks are #213 and #214.
 
 Deleting a Location leaves its site plans where they are: a plan holds the
 dates, actuals and notes someone entered. `validate()` reports each reference
-a plan holds that no longer holds (`plan.site-location-missing`, and the
-same for a wave, an archetype, a milestone, or a wave's rollout).
+a site plan or a wave holds that no longer holds (`plan.site-location-missing`,
+and the same for a wave, an archetype, a milestone, or a wave's rollout). The
+references in a rollout's template are not checked yet (#213, #214).

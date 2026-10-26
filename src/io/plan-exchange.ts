@@ -22,8 +22,9 @@ import { PROFILE_NAMESPACE } from './profile-properties'
 import { setKey } from './records'
 
 /**
- * Rollouts, waves and site plans in the exchange format (#209, ADR 0013
- * point 10, proposal §8).
+ * Rollouts, waves and site plans in the exchange format (#209). ADR 0015
+ * decides the mapping, amending ADR 0013 point 10: a wave's window travels as
+ * two properties, and no Plateau is written for it.
  *
  * | Plan object | Written as |
  * |---|---|
@@ -43,6 +44,7 @@ import { setKey } from './records'
  * each one is written as, and its two relationships, exist only in the file.
  * Their identifiers are derived from the rollout's and the Location's, and
  * claimed like every other xs:ID, so the same model writes the same file.
+ * They are never parsed (ADR 0015 point 3): do not add a parser for them.
  * The readers recognise them by `archipelago.plan.kind = site` and fold them
  * back into their rollout (`foldPlans`). Whatever a fold cannot put back, such
  * as a property added in Archi, a relationship drawn to one, or a renamed one,
@@ -126,7 +128,12 @@ export function planToProperties(
   }
   out[PLAN_KEYS.templateVersion] = String(plan.templateVersion)
   // The template names elements, and the file may call them something else.
-  const canonical = canonicalPlan({ ...plan, template: plan.template.map((c) => renamed(c, of)) })
+  // The site plans are written as Work Packages of their own, not here.
+  const canonical = canonicalPlan({
+    ...plan,
+    template: plan.template.map((c) => renamed(c, of)),
+    sites: [],
+  })
   for (const part of ['milestones', 'template', 'constraints', 'archetypes'] as const) {
     if (canonical[part] !== undefined)
       out[PLAN_KEYS[part]] = JSON.stringify(canonical[part], sortKeys)
@@ -178,12 +185,12 @@ export function sitePlanExports(
     if (!plan) continue
     for (const site of [...plan.sites].sort(byLocation)) {
       const location = elementsById.get(site.location)
-      const locationId = location ? ids.of(site.location) : site.location
+      const locationId = ids.of(site.location)
       const id = ids.claim(`${ids.of(rollout.id)}.site.${locationId}`)
       const out: PlanElementOut = {
         id,
         name: sitePlanName(rollout.name, location?.name ?? site.location),
-        properties: siteProperties(site, rollout.id, elementsById, ids),
+        properties: siteProperties(site, rollout.id, ids.of),
       }
       if (site.notes) out.documentation = site.notes
       elements.push(out)
@@ -228,20 +235,18 @@ export function sitePlanExports(
   return { elements, relationships }
 }
 
+/** A site plan's fields; `of` gives a reference in the file's spelling. */
 function siteProperties(
   site: SitePlan,
   rolloutId: string,
-  elementsById: ReadonlyMap<string, Element>,
-  ids: PlanIds,
+  of: (id: string) => string,
 ): Record<string, string> {
-  /** A reference, in the file's spelling when the file holds what it names. */
-  const ref = (id: string) => (elementsById.has(id) ? ids.of(id) : id)
   const out: Record<string, string> = {
     [PLAN_KEYS.kind]: 'site',
-    [PLAN_KEYS.rollout]: ids.of(rolloutId),
-    [PLAN_KEYS.location]: ref(site.location),
+    [PLAN_KEYS.rollout]: of(rolloutId),
+    [PLAN_KEYS.location]: of(site.location),
   }
-  if (site.wave !== undefined) out[PLAN_KEYS.wave] = ref(site.wave)
+  if (site.wave !== undefined) out[PLAN_KEYS.wave] = of(site.wave)
   if (site.archetype !== undefined) out[PLAN_KEYS.archetype] = site.archetype
   if (site.rag !== undefined) out[PLAN_KEYS.rag] = site.rag
   for (const id of Object.keys(site.milestones ?? {}).sort()) {
@@ -326,9 +331,13 @@ export function foldPlans(
   }
   const byId = new Map(out.map((element) => [element.id, element]))
   const foldedElements = new Map<string, { rollout: string; site: SitePlan }>()
+  /** What was folded although the file filed it in a folder: a record has none. */
+  const filed: string[] = []
   for (const element of sites) {
     const folded = foldSite(element, rollouts, byId, sink)
-    if (folded) foldedElements.set(element.id, folded)
+    if (!folded) continue
+    foldedElements.set(element.id, folded)
+    if (element.folder !== undefined) filed.push(element.id)
   }
 
   const foldedRelationships = new Set<string>()
@@ -341,8 +350,10 @@ export function foldPlans(
       keptRelationships.push(relationship)
       continue
     }
-    if (isWritersOwn(relationship, from, to)) foldedRelationships.add(relationship.id)
-    else lostRelationships.push(relationship.id)
+    if (isWritersOwn(relationship, from, to)) {
+      foldedRelationships.add(relationship.id)
+      if (relationship.folder !== undefined) filed.push(relationship.id)
+    } else lostRelationships.push(relationship.id)
   }
   if (lostRelationships.length) {
     warn(
@@ -352,6 +363,9 @@ export function foldPlans(
       `${lostRelationships.length} relationship${lostRelationships.length === 1 ? '' : 's'} (${listed(lostRelationships)}) ${lostRelationships.length === 1 ? 'touches' : 'touch'} the Work Package of a site plan. Site plans are records of their rollout, not elements, so ${lostRelationships.length === 1 ? 'it was' : 'they were'} dropped.`,
     )
   }
+  // The native reader knows each folder by now; the exchange reader reports
+  // its own once it has read the organizations, through the same function.
+  reportFoldedFiling(filed, sink)
 
   return {
     elements: out
@@ -377,13 +391,19 @@ function readPlanElement(element: Element, kind: 'rollout' | 'wave', sink: PlanS
   const used = new Set<string>([PLAN_KEYS.kind])
   const unreadable: string[] = []
   const raw: Record<string, unknown> = { kind }
-  const read = <T>(key: string, field: string, parse: (text: string) => T | undefined) => {
-    const value = properties[key]
+  /** Read `key` into `into[field]`, or note it unreadable. */
+  const read = <T>(
+    key: string,
+    field: string,
+    parse: (text: string) => T | undefined,
+    into: Record<string, unknown> = raw,
+  ) => {
+    const value = textOf(properties[key])
     if (value === undefined) return
-    const parsed = typeof value === 'string' ? parse(value) : undefined
+    const parsed = parse(value)
     if (parsed === undefined) unreadable.push(key)
     else {
-      raw[field] = parsed
+      into[field] = parsed
       used.add(key)
     }
   }
@@ -399,16 +419,8 @@ function readPlanElement(element: Element, kind: 'rollout' | 'wave', sink: PlanS
     read(PLAN_KEYS.order, 'order', integer)
     read(PLAN_KEYS.capacity, 'capacity', integer)
     const window: Record<string, unknown> = {}
-    const windowKeys = { start: PLAN_KEYS.windowStart, end: PLAN_KEYS.windowEnd }
-    for (const [end, key] of Object.entries(windowKeys)) {
-      const value = properties[key]
-      if (value === undefined) continue
-      const date = typeof value === 'string' ? parsePlanDate(value) : undefined
-      if (date) {
-        window[end] = date
-        used.add(key)
-      } else unreadable.push(key)
-    }
+    read(PLAN_KEYS.windowStart, 'start', parsePlanDate, window)
+    read(PLAN_KEYS.windowEnd, 'end', parsePlanDate, window)
     if (Object.keys(window).length) raw.window = window
   }
   // Keys of the right family on the wrong kind of plan: kept, and said.
@@ -459,9 +471,9 @@ function foldSite(
   sink: PlanSink,
 ): { rollout: string; site: SitePlan } | undefined {
   const properties = element.properties
-  const rolloutId = properties[PLAN_KEYS.rollout]
-  const locationId = properties[PLAN_KEYS.location]
-  const rollout = typeof rolloutId === 'string' ? rollouts.get(rolloutId) : undefined
+  const rolloutId = textOf(properties[PLAN_KEYS.rollout])
+  const locationId = textOf(properties[PLAN_KEYS.location])
+  const rollout = rolloutId === undefined ? undefined : rollouts.get(rolloutId)
   const unfolded = (why: string) => {
     warn(
       sink,
@@ -473,10 +485,10 @@ function foldSite(
   }
   if (!rollout) {
     return unfolded(
-      `its rollout ${typeof rolloutId === 'string' ? `"${rolloutId}" is not a rollout in this file` : 'is not named'}`,
+      `its rollout ${rolloutId === undefined ? 'is not named' : `"${rolloutId}" is not a rollout in this file`}`,
     )
   }
-  if (typeof locationId !== 'string' || locationId === '') return unfolded('it names no Location')
+  if (locationId === undefined || locationId === '') return unfolded('it names no Location')
   if (rollout.plan.sites.some((site) => site.location === locationId)) {
     return unfolded(`rollout "${rollout.id}" already has a plan for "${locationId}"`)
   }
@@ -488,13 +500,15 @@ function foldSite(
   for (const [key, value] of Object.entries(properties)) {
     const planned = milestoneOf(key, MILESTONE_KEY_PREFIX)
     const actual = milestoneOf(key, ACTUAL_KEY_PREFIX)
+    // The text the writer wrote, even where a declared type read it as a number.
+    const written = String(value)
     if (planned !== undefined) {
-      const date = typeof value === 'string' ? parsePlanDate(value) : undefined
+      const date = parsePlanDate(written)
       if (date) setKey(milestones, planned, date)
       else lost.push(`${key} = ${JSON.stringify(value)}`)
-    } else if (actual !== undefined) setKey(actuals, actual, value)
+    } else if (actual !== undefined) setKey(actuals, actual, written)
     else if (key === PLAN_KEYS.wave || key === PLAN_KEYS.archetype || key === PLAN_KEYS.rag) {
-      raw[key.slice(PLAN.length + 1)] = value
+      raw[key.slice(PLAN.length + 1)] = written
     } else if (key !== PLAN_KEYS.kind && key !== PLAN_KEYS.rollout && key !== PLAN_KEYS.location) {
       lost.push(`${key} = ${JSON.stringify(value)}`)
     }
@@ -508,7 +522,6 @@ function foldSite(
   const site = readSitePlan(raw, element.id, dropped)!
   lost.push(...dropped)
   if (element.profile) lost.push(`its assessment (${Object.keys(element.profile).join(', ')})`)
-  if (element.folder !== undefined) lost.push(`its folder "${element.folder}"`)
   const location = byId.get(locationId)
   const name = sitePlanName(rollout.name, location?.name ?? locationId)
   if (element.name !== name) lost.push(`its name “${element.name}”, which is derived as “${name}”`)
@@ -527,7 +540,9 @@ function foldSite(
 /**
  * Is this one of the two relationships the writer adds for a site plan, as it
  * wrote it? Anything else touching the Work Package (drawn in Archi, or with a
- * name or a property added) is reported when it is dropped.
+ * name or a property added) is reported when it is dropped. A folder is not
+ * part of the relationship: one filed somewhere is folded, and the filing is
+ * reported (`reportFoldedFiling`), as it is for the Work Package.
  */
 function isWritersOwn(
   relationship: Relationship,
@@ -538,7 +553,6 @@ function isWritersOwn(
     relationship.name === undefined &&
     relationship.documentation === undefined &&
     relationship.profile === undefined &&
-    relationship.folder === undefined &&
     !Object.keys(relationship.properties).length
   if (!bare || (from && to)) return false
   if (to) {
@@ -548,6 +562,22 @@ function isWritersOwn(
     )
   }
   return relationship.type === 'Association' && relationship.target === from!.site.location
+}
+
+/**
+ * A site plan's Work Package, or one of its relationships, that the file filed
+ * in a folder. The plan is a record of its rollout now, and a record has no
+ * folder (ADR 0015 point 3), so the filing is said, not dropped quietly. Both
+ * readers report it here, with one code and one severity.
+ */
+export function reportFoldedFiling(ids: readonly string[], sink: PlanSink): void {
+  if (!ids.length) return
+  warn(
+    sink,
+    'exchange.plan-folder-ignored',
+    undefined,
+    `${ids.length} site plan${ids.length === 1 ? '' : 's'}' Work Packages or relationships (${listed(ids)}) ${ids.length === 1 ? 'was' : 'were'} filed in a folder. Site plans are records of their rollout, so the folder was not kept.`,
+  )
 }
 
 function warn(sink: PlanSink, code: string, subject: string | undefined, message: string): void {
@@ -569,6 +599,16 @@ function integer(value: string): number | undefined {
 
 function text(value: string): string | undefined {
   return value === '' ? undefined : value
+}
+
+/**
+ * A property's text. A carried `propertyTypes` entry can make the writer
+ * declare a plan key `number` or `boolean`, and the reader then hands back a
+ * number or a boolean; it only does so when the text survives, so `String`
+ * gives back exactly what was written (ADR 0015 point 4).
+ */
+function textOf(value: PropertyValue | undefined): string | undefined {
+  return value === undefined ? undefined : String(value)
 }
 
 function json(value: string): unknown {

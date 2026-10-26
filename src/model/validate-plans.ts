@@ -9,8 +9,11 @@ import type { Element, Workspace } from './workspace'
  * plan where it is: a plan holds the wave, dates, actuals and notes someone
  * entered, and dropping it quietly with the Location would lose all of that
  * (#209). It is reported here instead, against its rollout, so it can be
- * reassigned or removed on purpose. The same goes for every other reference a
- * plan holds: a wave, an archetype, a milestone, a wave's rollout.
+ * reassigned or removed on purpose. The same goes for the other references a
+ * site plan or a wave holds: a wave, an archetype, a milestone, a wave's
+ * rollout. The references in a rollout's template (a change's subject and
+ * successor, its applicability, a date's anchor, an archetype's durations) are
+ * not checked yet; they are checked where they are resolved (#213, #214).
  *
  * These are integrity findings, not the plan checks of #214 (a wave over
  * capacity, a cutover in a blackout): those judge a plan, these say it points

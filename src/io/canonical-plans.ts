@@ -6,6 +6,7 @@ import {
   isIsoDay,
   isMilestone,
   isPlanDate,
+  isPositiveInteger,
   isSiteRag,
   isTemplateChange,
   type Archetype,
@@ -235,12 +236,15 @@ function readSitePlans(raw: unknown, dropped: string[]): SitePlan[] {
   const out: SitePlan[] = []
   const seen = new Set<string>()
   for (const [index, item] of raw.entries()) {
-    const site = readSitePlan(item, `sites[${index}]`, dropped)
-    if (!site) continue
-    if (seen.has(site.location)) {
-      dropped.push(`sites[${index}], a second plan for "${site.location}"`)
+    // A repeat is dropped whole before it is read, so none of its fields is
+    // named as if the plan that is kept had lost it.
+    const location = isRecord(item) ? item.location : undefined
+    if (typeof location === 'string' && seen.has(location)) {
+      dropped.push(`sites[${index}], a second plan for "${location}"`)
       continue
     }
+    const site = readSitePlan(item, `sites[${index}]`, dropped)
+    if (!site) continue
     seen.add(site.location)
     out.push(site)
   }
@@ -318,13 +322,10 @@ function unknownKeys(
   for (const key of Object.keys(raw)) if (!known.includes(key)) dropped.push(`${prefix}${key}`)
 }
 
-function isPositiveInteger(value: unknown): value is number {
-  return Number.isSafeInteger(value) && (value as number) >= 1
-}
-
 /**
  * A plan on an element in a canonical JSON file. A plan on anything but a Work
- * Package is reported and left out: ADR 0013 puts plans on Work Packages only.
+ * Package is reported and left out: ADR 0013 points 1 and 2 put plans on Work
+ * Packages only.
  */
 export function readElementPlan(
   raw: unknown,

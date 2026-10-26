@@ -63,6 +63,15 @@ describe('a 160-site rollout round trip (#209)', () => {
     expect(toCanonicalJson(back)).toBe(toCanonicalJson(workspace))
   })
 
+  it('exchange XML: writes the site plans by location, whatever order the model holds them in', () => {
+    const reversed = structuredClone(workspace)
+    const plan = rolloutPlanOf(reversed.elements.find((element) => element.id === ROLLOUT_ID))!
+    plan.sites.reverse()
+    // The fixture numbers its sites in order, so only a reversed copy can test the sort.
+    expect(plan.sites[0]?.location).toBe(siteId(160))
+    expect(exportExchange(reversed).xml).toBe(exportExchange(workspace).xml)
+  })
+
   it('exchange XML: export → import → export is byte-identical', () => {
     const first = exportExchange(workspace).xml
     expect(exportExchange(fromXml(first).workspace).xml).toBe(first)
