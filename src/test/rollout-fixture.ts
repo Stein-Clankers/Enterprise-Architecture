@@ -161,7 +161,12 @@ export function rolloutWorkspace(siteCount = 160): Workspace {
   for (let n = 1; n <= siteCount; n += 1) {
     const code = String(n).padStart(3, '0')
     const location = siteId(n)
-    elements.push({ id: location, type: 'Location', name: `Site ${code}`, properties: { code } })
+    elements.push({
+      id: location,
+      type: 'Location',
+      name: `Site ${code}`,
+      properties: { 'archipelago.site.code': code },
+    })
     relationships.push({
       id: `rel-emea-${code}`,
       type: 'Aggregation',
