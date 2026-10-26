@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { rolloutPlanOf, wavePlanOf, type Element, type View, type Workspace } from '@/model'
+import { fixtureBytes } from '@/test/fixture-bytes'
 import { ROLLOUT_ID, rolloutWorkspace, siteId, waveId } from '@/test/rollout-fixture'
 import { ModelStore, ReadOnlyModelError } from '@/store/model-store'
 import { applyRolloutImport } from '@/store/rollout-workbook'
@@ -1425,5 +1426,13 @@ describe('applying an import (#210)', () => {
     expect(after.relationships.filter((r) => r.target === siteId(4))).toEqual([])
     store.undo()
     expect(toCanonicalJson(store.snapshot())).toBe(toCanonicalJson(before))
+  })
+})
+
+describe('the e2e journey’s fixture', () => {
+  it('is what the canonical writer writes for the rollout fixture at eight sites', () => {
+    // Written by scripts/fixtures/build-rollout-workspace.ts: regenerate, never edit.
+    const file = new TextDecoder().decode(fixtureBytes('rollout-workspace.json'))
+    expect(file).toBe(toCanonicalJson(rolloutWorkspace(8)))
   })
 })

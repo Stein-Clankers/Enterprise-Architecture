@@ -1,0 +1,48 @@
+/* ── Rollout workbook (#210) ────────────────────────────────────────────── */
+
+/* The file name is machine-readable content, so it is set in mono (UI spec §2.1). */
+.rollout-workbook__file {
+  align-self: center;
+  font: 400 11px/1.4 var(--font-mono);
+  color: var(--ink2);
+  overflow-wrap: anywhere;
+}
+
+.rollout-workbook__tallies {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--bd);
+}
+
+.rollout-workbook__tallies th,
+.rollout-workbook__tallies td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--bd);
+  text-align: right;
+}
+
+.rollout-workbook__tallies thead th {
+  background: var(--panel);
+  font: 500 9.5px/1 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+
+/* Sheet names are keys of the file; counts are counts: both mono. */
+.rollout-workbook__tallies tbody th {
+  text-align: left;
+  font: 500 11.5px/1 var(--font-mono);
+  color: var(--ink);
+}
+
+.rollout-workbook__tallies td {
+  font: 400 12px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink2);
+}
+
+.rollout-workbook__tallies tbody tr:last-child th,
+.rollout-workbook__tallies tbody tr:last-child td {
+  border-bottom: 0;
+}

@@ -7,6 +7,7 @@ import { useSaveWorkspace } from '@/ui/shell/use-save-workspace'
 import { useUndoRedo } from '@/ui/shell/use-undo-redo'
 import { useGlobalShortcut } from '@/ui/shell/global-shortcuts'
 import { useValidator } from '@/ui/validator/context'
+import { useRolloutWorkbook } from '@/ui/rollout-workbook/use-rollout-workbook'
 import { CommandPalette, type PaletteAction } from './CommandPalette'
 import { PaletteContext } from './context'
 
@@ -28,6 +29,9 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
   const createView = useCreateView()
   const { validate } = useValidator()
   const [screenActions, setScreenActions] = useState<PaletteAction[]>([])
+  // ── Rollout workbook (#210) ──────────────────────────────────────────────
+  const rolloutWorkbook = useRolloutWorkbook()
+  // ── end Rollout workbook (#210) ──────────────────────────────────────────
 
   const openPalette = useCallback(() => setOpen(true), [])
   const closePalette = useCallback(() => setOpen(false), [])
@@ -60,6 +64,9 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
       ...(role === 'writer'
         ? [{ id: 'new-view', label: 'New view', glyph: 'VW', run: () => void createView() }]
         : []),
+      // ── Rollout workbook (#210) ──
+      ...rolloutWorkbook.actions,
+      // ── end Rollout workbook (#210) ──
       ...screenActions,
     ],
     [
@@ -72,6 +79,7 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
       redo,
       role,
       createView,
+      rolloutWorkbook.actions,
       screenActions,
     ],
   )
@@ -95,6 +103,8 @@ export function PaletteProvider({ children }: { children: ReactNode }) {
   return (
     <PaletteContext.Provider value={value}>
       {children}
+      {/* ── Rollout workbook (#210) ── */}
+      {rolloutWorkbook.dialog}
       {open && (
         <CommandPalette
           onClose={closePalette}
