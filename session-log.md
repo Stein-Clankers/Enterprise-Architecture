@@ -7,8 +7,17 @@
 - **Slices:** R1 site register and wave plan, R2 detailed site plans, R3 architecture change (needs #58, #60, #61 and #64), R4 scenarios and a sequencing assistant.
 - **Sponsor decisions, the same day:** R0–R2 start now, alongside the editor (**ADR 0012**). Data migration comes first, but the model is general, so milestone sets are configurable and data migration is a preset (proposal §4.8). Excel is the first plan format: one rollout workbook carries plan and actuals.
 - **Filed:** tracking issue #206; R0 #207 (rollout-model ADR); R1 #208 (XLSX reader and writer, shared with #94), #209 (model), #210 (workbook), #211 (screens), #212 (160-site demo); R2 #213 (milestones, precision, phase), #214 (exceptions, checks), #215 (actuals, burn-up, Migration tab).
-- **ADR 0013 (rollout model)** accepts D2 and D5–D7 as proposed. #207 stays open until the #58 ADR confirms the change-entry shape.
-- **Open:** The #58 ADR is now a prerequisite of #209. R3 and R4 are filed once R2 is done. #72 and #94 do not yet mention the new track; the comments were not posted.
+- **ADR 0013 (rollout model)** accepts D2 and D5–D7 as proposed.
+- **ADR 0014 (time and change model, #58 option 2)** is accepted. Its points:
+  - **Dated validity:** element states (planned, live, retired) come from lifecycle dates; relationships are valid between `validFrom` and `validTo`.
+  - **Change entries** are owned by initiatives: introduce, retire, replace (which records a successor link), add, remove and modify. Each entry dates an object that exists in the model and never holds one.
+  - **Plan of record and scenarios:** the plan of record is every initiative approved or later; a scenario includes or excludes named initiatives on top of it.
+  - **Named states** are stored `(date, scenario)` pairs, exported as Plateaus.
+  - **`modelAt`** is the one way to read a state. Where an entry and a stored date disagree, the entry wins and a conflict is listed.
+  - **Planned values** are limited to an allow-list, and conflicts are computed, never prevented.
+
+  ADR 0014 confirms ADR 0013's change-entry shape, so #207 is done.
+- **Open:** #58 still needs its `modelAt` spike: 10 ms at 5,000 elements and 15,000 relationships. #209 is unblocked. R3 and R4 are filed once R2 is done. #72 and #94 do not yet mention the new track; the comments were not posted.
 
 ## 2026-10-23 — Reviewed and merged #201, #202, #203; #200 and #204 merged
 

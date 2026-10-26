@@ -17,3 +17,4 @@ Product ADRs for Archipelago. Fresh sequence started 2026-08 (the knowledge-base
 | [0011](0011-stay-on-archimate-3-2.md) | Stay on ArchiMate 3.2 until Archi supports ArchiMate 4 | 2026-10-07 | Accepted |
 | [0012](0012-rollout-planning-alongside-the-editor.md) | Multi-site rollout planning starts now, alongside the editor | 2026-10-26 | Accepted |
 | [0013](0013-rollout-model.md) | Rollout model: one template, waves, and site plans keyed by location | 2026-10-26 | Accepted |
+| [0014](0014-time-and-change-model.md) | Time and change: dated validity, change entries owned by initiatives, scenarios as overlays | 2026-10-26 | Accepted |
