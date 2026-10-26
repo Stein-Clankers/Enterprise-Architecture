@@ -503,6 +503,53 @@ export class ModelStore {
     })
   }
 
+  /**
+   * The commands that delete several elements together, worked out but not
+   * dispatched, so a caller can put them in one batch with its own (#209: a
+   * wave goes, and its sites are unassigned, in one step).
+   *
+   * Each element carries the relationships it cascades, each relationship
+   * once even when it joins two of the elements going, so undo restores it
+   * once. The drawings come off every view in one change per view, carried by
+   * the first command: two changes to one view, each worked out from the view
+   * as it stands now, would each put back what the other took away.
+   */
+  removalCommands(ids: Iterable<string>): Command[] {
+    const elements: Element[] = []
+    for (const id of new Set(ids)) {
+      const element = this.#elements.get(id)
+      if (element) elements.push(element)
+    }
+    const taken = new Set<string>()
+    const removals = elements.map((element) => {
+      const cascaded = this.relationshipsOf(element.id).filter((r) => !taken.has(r.id))
+      for (const relationship of cascaded) taken.add(relationship.id)
+      return { element, cascaded }
+    })
+    const touched = new Set<string>()
+    for (const { element } of removals) {
+      for (const viewId of this.#indexes.viewsByElement.get(element.id) ?? []) touched.add(viewId)
+    }
+    for (const relationshipId of taken) {
+      for (const viewId of this.#indexes.viewsByRelationship.get(relationshipId) ?? []) {
+        touched.add(viewId)
+      }
+    }
+    const cascadedViews = this.#viewChanges(touched, (view) => {
+      let after = view
+      for (const { element } of removals) after = withoutElement(after, element.id) ?? after
+      for (const relationshipId of taken)
+        after = withoutRelationship(after, relationshipId) ?? after
+      return after === view ? undefined : after
+    })
+    return removals.map(({ element, cascaded }, index): Command => ({
+      kind: 'remove-element',
+      element,
+      cascaded,
+      ...(index === 0 && cascadedViews.length ? { cascadedViews } : {}),
+    }))
+  }
+
   addRelationship(relationship: Relationship): Relationship {
     this.dispatch({ kind: 'add-relationship', relationship })
     return relationship

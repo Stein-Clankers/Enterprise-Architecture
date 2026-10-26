@@ -14,6 +14,7 @@ UI reference: `design/specs/open-ea-repository-ui-spec.md` §3.1, §2.2.
 | `relationship-types.ts` | the 11 relationship types, notation, abbreviations |
 | `validity.ts` | the relationship validity matrix: Archi's `archi/relationships.xml`, and its junction rules |
 | `profile.ts` | portfolio profile types, scales, TIME, tags |
+| `plan.ts` | rollouts, waves and site plans; `PlanDate`; change entries; their guards (#209) |
 | `lifecycle.ts` | phase derivation from dates |
 | `completeness.ts` | completeness scoring and model health |
 | `workspace.ts` | `Element`, `Relationship`, `View`, `Folder`, `ReportDefinition`, `Workspace` |
@@ -22,6 +23,7 @@ UI reference: `design/specs/open-ea-repository-ui-spec.md` §3.1, §2.2.
 | `migrate.ts` | bringing a stored workspace from an earlier schema forward |
 | `validate.ts` | whole-model validation: Archipelago's integrity findings, and the validator's run |
 | `validate-views.ts` | referential integrity of views and folders |
+| `validate-plans.ts` | referential integrity of rollouts, waves and site plans |
 | `checks.ts` | Archi 5.10's eight validator checks (#193) |
 | `nesting.ts` | what nesting one shape in another can mean: the prompt's and the validator's one rule |
 | `folders.ts` | where things may be filed: each kind's group, no folder inside itself |
@@ -198,3 +200,42 @@ Where the port follows Archi rather than the obvious reading:
   (#131). A line drawn between the two shapes that does not mean the nesting
   reports it; otherwise a nesting-type relationship either way round in the
   model means it is not reported.
+
+## Rollouts, waves and site plans (#209)
+
+ADR 0013 and ADR 0014 decide the model; `plan.ts` holds the shapes and their
+guards, and nothing that evaluates them. Date inheritance, the derived site
+phase, presets, exceptions, dependencies and plan checks are #213 and #214.
+
+- **A rollout is a Work Package with `plan.kind === 'rollout'`.** Its plan
+  holds the template version, the ordered milestone set, the ordered scope
+  template, the constraints, the archetypes and one **site plan** per
+  Location. Site plans are records keyed by Location id, not elements (ADR
+  0013 point 3).
+- **A wave is a Work Package with `plan.kind === 'wave'`.** Its plan names
+  its rollout, which is the one source of which rollout a wave belongs to.
+  `createWave` also adds the Aggregation from the rollout, so the model says
+  it in ArchiMate terms too. A wave's `label` (Pilot, W1) is beside the
+  element's name, which stays the full name.
+- **A `PlanDate` is held by the first day of its period**: the first of the
+  quarter or month, the Monday of the ISO week, or the day itself. So a
+  period has one spelling and one file (ADR 0004), and `isPlanDate` refuses a
+  day that does not start its period rather than guessing which period was
+  meant. `formatPlanDate` and `parsePlanDate` read and write the forms people
+  type: `2027-Q2`, `2027-05`, `2027-W19`, `2027-05-12`.
+- **A template change is ADR 0014's change entry** with an applicability rule.
+  Its date is a `PlanDate` or an anchor milestone plus whole days. Which
+  template changes apply to an archetype is said by each change's
+  applicability, so an archetype holds only its label and its default
+  durations.
+- **Every guard is strict**: it accepts exactly the shape, with no key it does
+  not know, so what it passes is what canonical JSON writes back and the
+  published schema accepts. The store calls them on the write path:
+  `waveIdOf` and `archetypeIdOf` turn a form's value into an id of the
+  rollout's own, or `undefined`, so a `<select>`'s empty option stores
+  nothing.
+
+Deleting a Location leaves its site plans where they are: a plan holds the
+dates, actuals and notes someone entered. `validate()` reports each reference
+a plan holds that no longer holds (`plan.site-location-missing`, and the
+same for a wave, an archetype, a milestone, or a wave's rollout).

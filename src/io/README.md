@@ -9,6 +9,8 @@ git-friendly files are what LeanIX does not give you. Concept reference: §5.3.
 | `canonical-views.ts`                       | views and folders in the native format, and their repairs on read         |
 | `exchange-format.ts`                       | Open Group ArchiMate Model Exchange Format, in and out                    |
 | `profile-properties.ts`                    | how the portfolio profile survives an exchange round trip                 |
+| `canonical-plans.ts`                       | rollout and wave plans in the native format, and the readers both formats share |
+| `plan-exchange.ts`                         | rollouts, waves and site plans in the exchange format, and folding them back |
 | `json-schema.ts`                           | the published schema, built from the metamodel                            |
 | `demo.ts`, `demo/archisurance.xml`         | the bundled demo workspace                                                |
 | `fixtures/junction-flow.xml`               | a junction chain as a certified tool writes it                            |
@@ -287,6 +289,44 @@ the first character for `[` is a guess, and it was wrong for a tag spelled like
 the escaped form (`["a"]` came back as the single tag `a`; `[]` took
 `profile.tags` with it). One function, `asTagArray`, decides — and the writer
 refuses the comma form for anything the reader would take as JSON.
+
+## Rollouts, waves and site plans (#209)
+
+**Canonical JSON.** A rollout's or wave's plan is the element's `plan`. The
+milestone set and the template keep their author's order, because the order
+means something; archetypes and blackouts are sorted by id and site plans by
+location id (proposal §8). A plan is read part by part: a malformed milestone
+must not cost a rollout its 160 site plans, so each unreadable part is dropped
+and named in one `json.invalid-plan` problem. Only a field the plan cannot
+exist without (a rollout's template version, a wave's rollout, label, order or
+template version) drops the whole plan, and that is reported too.
+
+**Exchange format** (ADR 0013 point 10):
+
+| Plan object | Written as |
+|---|---|
+| Rollout | its own Work Package; `archipelago.plan.kind` and `templateVersion` as properties, the milestone set, template, constraints and archetypes as canonical JSON, one property each |
+| Wave | its own Work Package; label, order, window, capacity and template version as properties, a window end as `2027-Q2` or `2027-W19` |
+| Site plan | a Work Package only the file holds, aggregated by its wave (or by the rollout when unassigned) and associated with its Location; each field a property, each milestone under `archipelago.plan.milestone.<id>`, each actual under `archipelago.plan.actual.<id>`, the notes as its documentation |
+
+A site plan's Work Package and its two relationships get ids derived from the
+rollout's and the Location's, claimed like every other xs:ID, so the same model
+writes the same file, and the file's ids are written into the plan's
+references when an id had to be rewritten. Both readers fold them back
+(`foldPlans`), before views and folders are read. What a fold cannot put back
+is reported, never dropped quietly: a plan value it cannot read stays an
+ordinary property (`exchange.plan-unreadable`), as an unreadable profile key
+does; a site plan's Work Package with no rollout in the file, or a second one
+for a Location, stays a Work Package (`exchange.plan-site-unfolded`);
+whatever another tool added to one (a property, an assessment, a new name, a
+folder) is named (`exchange.plan-site-content-dropped`,
+`exchange.plan-folder-ignored`), and so is a relationship drawn to one
+(`exchange.plan-relationship-dropped`). On the way out, a site plan whose
+Location or wave is gone is still written, with its ids in its properties, and
+said (`exchange.plan-location-missing`, `exchange.plan-wave-missing`).
+
+`npm run validate:xsd` validates a 160-site rollout as written and as it comes
+back out of a round trip.
 
 ## Import problems are data, not exceptions
 
