@@ -28,6 +28,72 @@ git-friendly files are what LeanIX does not give you. Concept reference: §5.3.
 | `fixtures/view-objects-edited.*`           | those edited here, and Archi's save and export of our file: the #127 oracle for #134 |
 | `legend-feature.ts`                        | a legend's options in Archi's own `legend` feature spelling, read as Archi reads it |
 | `problems.ts`                              | structured import problems                                                |
+| `xlsx.ts`, `xlsx-read.ts`, `xlsx-write.ts` | spreadsheets: a format-neutral workbook, read from and written to `.xlsx` (#208) |
+| `xlsx-dates.ts`                            | Excel's date serials and ISO days, in whole days with no time zone        |
+| `fixtures/openpyxl-sample.xlsx`            | a workbook as openpyxl 3.1.5 wrote it (`scripts/fixtures/xlsx-with-openpyxl.py`) |
+
+## Spreadsheets (#208)
+
+The rollout workbook (#210, ADR 0012) and the inventory's Excel round trip (#94)
+read and write `.xlsx` through one small layer of our own. A spike (October
+2026) weighed the npm `xlsx` package (0.18.5, last published 2022, with a
+high-severity prototype-pollution and a ReDoS advisory and no fix on npm, about
+141 KB minified and gzipped), ExcelJS (about 269 KB, last stable release 2023, a
+moderate advisory through `uuid`) and read-/write-excel-file (about 35 KB
+together, maintained). read-excel-file 9.3.12 reads openpyxl's fixture with the
+`#N/A` cell and the never-calculated formula as `null`, exactly as it reads an
+empty cell, and says nothing, which #94's blank-deletes rule cannot live with.
+Ours is about 8.5 KB, `zip.ts` included, on `fast-xml-parser`, which the bundle
+already has, and fetches nothing.
+
+**The shape** (`xlsx.ts`) is a list of sheets, each a list of rows of typed
+cells: string, number, boolean, date (an ISO day) or empty. Rows are ragged and
+trimmed: a row ends at its last cell holding something, and `cellAt` reads past
+the end as empty. `tableRows` lays out a table sheet as #94 does: row 1 holds the
+technical keys, row 2 the labels.
+
+**The writer** stores every string as a shared string, so no cell is ever a
+formula: `=SUM(A1)` is text, and text starting with `=`, `+`, `-` or `@` also
+carries Excel's quote prefix, which keeps it text when someone edits the cell.
+Dates are serials with a `yyyy-mm-dd` format. Text is escaped for XML, a carriage
+return as `&#13;` (a parser turns a literal one into a line feed), and for OOXML's
+`_xHHHH_` escape: a character XML cannot hold is escaped that way, and so is the
+underscore of text that already looks like an escape, so `_x000D_` reads back as
+written. The same workbook always makes the same bytes. What Excel would refuse to
+open (no sheets, a bad sheet name, a cell outside the grid, a non-finite number,
+an over-long string, a date that is no day) throws `XlsxWriteError`.
+
+**Dates have no time zone.** A serial converts to a day with integer arithmetic
+and no `Date`, in the 1900 system (with Lotus's 1900-02-29, which the reader
+refuses) or the 1904 system, as the workbook says. A number is a date when its
+format is: one of Excel's built-in date ids, or a custom code with date tokens
+once quoted text, colours and `AM/PM` are taken out. `xlsx-dates.test.ts` runs
+the conversion in Node processes started under `TZ=UTC` and
+`TZ=Pacific/Auckland`, and the whole reader under each zone in turn.
+
+**Nothing unreadable is read as empty**, because to #94 an empty cell deletes a
+value. An error cell (`#N/A`), an unknown cell type, a malformed value, a formula
+with no stored result, a serial that is no day and a time of day become an
+`UnreadableCell`, each with an `XlsxProblem` naming its sheet and cell
+(`xlsx.cell-error`, `xlsx.cell-type-unknown`, `xlsx.cell-malformed`,
+`xlsx.formula-uncached`, `xlsx.date-out-of-range`, `xlsx.time-cell`). A date with
+a time keeps its day (`xlsx.date-time-dropped`); a number whose style is missing
+or whose built-in format depends on Excel's language is read as a number and
+said (`xlsx.style-missing`, `xlsx.number-format-unknown`). A row or cell
+reference that places nothing, a cell held twice, and a chart sheet are reported
+too. Formula cells read as their stored result, said once per sheet. A file that
+cannot be read (a damaged archive, a missing part, a part that is not XML)
+yields no workbook at all: a sheet missing from a workbook would read as
+columns to leave untouched.
+
+Presentation is not read: styles beyond the number format, widths, merges,
+comments, and phonetic guides on East Asian text.
+
+**Fixtures.** `openpyxl-sample.xlsx` is openpyxl's own output, written by
+`scripts/fixtures/xlsx-with-openpyxl.py`; re-run it, never edit the file. #208's
+acceptance asks for a fixture saved by LibreOffice headless as well, which needs
+LibreOffice on the machine that makes it; until then no file here claims to be
+Excel's or LibreOffice's.
 
 ## Shared folders (#147)
 
