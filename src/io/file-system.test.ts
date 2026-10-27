@@ -8,7 +8,7 @@ import {
   readWorkspaceFile,
   supportsFileSystemAccess,
 } from './file-system'
-import { smallWorkspace } from '@/test/fixtures'
+import { smallWorkspace, unreadableFile } from '@/test/fixtures'
 
 function file(name: string, contents: string): File {
   return new File([contents], name, { type: 'text/plain' })
@@ -66,20 +66,13 @@ describe('reading a file the user handed us', () => {
 })
 
 describe('an import that throws (#52)', () => {
-  function unreadable(name: string): File {
-    const gone = file(name, '{}')
-    const rejection = () =>
-      Promise.reject(new DOMException('The file changed.', 'NotReadableError'))
-    return Object.assign(gone, { arrayBuffer: rejection, text: rejection })
-  }
-
   afterEach(() => {
     delete (window as unknown as Record<string, unknown>).showOpenFilePicker
     delete (window as unknown as Record<string, unknown>).showSaveFilePicker
   })
 
   it('throws a FileReadError when the file cannot be read', async () => {
-    const thrown = await readWorkspaceFile(unreadable('synced.json')).catch((error) => error)
+    const thrown = await readWorkspaceFile(unreadableFile('synced.json')).catch((error) => error)
     expect(thrown).toBeInstanceOf(FileReadError)
     expect(thrown.message).toBe('The file changed.')
   })
@@ -104,15 +97,70 @@ describe('an import that throws (#52)', () => {
     expect(importFailure('thrown as a string').problems[0]?.message).toContain(
       'error: thrown as a string.',
     )
+    // A message that ends a sentence of its own does not end ours twice.
+    expect(importFailure(new Error('The reader gave up.')).problems[0]?.message).toContain(
+      'error: The reader gave up. This is a fault',
+    )
+  })
+
+  const pickerThat = (pick: () => Promise<unknown>) =>
+    Object.assign(window, { showSaveFilePicker: async () => ({}), showOpenFilePicker: pick })
+  const pick = (getFile: () => Promise<File>) =>
+    pickerThat(async () => [{ name: 'model.json', getFile }])
+
+  it('says nothing when the user cancels the picker', async () => {
+    pickerThat(() => Promise.reject(new DOMException('The user aborted a request.', 'AbortError')))
+    expect(await openWorkspaceFile()).toBeUndefined()
+  })
+
+  it('says the browser refused the picker when it did, not that a file is at fault', async () => {
+    // Chromium's answer to a second picker while one is open: "Open and keep
+    // linked" pressed twice. A blocked site setting or policy, a cross-origin
+    // frame and a missing user gesture are `NotAllowedError`s too.
+    pickerThat(() =>
+      Promise.reject(new DOMException('File picker already active.', 'NotAllowedError')),
+    )
+    expect(await openWorkspaceFile()).toEqual({
+      fileName: '',
+      result: {
+        ok: false,
+        problems: [
+          {
+            severity: 'error',
+            code: 'file.picker-refused',
+            message: 'The browser refused to open the file picker: File picker already active.',
+          },
+        ],
+      },
+    })
+
+    // An opaque origin's `SecurityError` (the spec's), with no reason given.
+    pickerThat(() => Promise.reject(new DOMException('', 'SecurityError')))
+    expect((await openWorkspaceFile())?.result.problems).toEqual([
+      expect.objectContaining({
+        code: 'file.picker-refused',
+        message: 'The browser refused to open the file picker.',
+      }),
+    ])
+  })
+
+  it('calls a reader that failed on a picked file a fault, not an unreadable file', async () => {
+    // The file reads; what fails is the code that reads it, here on the name.
+    const crashing = Object.defineProperty(file('model.json', '{}'), 'name', {
+      get: () => {
+        throw new TypeError('x is undefined')
+      },
+    })
+    pick(async () => crashing)
+    expect((await openWorkspaceFile())?.result.problems).toEqual([
+      expect.objectContaining({
+        code: 'import.failed',
+        message: expect.stringContaining('unexpected error: x is undefined.'),
+      }),
+    ])
   })
 
   it('reports a picked file that cannot be read, through either read', async () => {
-    const pick = (getFile: () => Promise<File>) =>
-      Object.assign(window, {
-        showSaveFilePicker: async () => ({}),
-        showOpenFilePicker: async () => [{ name: 'model.json', getFile }],
-      })
-
     pick(() => Promise.reject(new DOMException('It is gone.', 'NotFoundError')))
     expect((await openWorkspaceFile())?.result.problems).toEqual([
       expect.objectContaining({
@@ -121,7 +169,7 @@ describe('an import that throws (#52)', () => {
       }),
     ])
 
-    pick(async () => unreadable('model.json'))
+    pick(async () => unreadableFile('model.json'))
     expect((await openWorkspaceFile())?.result.problems).toEqual([
       expect.objectContaining({
         code: 'file.unreadable',

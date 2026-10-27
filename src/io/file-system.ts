@@ -10,6 +10,7 @@ import {
   type ExportFormat,
 } from './file-download'
 import { failed, problem, type ImportResult } from './problems'
+import { failure } from './shared-folder/folder'
 
 /**
  * Files are the source of truth (concept §5.2). This module is how a model
@@ -120,18 +121,44 @@ export interface OpenedFile {
 /** Open a file with the picker where it exists; returns undefined if cancelled. */
 export async function openWorkspaceFile(): Promise<OpenedFile | undefined> {
   if (!supportsFileSystemAccess()) return undefined
+  let handles: SaveFileHandle[]
   try {
-    const [handle] = await (window as unknown as FileSystemWindow).showOpenFilePicker!({
+    handles = await (window as unknown as FileSystemWindow).showOpenFilePicker!({
       multiple: false,
       types: [JSON_TYPE, XML_TYPE],
     })
-    if (!handle) return undefined
+  } catch (error) {
+    if (isAbort(error)) return undefined
+    return { result: pickerRefused(error), fileName: '' }
+  }
+  const [handle] = handles
+  if (!handle) return undefined
+  try {
     const file = await reading(() => handle.getFile())
     return { result: await readWorkspaceFile(file), handle, fileName: file.name }
   } catch (error) {
-    if (isAbort(error)) return undefined
     return { result: importFailure(error), fileName: '' }
   }
+}
+
+/**
+ * The picker can refuse before any file is picked: a site setting or policy
+ * that blocks file access, the page embedded in another site's frame, no user
+ * gesture, or a second picker while one is open ("Open and keep linked" pressed
+ * twice). None of these is a file that could not be read, nor a fault in
+ * Archipelago, so it gets its own problem.
+ */
+function pickerRefused(error: unknown): ImportResult {
+  const why = failure(error)
+  return failed([
+    problem(
+      'error',
+      'file.picker-refused',
+      why
+        ? `The browser refused to open the file picker: ${why}`
+        : 'The browser refused to open the file picker.',
+    ),
+  ])
 }
 
 /**
@@ -141,7 +168,7 @@ export async function openWorkspaceFile(): Promise<OpenedFile | undefined> {
  */
 export class FileReadError extends Error {
   constructor(cause: unknown) {
-    super(messageOf(cause), { cause })
+    super(failure(cause), { cause })
     this.name = 'FileReadError'
   }
 }
@@ -169,15 +196,14 @@ export function importFailure(error: unknown): ImportResult {
     problem(
       'error',
       'import.failed',
-      `The import stopped on an unexpected error: ${messageOf(error)}. This is a fault in Archipelago; please report it, with the file if you can.`,
+      `The import stopped on an unexpected error: ${withoutFullStop(failure(error))}. This is a fault in Archipelago; please report it, with the file if you can.`,
     ),
   ])
 }
 
-function messageOf(error: unknown): string {
-  // A failed `file.arrayBuffer()` rejects with a `DOMException`, which is not an
-  // `Error` everywhere (jsdom's is not).
-  return error instanceof Error || error instanceof DOMException ? error.message : String(error)
+/** A message set inside a sentence of ours, which ends it with its own full stop. */
+function withoutFullStop(message: string): string {
+  return message.replace(/\.+$/, '')
 }
 
 /**

@@ -107,7 +107,9 @@ export function FileWorkspaceProvider({ children }: { children: ReactNode }) {
 
   const importFile = useCallback(
     async (file: File) => {
-      applyImport(await readWorkspaceFile(file), file.name)
+      // Total, like `openFile`: a read that rejects (#52) is a problem in the
+      // report, not a rejection every caller has to remember to catch.
+      applyImport(await readWorkspaceFile(file).catch(importFailure), file.name)
     },
     [applyImport],
   )
@@ -153,7 +155,6 @@ export function FileWorkspaceProvider({ children }: { children: ReactNode }) {
       importFile,
       loadDemo,
       shared,
-      reportImportFailure: (error: unknown) => setLastImport(importFailure(error)),
       startImport: () => {
         setLastImport(undefined)
         setImporting(true)
