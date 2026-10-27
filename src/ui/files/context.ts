@@ -14,6 +14,7 @@ export interface FileWorkspaceContextValue {
   notice: string | undefined
   save: (format?: ExportFormat, options?: { reuseHandle?: boolean }) => Promise<SaveOutcome>
   openFile: () => Promise<void>
+  /** Never rejects on a file it cannot read: that is reported in `lastImport` (#52). */
   importFile: (file: File) => Promise<void>
   loadDemo: () => void
   startImport: () => void
