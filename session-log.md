@@ -69,6 +69,17 @@
   ADR 0014 confirms ADR 0013's change-entry shape, so #207 is done.
 - **Open:** #58 still needs its `modelAt` spike: 10 ms at 5,000 elements and 15,000 relationships. #209 is unblocked. R3 and R4 are filed once R2 is done. #72 and #94 do not yet mention the new track; the comments were not posted.
 
+## 2026-10-23 — #52: the import dialog's read failure, PR #205 open
+
+- **Branch `feat/52-import-error-path`.** Nothing merged.
+- **Fix:** `ImportDialog` wraps `importFile` in `try … catch … finally`. The catch reports the error through a new context call, `reportImportFailure`, in the existing report. The finally re-enables the buttons and clears the input.
+- **Test:** `files.test.tsx` uploads a `File` whose `arrayBuffer()` and `text()` reject (the reader now calls `arrayBuffer()`, not the `text()` the issue names). Removing the finally fails it (the button stays disabled), and removing the catch fails it (no report, unhandled rejection). So does the original code.
+- **Review** (same session; code layer in a fresh agent) had two findings, both fixed in `8e8f7b8`:
+  - the test did not cover the input reset, which is what lets the same file be picked again; it now asserts the value is cleared;
+  - the catch called any throw "could not be read". A failed `arrayBuffer()` or `getFile()` now throws `FileReadError`, and `importFailure` maps it to `file.unreadable` and anything else to `import.failed`. The picker path uses it too.
+- **Removal check:** each guard was removed in turn (7 probes, including the reset alone), and a test failed each time. CLAUDE.md: two lines sharpened (`2513cc7`).
+- **Re-review (2026-10-27, request changes) fixed:** the picker's own refusal (`NotAllowedError`, `SecurityError`) was called "a fault in Archipelago"; the picker call now has its own catch and a `file.picker-refused` problem, Cancel stays silent, and tests cover refusal, Cancel and a reader crash through the picker path. `importFile` is now total (`.catch(importFailure)` in the provider), so `reportImportFailure` is gone; `failure()` is shared, a thrown full stop no longer doubles, and one `unreadableFile` fixture serves both tests. 9 of 10 probes fail a test; the dialog's `try … finally` as plain statements survives, since nothing reachable throws past `importFile` now.
+
 ## 2026-10-23 — Reviewed and merged #201, #202, #203; #200 and #204 merged
 
 - **#200 (#195) and #204 (#198) merged** after their review fixes. Branches deleted.

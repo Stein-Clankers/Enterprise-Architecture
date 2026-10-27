@@ -6,6 +6,7 @@ import { exportExchangeXml, loadDemoWorkspace, toCanonicalJson } from '@/io'
 import { ModelStoreProvider } from '@/store'
 import { pressOutside } from '@/test/dialogs'
 import { stubDownloads } from '@/test/downloads'
+import { unreadableFile } from '@/test/fixtures'
 import { renderApp } from '@/test/render'
 import { TakeoverScreen } from './TakeoverScreen'
 
@@ -136,6 +137,30 @@ describe('import dialog', () => {
     expect(within(report).getByText(/Nothing could be read from that file/)).toBeInTheDocument()
     // The model that was already open is untouched.
     expect(screen.getByText('29 of 29 elements')).toBeInTheDocument()
+  })
+
+  it('reports a file that cannot be read and gives the buttons back (#52)', async () => {
+    const { user, dialog } = await openDialog()
+    const input = within(dialog).getByLabelText<HTMLInputElement>('Choose a file to import')
+    await user.upload(input, unreadableFile('synced.json'))
+
+    const report = await waitFor(() => document.querySelector('.import-report') as HTMLElement)
+    expect(
+      within(report).getByText('The file could not be read: The file changed.'),
+    ).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: 'Choose a file…' })).toBeEnabled()
+    // Cleared, or picking the same file again once the sync client is done
+    // changes nothing, and a browser fires no `change` for it.
+    expect(input.value).toBe('')
+
+    // And the dialog still imports.
+    await user.upload(
+      input,
+      new File([exportExchangeXml(demo())], 'archisurance.xml', { type: 'application/xml' }),
+    )
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Import' })).not.toBeInTheDocument(),
+    )
   })
 
   it('keeps focus inside the import dialog and gives it back on close', async () => {

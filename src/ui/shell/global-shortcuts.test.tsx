@@ -216,6 +216,7 @@ describe('every key listener in the app', () => {
     'src/ui/files/ImportDialog.tsx': 1, // the dialog's Escape
     'src/ui/inventory/CreateElementDialog.tsx': 1, // the dialog's Escape
     'src/ui/rollout/RolloutDialogs.tsx': 1, // the rollout dialogs' Escape, while open
+    'src/ui/rollout-workbook/RolloutWorkbookDialog.tsx': 1, // the dialog's Escape
     'src/ui/shell/WorkspaceSwitcher.tsx': 1, // its menu's Escape, while open
     'src/ui/views/ConnectDialogs.tsx': 1, // the dialogs' Escape
   }

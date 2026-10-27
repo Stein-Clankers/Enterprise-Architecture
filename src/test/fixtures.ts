@@ -342,3 +342,17 @@ export function drawnWorkspace(): Workspace {
   }))
   return { ...base, elements, relationships, folders: [...folders].sort(byId), views }
 }
+
+/**
+ * A file that cannot be read, as a sync client leaves one by replacing it
+ * between the pick and the read (#52). Every read rejects: `text()` as well as
+ * the `arrayBuffer()` the reader calls today, so the file stays unreadable
+ * whichever read a reader uses.
+ */
+export function unreadableFile(name: string): File {
+  const rejection = () => Promise.reject(new DOMException('The file changed.', 'NotReadableError'))
+  return Object.assign(new File(['{}'], name, { type: 'application/json' }), {
+    arrayBuffer: rejection,
+    text: rejection,
+  })
+}

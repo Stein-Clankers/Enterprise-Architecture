@@ -1,0 +1,644 @@
+{
+  "documentation": "A small insurance landscape for tests.",
+  "elements": [
+    {
+      "documentation": "New rules-driven claim assessment platform.",
+      "id": "app-claims",
+      "name": "Claim Handling Engine",
+      "profile": {
+        "businessCriticality": 4,
+        "functionalFit": 4,
+        "lifecycle": {
+          "active": "2027-01-01",
+          "endOfLife": "2034-01-01",
+          "phaseIn": "2025-01-01",
+          "phaseOut": "2033-01-01",
+          "plan": "2024-01-01"
+        },
+        "tags": [
+          "Core",
+          "Cloud target"
+        ],
+        "technicalFit": 4,
+        "timeClassification": "Invest"
+      },
+      "properties": {
+        "owner": "Claims"
+      },
+      "type": "ApplicationComponent"
+    },
+    {
+      "documentation": "Intake, assessment, settlement and recovery of claims.",
+      "id": "cap-claim",
+      "name": "Claim Handling",
+      "profile": {
+        "tags": [
+          "Core"
+        ]
+      },
+      "properties": {
+        "owner": "Claims"
+      },
+      "type": "Capability"
+    },
+    {
+      "id": "loc-emea",
+      "name": "EMEA",
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-001",
+      "name": "Site 001",
+      "properties": {
+        "archipelago.site.code": "001"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-002",
+      "name": "Site 002",
+      "properties": {
+        "archipelago.site.code": "002"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-003",
+      "name": "Site 003",
+      "properties": {
+        "archipelago.site.code": "003"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-004",
+      "name": "Site 004",
+      "properties": {
+        "archipelago.site.code": "004"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-005",
+      "name": "Site 005",
+      "properties": {
+        "archipelago.site.code": "005"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-006",
+      "name": "Site 006",
+      "properties": {
+        "archipelago.site.code": "006"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-007",
+      "name": "Site 007",
+      "properties": {
+        "archipelago.site.code": "007"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-008",
+      "name": "Site 008",
+      "properties": {
+        "archipelago.site.code": "008"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "obj-claim",
+      "name": "Claim Record",
+      "type": "DataObject"
+    },
+    {
+      "id": "proc-claim",
+      "name": "Handle Claim",
+      "properties": {
+        "owner": "Claims"
+      },
+      "type": "BusinessProcess"
+    },
+    {
+      "id": "sys-central-store",
+      "name": "Central data lake",
+      "type": "SystemSoftware"
+    },
+    {
+      "id": "sys-local-store",
+      "name": "Local file store",
+      "type": "SystemSoftware"
+    },
+    {
+      "id": "tec-k8s",
+      "name": "Kubernetes Platform",
+      "properties": {
+        "owner": "Platform Ops"
+      },
+      "type": "Node"
+    },
+    {
+      "documentation": "Moves every site’s local data into the central stores.",
+      "id": "wp-rollout-data",
+      "name": "Local data to the central lake",
+      "plan": {
+        "archetypes": [
+          {
+            "id": "office",
+            "label": "Office"
+          },
+          {
+            "durations": {
+              "freezeStart": 42,
+              "hypercareEnd": 28
+            },
+            "id": "plant",
+            "label": "Plant"
+          }
+        ],
+        "constraints": {
+          "blackouts": [
+            {
+              "end": "2027-09-05",
+              "id": "bo-audit",
+              "start": "2027-09-01"
+            },
+            {
+              "end": "2028-01-10",
+              "id": "bo-year-end",
+              "label": "Year-end close",
+              "start": "2027-12-15"
+            }
+          ],
+          "defaultCapacity": 2
+        },
+        "kind": "rollout",
+        "milestones": [
+          {
+            "id": "mappingSignedOff",
+            "label": "Mapping signed off",
+            "startsPhase": "preparing"
+          },
+          {
+            "id": "freezeStart",
+            "label": "Freeze starts",
+            "startsPhase": "cutover"
+          },
+          {
+            "id": "reconciliationSignedOff",
+            "label": "Reconciliation signed off",
+            "startsPhase": "hypercare"
+          },
+          {
+            "id": "hypercareEnd",
+            "label": "Hypercare ends",
+            "startsPhase": "migrated"
+          },
+          {
+            "id": "legacyDecommissioned",
+            "label": "Legacy decommissioned",
+            "startsPhase": "done"
+          }
+        ],
+        "sites": [
+          {
+            "actuals": {
+              "freezeStart": "2027-03-02",
+              "mappingSignedOff": "2027-02-12"
+            },
+            "archetype": "office",
+            "location": "loc-site-001",
+            "wave": "wp-wave-0"
+          },
+          {
+            "actuals": {
+              "freezeStart": "2027-03-03",
+              "mappingSignedOff": "2027-02-12"
+            },
+            "archetype": "plant",
+            "location": "loc-site-002",
+            "wave": "wp-wave-0"
+          },
+          {
+            "location": "loc-site-003",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-004",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-005",
+            "rag": "green",
+            "wave": "wp-wave-2"
+          },
+          {
+            "location": "loc-site-006",
+            "milestones": {
+              "hypercareEnd": {
+                "date": "2027-07-07",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-007",
+            "rag": "red",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-008",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-1"
+          }
+        ],
+        "template": [
+          {
+            "applicability": {
+              "element": "sys-local-store",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 0
+            },
+            "id": "tc-replace-store",
+            "kind": "replace",
+            "subject": "sys-local-store",
+            "successor": "sys-central-store"
+          },
+          {
+            "applicability": {
+              "archetypes": [
+                "plant"
+              ],
+              "kind": "archetypes"
+            },
+            "date": {
+              "anchor": "hypercareEnd",
+              "offsetDays": 30
+            },
+            "id": "tc-retire-store",
+            "kind": "retire",
+            "subject": "sys-local-store"
+          },
+          {
+            "applicability": {
+              "kind": "all"
+            },
+            "date": {
+              "date": "2027-01-01",
+              "precision": "quarter"
+            },
+            "id": "tc-introduce-lake",
+            "kind": "introduce",
+            "subject": "sys-central-store"
+          },
+          {
+            "applicability": {
+              "kind": "all"
+            },
+            "date": {
+              "anchor": "mappingSignedOff",
+              "offsetDays": -14
+            },
+            "field": "timeClassification",
+            "id": "tc-eliminate",
+            "kind": "modify",
+            "subject": "sys-local-store",
+            "value": "Eliminate"
+          },
+          {
+            "applicability": {
+              "kind": "all"
+            },
+            "date": {
+              "date": "2027-05-03",
+              "precision": "week"
+            },
+            "field": "technicalFit",
+            "id": "tc-fit",
+            "kind": "modify",
+            "subject": "sys-central-store",
+            "value": 4
+          },
+          {
+            "applicability": {
+              "kind": "all"
+            },
+            "date": {
+              "date": "2027-06-01",
+              "precision": "month"
+            },
+            "id": "tc-add-serving",
+            "kind": "add",
+            "subject": "rel-k8s-app"
+          },
+          {
+            "applicability": {
+              "archetypes": [
+                "office",
+                "plant"
+              ],
+              "kind": "archetypes"
+            },
+            "date": {
+              "date": "2027-06-15",
+              "precision": "day"
+            },
+            "id": "tc-remove-access",
+            "kind": "remove",
+            "subject": "rel-app-obj"
+          }
+        ],
+        "templateVersion": 2
+      },
+      "properties": {
+        "owner": "Data Office"
+      },
+      "type": "WorkPackage"
+    },
+    {
+      "id": "wp-wave-0",
+      "name": "Pilot wave",
+      "plan": {
+        "capacity": 5,
+        "kind": "wave",
+        "label": "Pilot",
+        "order": 0,
+        "rollout": "wp-rollout-data",
+        "templateVersion": 1,
+        "window": {
+          "end": {
+            "date": "2027-03-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2027-01-01",
+            "precision": "month"
+          }
+        }
+      },
+      "type": "WorkPackage"
+    },
+    {
+      "id": "wp-wave-1",
+      "name": "Wave 1",
+      "plan": {
+        "kind": "wave",
+        "label": "W1",
+        "order": 1,
+        "rollout": "wp-rollout-data",
+        "templateVersion": 2,
+        "window": {
+          "end": {
+            "date": "2027-06-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2027-04-01",
+            "precision": "month"
+          }
+        }
+      },
+      "type": "WorkPackage"
+    },
+    {
+      "id": "wp-wave-2",
+      "name": "Wave 2",
+      "plan": {
+        "kind": "wave",
+        "label": "W2",
+        "order": 2,
+        "rollout": "wp-rollout-data",
+        "templateVersion": 2,
+        "window": {
+          "end": {
+            "date": "2027-09-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2027-07-01",
+            "precision": "month"
+          }
+        }
+      },
+      "type": "WorkPackage"
+    },
+    {
+      "id": "wp-wave-3",
+      "name": "Wave 3",
+      "plan": {
+        "kind": "wave",
+        "label": "W3",
+        "order": 3,
+        "rollout": "wp-rollout-data",
+        "templateVersion": 2,
+        "window": {
+          "end": {
+            "date": "2027-12-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2027-10-01",
+            "precision": "month"
+          }
+        }
+      },
+      "type": "WorkPackage"
+    },
+    {
+      "id": "wp-wave-4",
+      "name": "Wave 4",
+      "plan": {
+        "kind": "wave",
+        "label": "W4",
+        "order": 4,
+        "rollout": "wp-rollout-data",
+        "templateVersion": 2,
+        "window": {
+          "start": {
+            "date": "2028-01-01",
+            "precision": "quarter"
+          }
+        }
+      },
+      "type": "WorkPackage"
+    }
+  ],
+  "folders": [],
+  "id": "ws-rollout",
+  "name": "Data migration rollout",
+  "relationships": [
+    {
+      "id": "rel-app-obj",
+      "profile": {
+        "accessType": "ReadWrite"
+      },
+      "source": "app-claims",
+      "target": "obj-claim",
+      "type": "Access"
+    },
+    {
+      "documentation": "Every claim is registered and assessed in the Claims Engine.",
+      "id": "rel-app-proc",
+      "profile": {
+        "annualCost": 1200000,
+        "currency": "EUR"
+      },
+      "source": "app-claims",
+      "target": "proc-claim",
+      "type": "Serving"
+    },
+    {
+      "id": "rel-emea-001",
+      "source": "loc-emea",
+      "target": "loc-site-001",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-002",
+      "source": "loc-emea",
+      "target": "loc-site-002",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-003",
+      "source": "loc-emea",
+      "target": "loc-site-003",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-004",
+      "source": "loc-emea",
+      "target": "loc-site-004",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-005",
+      "source": "loc-emea",
+      "target": "loc-site-005",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-006",
+      "source": "loc-emea",
+      "target": "loc-site-006",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-007",
+      "source": "loc-emea",
+      "target": "loc-site-007",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-008",
+      "source": "loc-emea",
+      "target": "loc-site-008",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-k8s-app",
+      "source": "tec-k8s",
+      "target": "app-claims",
+      "type": "Serving"
+    },
+    {
+      "id": "rel-proc-cap",
+      "source": "proc-claim",
+      "target": "cap-claim",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-rollout-wave-0",
+      "source": "wp-rollout-data",
+      "target": "wp-wave-0",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-rollout-wave-1",
+      "source": "wp-rollout-data",
+      "target": "wp-wave-1",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-rollout-wave-2",
+      "source": "wp-rollout-data",
+      "target": "wp-wave-2",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-rollout-wave-3",
+      "source": "wp-rollout-data",
+      "target": "wp-wave-3",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-rollout-wave-4",
+      "source": "wp-rollout-data",
+      "target": "wp-wave-4",
+      "type": "Aggregation"
+    }
+  ],
+  "reports": [],
+  "schemaVersion": 6,
+  "tagGroups": [
+    {
+      "id": "tg-portfolio",
+      "multiSelect": true,
+      "name": "Portfolio",
+      "tags": [
+        {
+          "colourToken": "var(--app)",
+          "name": "Cloud target"
+        },
+        {
+          "colourToken": "var(--accent2)",
+          "name": "Core"
+        },
+        {
+          "colourToken": "var(--accent)",
+          "name": "Differentiating"
+        },
+        {
+          "colourToken": "var(--mot)",
+          "name": "GDPR"
+        },
+        {
+          "colourToken": "var(--pas)",
+          "name": "Supporting"
+        },
+        {
+          "colourToken": "var(--lc-eol)",
+          "name": "Vendor risk"
+        }
+      ]
+    }
+  ],
+  "views": []
+}

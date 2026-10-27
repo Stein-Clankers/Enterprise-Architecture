@@ -74,9 +74,15 @@ function ImportDialogBody() {
               const file = event.target.files?.[0]
               if (!file) return
               setBusy(true)
-              await importFile(file)
-              setBusy(false)
-              event.target.value = ''
+              // `importFile` reports a file it cannot read (#52), but whatever
+              // else throws, the buttons come back: without this they stayed
+              // disabled for the life of the dialog.
+              try {
+                await importFile(file)
+              } finally {
+                setBusy(false)
+                event.target.value = ''
+              }
             }}
           />
           <button
