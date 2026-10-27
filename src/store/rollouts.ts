@@ -6,6 +6,7 @@ import {
   isIsoDay,
   isPlanDatePrecision,
   isRolloutPlan,
+  isWindowInOrder,
   parsePlanDate,
   isWavePlan,
   rolloutPlanOf,
@@ -23,7 +24,6 @@ import {
   type WavePlan,
   type WaveWindow,
 } from '@/model'
-import type { Command } from './commands'
 import { newId } from './ids'
 import { ReadOnlyModelError, type ModelStore } from './model-store'
 
@@ -95,7 +95,7 @@ export function renameRollout(store: ModelStore, rolloutId: string, name: string
 export function deleteRollout(store: ModelStore, rolloutId: string): boolean {
   assertWriter(store, 'delete-rollout')
   if (!rolloutPlanOf(store.element(rolloutId))) return false
-  dispatchAll(store, store.removalCommands([rolloutId]))
+  store.removeElement(rolloutId)
   return true
 }
 
@@ -173,7 +173,7 @@ export function renameWave(store: ModelStore, waveId: string, name: string): boo
 export function deleteWave(store: ModelStore, waveId: string): boolean {
   assertWriter(store, 'delete-wave')
   if (!wavePlanOf(store.element(waveId))) return false
-  dispatchAll(store, store.removalCommands([waveId]))
+  store.removeElement(waveId)
   return true
 }
 
@@ -213,7 +213,11 @@ export function updateWave(store: ModelStore, waveId: string, changes: WaveChang
   if (changes.capacity === null) delete next.capacity
   else if (changes.capacity !== undefined) next.capacity = changes.capacity
   if (!isWavePlan(next)) return false
-  if (next.window?.start && next.window.end && next.window.end.date < next.window.start.date) {
+  if (
+    next.window?.start &&
+    next.window.end &&
+    !isWindowInOrder(next.window.start, next.window.end)
+  ) {
     return false
   }
   const after: Element = { ...wave, name: changes.name ?? wave.name, plan: next }
@@ -381,12 +385,6 @@ function updateSites(
     after: { ...rollout, plan: { ...plan, sites: [...sites.values()].sort(byLocation) } },
   })
   return true
-}
-
-function dispatchAll(store: ModelStore, commands: Command[]): void {
-  const [only] = commands
-  if (commands.length === 1 && only) store.dispatch(only)
-  else if (commands.length) store.dispatch({ kind: 'batch', commands })
 }
 
 function without(site: SitePlan, key: 'wave' | 'archetype'): SitePlan {

@@ -1,10 +1,17 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { isPositiveInteger, rolloutPlanOf, type Element, type WaveWindow } from '@/model'
+import {
+  isPositiveInteger,
+  isWindowInOrder,
+  rolloutPlanOf,
+  type Element,
+  type WaveWindow,
+} from '@/model'
 import {
   addSites,
   createRollout,
   createWave,
   deleteWave,
+  planCascadeText,
   updateWave,
   useModelSelector,
   useModelStore,
@@ -165,7 +172,7 @@ export function WaveDialog({
   }
   if (startValue === undefined) problems.push('The start is not a calendar day.')
   if (endValue === undefined) problems.push('The end is not a calendar day.')
-  if (startValue && endValue && endValue.date < startValue.date) {
+  if (startValue && endValue && !isWindowInOrder(startValue, endValue)) {
     problems.push('The end is before the start.')
   }
 
@@ -205,7 +212,9 @@ export function WaveDialog({
   }
 
   if (wave && confirmingDelete) {
-    const count = wave.sites.length
+    // Worded from the commands Delete dispatches, as the fact sheet's Delete
+    // is (#223), so the two doors to one action say the same.
+    const cascade = planCascadeText(store.removalPreview(wave.element.id), 'asked')
     return (
       <ModalForm
         label="Delete wave"
@@ -214,12 +223,7 @@ export function WaveDialog({
           if (deleteWave(store, wave.element.id)) onDeleted()
         }}
       >
-        <p className="dialog__help">
-          {`Delete “${wave.element.name}”? `}
-          {count
-            ? `Its ${count} site${count === 1 ? '' : 's'} stay in the rollout, unassigned, with their dates.`
-            : 'No site is in it.'}
-        </p>
+        <p className="dialog__help">{`Delete “${wave.element.name}”? ${cascade}`}</p>
         <div className="dialog__actions">
           <button type="button" className="button" onClick={() => setConfirmingDelete(false)}>
             Cancel

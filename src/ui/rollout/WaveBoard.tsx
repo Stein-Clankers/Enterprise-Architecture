@@ -3,7 +3,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { formatPlanDate } from '@/model'
 import { assignSites, unassignSites, useModelStore } from '@/store'
 import { LIST_WINDOW } from '@/ui/inventory/list-window'
-import type { RolloutData, SiteRow, WaveColumn } from './rollout-data'
+import { waveHeading, type RolloutData, type SiteRow, type WaveColumn } from './rollout-data'
 
 /**
  * The wave board (#211, proposal §6 item 3): a column per wave, with the
@@ -56,7 +56,11 @@ export function WaveBoard({
   const [dragging, setDragging] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState<number | null>(null)
   const [focusRequest, setFocusRequest] = useState<string | null>(null)
-  const [announcement, setAnnouncement] = useState('')
+  const [announcement, setAnnouncement] = useState({ text: '', toggle: false })
+  // A live region announces a change of its text, so the same message twice
+  // ("Put back." after "Put back.") alternates a trailing no-break space.
+  const announce = (text: string) =>
+    setAnnouncement((was) => ({ text, toggle: was.text === text ? !was.toggle : false }))
 
   // A reader holds nothing: the switch ends a pick-up and a drag, and they do
   // not come back when the tab can write again.
@@ -69,12 +73,21 @@ export function WaveBoard({
 
   const columnName = (index: number) => {
     const wave = columns[index]?.wave
-    return wave ? wave.plan.label || wave.element.name : 'Unassigned'
+    return wave ? waveHeading(wave).text : 'Unassigned'
   }
+  const siteOf = (location: string) =>
+    data.sites.find((candidate) => candidate.location === location)
   const siteName = (location: string) => {
-    const site = data.sites.find((candidate) => candidate.location === location)
+    const site = siteOf(location)
     return site ? (site.code ?? site.name) : location
   }
+  /**
+   * Whether a drop in column `to` changes anything. A site in a wave the
+   * rollout does not have is shown as unassigned, and dropping it there clears
+   * that wave, as the register's "No wave" does (#223).
+   */
+  const changes = (location: string, from: number, to: number) =>
+    from !== to || (to === 0 && siteOf(location)?.danglingWave !== undefined)
 
   const move = (location: string, to: number) => {
     const column = columns[to]
@@ -84,15 +97,16 @@ export function WaveBoard({
       : unassignSites(store, data.rollout.id, [location])
     if (!done) return
     setFocusRequest(location)
-    setAnnouncement(`${siteName(location)} moved to ${columnName(to)}.`)
+    announce(`${siteName(location)} moved to ${columnName(to)}.`)
   }
 
   const onCardKeyDown = (event: KeyboardEvent, site: SiteRow, column: number, index: number) => {
     const holding = picked?.location === site.location ? picked : null
     const key = event.key
     if (key === 'ArrowDown' || key === 'ArrowUp') {
-      if (holding) return
+      // Holding a card, ↑ and ↓ do nothing, and must not scroll the page.
       event.preventDefault()
+      if (holding) return
       const next = columns[column]?.sites[index + (key === 'ArrowDown' ? 1 : -1)]
       if (next) setFocusRequest(next.location)
       return
@@ -102,13 +116,14 @@ export function WaveBoard({
       event.preventDefault()
       if (!holding) {
         setPicked({ location: site.location, from: column, target: column })
-        setAnnouncement(
+        announce(
           `${siteName(site.location)} picked up from ${columnName(column)}. ← and → choose a wave, Enter drops, Escape cancels.`,
         )
       } else {
         setPicked(null)
-        if (holding.target === holding.from) setAnnouncement('Put back.')
-        else move(site.location, holding.target)
+        if (changes(site.location, holding.from, holding.target))
+          move(site.location, holding.target)
+        else announce('Put back.')
       }
     } else if (holding && (key === 'ArrowLeft' || key === 'ArrowRight')) {
       event.preventDefault()
@@ -117,11 +132,11 @@ export function WaveBoard({
         columns.length - 1,
       )
       setPicked({ ...holding, target })
-      setAnnouncement(`Over ${columnName(target)}.`)
+      announce(`Over ${columnName(target)}.`)
     } else if (holding && key === 'Escape') {
       event.preventDefault()
       setPicked(null)
-      setAnnouncement('Put back.')
+      announce('Put back.')
     }
   }
 
@@ -129,8 +144,8 @@ export function WaveBoard({
 
   return (
     <div className="board">
-      <p className="visually-hidden" aria-live="assertive">
-        {announcement}
+      <p className="visually-hidden" aria-live="assertive" data-testid="board-announcement">
+        {announcement.toggle ? `${announcement.text}\u00a0` : announcement.text}
       </p>
       {!readOnly && (
         <p className="board__hint" id="board-hint">
@@ -176,10 +191,14 @@ export function WaveBoard({
               const from = columns.findIndex((candidate) =>
                 candidate.sites.some((site) => site.location === location),
               )
-              if (from !== index) move(location, index)
+              if (changes(location, from, index)) move(location, index)
             }}
             onBlurCard={(location) => {
-              if (picked?.location === location) setPicked(null)
+              // Tab or a click elsewhere ends the hold, and says so: the card
+              // stays where it was.
+              if (picked?.location !== location) return
+              setPicked(null)
+              announce(`${siteName(location)} put back.`)
             }}
           />
         ))}
@@ -250,7 +269,8 @@ function BoardColumn({
     }
   })
 
-  const label = wave ? wave.plan.label || wave.element.name : 'Unassigned'
+  const heading = wave ? waveHeading(wave) : { text: 'Unassigned', code: false }
+  const label = heading.text
   const target = picked !== null && picked.target === index
   const window = wave?.plan.window
   const count = sites.length
@@ -283,7 +303,7 @@ function BoardColumn({
     >
       <header className="board__head">
         <div className="board__title-row">
-          <span className="board__label mono">{label}</span>
+          <span className={`board__label${heading.code ? ' mono' : ''}`}>{label}</span>
           {wave && wave.plan.label && wave.plan.label !== wave.element.name && (
             <span className="board__name">{wave.element.name}</span>
           )}
@@ -384,6 +404,9 @@ function BoardCard({
     return (
       <div
         ref={cardRef}
+        role="group"
+        aria-roledescription="site card"
+        aria-label={cardName(site)}
         className="board-card"
         data-location={site.location}
         tabIndex={0}
@@ -401,7 +424,7 @@ function BoardCard({
       aria-roledescription="site card"
       aria-pressed={held}
       aria-describedby="board-hint"
-      aria-label={`${site.code ? `${site.code} ` : ''}${site.name}`}
+      aria-label={cardName(site)}
       className={`board-card board-card--movable${held ? ' board-card--held' : ''}`}
       data-location={site.location}
       draggable
@@ -420,4 +443,9 @@ function BoardCard({
       <span className="board-card__body">{content}</span>
     </div>
   )
+}
+
+/** A card's accessible name: its code, then its name. */
+function cardName(site: SiteRow): string {
+  return `${site.code ? `${site.code} ` : ''}${site.name}`
 }

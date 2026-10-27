@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { rolloutPlanOf, wavesOf } from '@/model'
 import { useModelSelector, useModelStoreContext } from '@/store'
 import { NewRolloutDialog } from './RolloutDialogs'
-import { rolloutsOf } from './rollout-data'
+import { assignedWave, rolloutsOf } from './rollout-data'
 import '@/ui/inventory/inventory.css'
 import './rollout.css'
 
@@ -26,12 +26,14 @@ export function RolloutsScreen() {
   const rows = useModelSelector((store) =>
     rolloutsOf(store).map((rollout) => {
       const plan = rolloutPlanOf(rollout)!
+      const waveIds = new Set(wavesOf(store.elements(), rollout.id).map((wave) => wave.id))
       return {
         id: rollout.id,
         name: rollout.name,
         sites: plan.sites.length,
-        waves: wavesOf(store.elements(), rollout.id).length,
-        unassigned: plan.sites.filter((site) => site.wave === undefined).length,
+        waves: waveIds.size,
+        // Counted as the rollout's home counts it, so the two agree (#223).
+        unassigned: plan.sites.filter((site) => assignedWave(site, waveIds) === undefined).length,
       }
     }),
   )

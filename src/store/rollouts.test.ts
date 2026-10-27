@@ -18,6 +18,7 @@ import {
   unassignSites,
   updateWave,
 } from './rollouts'
+import { planCascadeText } from './removal'
 
 /** The 160-site fixture, in a store. */
 function store(): ModelStore {
@@ -418,6 +419,85 @@ describe('editing a wave (#211)', () => {
     const before = state(s)
     expect(updateWave(s, waveId(1), { label: 'W1' })).toBe(true)
     expect(state(s)).toEqual(before)
+  })
+
+  it('takes a window whose end period runs past its start, though the end’s first day is earlier (#223)', () => {
+    const s = store()
+    // 2027-W14 starts Monday 5 April; 2027-Q2 starts 1 April and runs to June.
+    const window = {
+      start: { date: '2027-04-05', precision: 'week' },
+      end: { date: '2027-04-01', precision: 'quarter' },
+    } as const
+    expect(updateWave(s, waveId(1), { window })).toBe(true)
+    expect(wavePlanOf(s.element(waveId(1)))?.window).toEqual(window)
+    // And an end period over before the start begins is still refused.
+    const before = state(s)
+    expect(
+      updateWave(s, waveId(1), {
+        window: {
+          start: { date: '2027-04-05', precision: 'week' },
+          end: { date: '2027-03-01', precision: 'month' },
+        },
+      }),
+    ).toBe(false)
+    expect(state(s)).toEqual(before)
+  })
+})
+
+describe('what a delete would do, read off its commands (#223)', () => {
+  it('a rollout: its waves and its site plans go with it', () => {
+    const s = store()
+    const preview = s.removalPreview(ROLLOUT_ID)
+    expect(preview).toEqual({
+      relationships: s.relationshipsOf(ROLLOUT_ID).length,
+      waves: 5,
+      sitePlans: 160,
+      unassigned: 0,
+      askedWaves: 0,
+    })
+    expect(planCascadeText(preview, 'asked')).toBe(
+      'Its 5 waves go with it, and its 160 site plans are removed.',
+    )
+    expect(planCascadeText(preview, 'done')).toBe(
+      'Its 5 waves went with it, and its 160 site plans were removed.',
+    )
+  })
+
+  it('a wave: its sites stay in the rollout, unassigned', () => {
+    const s = store()
+    const inWave = plan(s).sites.filter((site) => site.wave === waveId(2)).length
+    const preview = s.removalPreview(waveId(2))
+    expect(preview).toMatchObject({ waves: 0, sitePlans: 0, unassigned: inWave, askedWaves: 1 })
+    expect(planCascadeText(preview, 'asked')).toBe(
+      `Its ${inWave} sites stay in the rollout, unassigned, with their dates.`,
+    )
+    // One site, in the singular; none, said as such.
+    expect(planCascadeText({ ...preview, unassigned: 1 }, 'asked')).toBe(
+      'Its 1 site stays in the rollout, unassigned, with its dates.',
+    )
+    expect(planCascadeText({ ...preview, unassigned: 0 }, 'asked')).toBe('No site is in it.')
+    expect(planCascadeText({ ...preview, unassigned: 0 }, 'done')).toBe('')
+  })
+
+  it('anything else: its relationships, and nothing about plans', () => {
+    const s = store()
+    const preview = s.removalPreview('app-claims')
+    expect(preview).toEqual({
+      relationships: s.relationshipsOf('app-claims').length,
+      waves: 0,
+      sitePlans: 0,
+      unassigned: 0,
+      askedWaves: 0,
+    })
+    expect(planCascadeText(preview, 'asked')).toBe('')
+  })
+
+  it('is what removeElement does: the rollout delete and deleteRollout dispatch the same', () => {
+    const s = store()
+    const viaCommand = store()
+    s.removeElement(ROLLOUT_ID)
+    deleteRollout(viaCommand, ROLLOUT_ID)
+    expect(state(viaCommand)).toEqual(state(s))
   })
 })
 

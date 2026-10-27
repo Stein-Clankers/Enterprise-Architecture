@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { downloadText } from '@/io'
 import { ReportChrome } from '@/ui/graph/ReportChrome'
-import type { RolloutData } from './rollout-data'
+import { waveHeading, type RolloutData } from './rollout-data'
 import {
   AXIS_HEIGHT,
   BAR_HEIGHT,
@@ -126,8 +126,12 @@ export function WaveTimeline({ data }: { data: RolloutData }) {
             {layout.bars.map((bar) => (
               <g key={bar.id} data-wave={bar.id}>
                 <title>{`${bar.name} · ${bar.window} · ${barText(bar)}${bar.over ? ' · over capacity' : ''}`}</title>
-                <text x={0} y={bar.y + 14} className="timeline__bar-label">
-                  {bar.label || bar.name}
+                <text
+                  x={0}
+                  y={bar.y + 14}
+                  className={`timeline__bar-label${bar.heading.code ? '' : ' timeline__bar-label--name'}`}
+                >
+                  {bar.heading.text}
                 </text>
                 <rect
                   x={bar.x}
@@ -155,8 +159,17 @@ export function WaveTimeline({ data }: { data: RolloutData }) {
           </svg>
         )}
         {layout.unscheduled.length > 0 && (
-          <p className="timeline__unscheduled mono">
-            {`No window yet: ${layout.unscheduled.map((wave) => wave.plan.label || wave.element.name).join(', ')}`}
+          <p className="timeline__unscheduled">
+            No window yet:{' '}
+            {layout.unscheduled.map((wave, index) => {
+              const heading = waveHeading(wave)
+              return (
+                <span key={wave.element.id}>
+                  {index > 0 && ', '}
+                  <span className={heading.code ? 'mono' : undefined}>{heading.text}</span>
+                </span>
+              )
+            })}
           </p>
         )}
       </div>

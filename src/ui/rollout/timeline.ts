@@ -1,7 +1,7 @@
-import { formatPlanDate, type PlanDate, type SiteRag } from '@/model'
-import { resolveColour } from '@/ui/graph/export-svg'
+import { dayAfterPeriod, formatPlanDate, type PlanDate, type SiteRag } from '@/model'
+import { escapeXml, resolveColour } from '@/ui/graph/export-svg'
 import type { LegendEntry } from '@/ui/graph/colouring'
-import type { WaveColumn } from './rollout-data'
+import { RAG_TOKENS, waveHeading, type WaveColumn } from './rollout-data'
 
 /**
  * The wave timeline's geometry (#211): waves as bars on a quarter-to-month
@@ -28,7 +28,8 @@ export const COLOUR_VIEW_LABELS: Record<TimelineColourView, string> = { load: 'L
 
 export interface TimelineBar {
   id: string
-  label: string
+  /** The label, or the name when the label is empty: the screen and the file show this. */
+  heading: { text: string; code: boolean }
   name: string
   x: number
   y: number
@@ -63,19 +64,7 @@ function utc(day: string): number {
 
 /** The first day after the period `value` names, in UTC ms. */
 export function periodEnd(value: PlanDate): number {
-  const start = new Date(utc(value.date))
-  switch (value.precision) {
-    case 'quarter':
-      start.setUTCMonth(start.getUTCMonth() + 3)
-      return start.getTime()
-    case 'month':
-      start.setUTCMonth(start.getUTCMonth() + 1)
-      return start.getTime()
-    case 'week':
-      return start.getTime() + 7 * DAY_MS
-    case 'day':
-      return start.getTime() + DAY_MS
-  }
+  return utc(dayAfterPeriod(value))
 }
 
 function quarterStart(ms: number): Date {
@@ -145,7 +134,7 @@ export function layoutTimeline(waves: WaveColumn[]): TimelineLayout {
     const worstRag = RAG_ORDER.find((rag) => column.sites.some((site) => site.rag === rag))
     return {
       id: column.element.id,
-      label: column.plan.label,
+      heading: waveHeading(column),
       name: column.element.name,
       x: x(start),
       y: AXIS_HEIGHT + index * ROW_HEIGHT + (ROW_HEIGHT - BAR_HEIGHT) / 2,
@@ -186,12 +175,6 @@ function tint(token: string): string {
   return `color-mix(in oklab, ${token} 22%, var(--surface))`
 }
 
-const RAG_TOKENS: Record<SiteRag, string> = {
-  green: 'var(--lc-act)',
-  amber: 'var(--lc-out)',
-  red: 'var(--lc-eol)',
-}
-
 export function barStroke(bar: TimelineBar, view: TimelineColourView): string {
   if (view === 'rag') return bar.worstRag ? RAG_TOKENS[bar.worstRag] : 'var(--lc-plan)'
   if (bar.over) return 'var(--lc-eol)'
@@ -224,14 +207,6 @@ export function legendFor(view: TimelineColourView): LegendEntry[] {
 }
 
 // ── Export ───────────────────────────────────────────────────────────────────
-
-function escapeXml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
 
 /** The timeline as a standalone SVG, every token resolved to the theme's colour. */
 export function timelineSvg(
@@ -268,8 +243,11 @@ export function timelineSvg(
     const stroke = resolveColour(barStroke(bar, view))
     const fill = resolveColour(barFill(bar, view))
     const dash = bar.openEnd ? ' stroke-dasharray="4 3"' : ''
+    // A label is a code, in mono; a name stands in for an empty one, in the
+    // document's own face, as on screen (#223).
+    const face = bar.heading.code ? ` font-family="'JetBrains Mono', monospace"` : ''
     parts.push(
-      `<text x="0" y="${bar.y + 14}" font-size="11" font-family="'JetBrains Mono', monospace" fill="${ink}">${escapeXml(bar.label)}</text>`,
+      `<text x="0" y="${bar.y + 14}" font-size="11"${face} fill="${ink}">${escapeXml(bar.heading.text)}</text>`,
       `<rect x="${bar.x}" y="${bar.y}" width="${bar.width}" height="${BAR_HEIGHT}" fill="${fill}" stroke="${stroke}"${dash}/>`,
       `<text x="${bar.x + 6}" y="${bar.y + 14}" font-size="10" font-family="'JetBrains Mono', monospace" fill="${ink}">${escapeXml(barText(bar))}</text>`,
     )

@@ -6,6 +6,7 @@ import {
   type Milestone,
   type PlanDate,
   type RolloutPlan,
+  type SitePlan,
   type SiteRag,
   type WavePlan,
 } from '@/model'
@@ -35,6 +36,11 @@ export interface SiteRow {
   name: string
   /** A wave of this rollout, or `undefined` when unassigned. */
   wave: string | undefined
+  /**
+   * The wave the site plan names when the rollout has no such wave: shown as
+   * unassigned, and a move to Unassigned clears it.
+   */
+  danglingWave: string | undefined
   archetype: string | undefined
   /** The site's own cutover date, when it sets one (inheritance is #213). */
   cutover: PlanDate | undefined
@@ -68,6 +74,16 @@ export interface RolloutData {
 
 export const NO_REGION = 'No region'
 
+/**
+ * A site's RAG on the lifecycle ramp (ADR 0013 point 9, under D7): the
+ * register's swatch and the timeline's RAG view both colour through here.
+ */
+export const RAG_TOKENS: Record<SiteRag, string> = {
+  green: 'var(--lc-act)',
+  amber: 'var(--lc-out)',
+  red: 'var(--lc-eol)',
+}
+
 export function rolloutData(store: ModelStore, rolloutId: string): RolloutData | undefined {
   const rollout = store.element(rolloutId)
   const plan = rolloutPlanOf(rollout)
@@ -86,9 +102,8 @@ export function rolloutData(store: ModelStore, rolloutId: string): RolloutData |
       element,
       code: typeof code === 'string' && code !== '' ? code : undefined,
       name: element?.name ?? 'Deleted Location',
-      // A wave the rollout does not have is reported by validate(); the board
-      // can only show the site where it can be moved from, which is unassigned.
-      wave: site.wave !== undefined && waveIds.has(site.wave) ? site.wave : undefined,
+      wave: assignedWave(site, waveIds),
+      danglingWave: assignedWave(site, waveIds) === undefined ? site.wave : undefined,
       archetype: site.archetype === undefined ? undefined : archetypes.get(site.archetype),
       cutover: cutoverMilestone ? site.milestones?.[cutoverMilestone.id] : undefined,
       rag: site.rag,
@@ -136,6 +151,16 @@ export function rolloutData(store: ModelStore, rolloutId: string): RolloutData |
   }
 }
 
+/**
+ * The wave a site is in, as every rollout screen counts it: a wave the
+ * rollout does not have is reported by validate(), and the screens show the
+ * site where it can be moved from, which is unassigned. The home and the
+ * `/rollouts` list both count through here, so they cannot disagree (#223).
+ */
+export function assignedWave(site: SitePlan, waveIds: ReadonlySet<string>): string | undefined {
+  return site.wave !== undefined && waveIds.has(site.wave) ? site.wave : undefined
+}
+
 /** The Location that aggregates or composes `locationId`: its region, country or campus. */
 function regionOf(store: ModelStore, locationId: string): string | undefined {
   const names = store
@@ -164,9 +189,17 @@ function bySite(a: SiteRow, b: SiteRow): number {
   )
 }
 
-/** "Pilot", or the wave's label with its name when they differ. */
-export function waveTitle(column: { element: Element; plan: WavePlan }): string {
-  return column.plan.label || column.element.name
+/**
+ * How a wave is headed: its label, which is a code and set in mono, or its
+ * name when the label is empty, which is human-authored and is not (#223).
+ */
+export function waveHeading(wave: { element: Element; plan: WavePlan }): {
+  text: string
+  code: boolean
+} {
+  return wave.plan.label
+    ? { text: wave.plan.label, code: true }
+    : { text: wave.element.name, code: false }
 }
 
 /** Every rollout in the model, by name. */

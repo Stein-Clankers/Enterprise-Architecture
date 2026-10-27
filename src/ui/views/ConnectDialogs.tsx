@@ -8,6 +8,7 @@ import {
   type RelationshipType,
   type View,
 } from '@/model'
+import { planCascadeText, type RemovalSummary } from '@/store'
 import { DialogOverlay } from '@/ui/common/DialogOverlay'
 import { useFocusTrap } from '@/ui/common/use-focus-trap'
 import type { ConnectChoice } from './connect'
@@ -202,8 +203,11 @@ export function DeleteRelationshipDialog({
 
 export interface DeleteElementDialogProps {
   element: Element
-  /** How many relationships go with it. */
-  relations: number
+  /**
+   * What the delete does, from `ModelStore.removalPreview`: the summary of the
+   * commands Delete dispatches, so the dialog says all of it (#223).
+   */
+  removal: RemovalSummary
   /**
    * Whether it is asked from a view that draws the element (the canvas) or from
    * outside any view (the fact sheet, #193). "Also" and "other" are only true
@@ -219,17 +223,21 @@ export interface DeleteElementDialogProps {
 /**
  * Archi's "Delete from Model" for a shape (#130): the element goes, with every
  * relationship it has and every drawing of it, so the dialog says how many
- * relationships and names the other views that lose a drawing.
+ * relationships and names the other views that lose a drawing. A plan element
+ * takes more with it (#222), and the dialog says that too: a rollout's waves
+ * and site plans, a wave's sites left unassigned.
  */
 export function DeleteElementDialog({
   element,
-  relations,
+  removal,
   inView,
   elsewhere,
   onConfirm,
   onCancel,
 }: DeleteElementDialogProps) {
   const drawn = inView || elsewhere.length > 0
+  const relations = removal.relationships
+  const cascade = planCascadeText(removal, 'asked')
   const ref = useRef<HTMLDivElement>(null)
   useFocusTrap(ref)
   useEscape(onCancel)
@@ -250,6 +258,7 @@ export function DeleteElementDialog({
             : ''}
           {drawn ? ' and every view that draws it.' : '.'}
         </p>
+        {cascade && <p className="connect-menu__text">{cascade}</p>}
         {elsewhere.length > 0 ? (
           <div className="dialog__field">
             <div className="dialog__label">{inView ? 'Also drawn in' : 'Drawn in'}</div>

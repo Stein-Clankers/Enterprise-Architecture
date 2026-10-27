@@ -2,8 +2,8 @@
  * Rollout screens (#211): home, site register, wave board, wave timeline.
  * Built from the inventory's and the report chrome's vocabulary: hairline
  * borders, no radius, no shadows, mono for codes, counts and dates. Colour
- * is only the lifecycle ramp, as the proposal's D7 says: capacity in
- * `--lc-in`, over capacity and red in `--lc-eol`.
+ * is only the lifecycle ramp, as the proposal's D7 says and ADR 0013 point 9
+ * records: load within capacity in `--lc-in`, over capacity in `--lc-eol`.
  */
 
 .rollout {
@@ -334,11 +334,7 @@ button.register__name:hover {
   background: var(--lc-in);
 }
 
-.board__column--over .board__bar--none {
-  background: transparent;
-}
-
-.board__bar-fill {
+.board__column--over .board__bar-fill {
   background: var(--lc-eol);
 }
 
@@ -489,6 +485,11 @@ button.register__name:hover {
   fill: var(--ink);
 }
 
+/* A wave with no label is headed by its name, which is not a code. */
+.timeline__bar-label--name {
+  font-family: var(--font-ui);
+}
+
 .timeline__bar-text {
   fill: var(--ink);
 }
@@ -499,7 +500,7 @@ button.register__name:hover {
 
 .timeline__unscheduled {
   margin: 12px 0 0;
-  font-size: 11px;
+  font: 400 11px/1.4 var(--font-ui);
   color: var(--ink3);
 }
 

@@ -460,7 +460,7 @@ describe('what the rollout screens say when there is nothing to show (#211)', ()
     expect(screen.getByRole('button', { name: 'Export SVG' })).toBeDisabled()
     act(() => void createWave(store, rollout.id, { name: 'Network W1', label: 'NW1' }))
     expect(screen.getByText(/No wave has a window yet/)).toBeInTheDocument()
-    expect(screen.getByText('No window yet: NW1')).toBeInTheDocument()
+    expect(screen.getByText(/No window yet:/)).toHaveTextContent('No window yet: NW1')
   })
 })
 
@@ -477,6 +477,296 @@ describe('Delete on a wave’s fact sheet cascades the plan (#222)', () => {
     await user.click(screen.getByRole('button', { name: 'Delete from model' }))
     expect(store.element(waveId(2))).toBeUndefined()
     expect(validate(store.snapshot()).findings).toEqual([])
+  })
+})
+
+describe('Delete from model says everything the delete does (#223)', () => {
+  function factSheet(id: string, store = storeOf()) {
+    renderScreenAs('writer', store, {
+      route: `/element/${id}`,
+      path: '/element/:id',
+      screen: <ElementScreen />,
+    })
+    return { store, user: userEvent.setup() }
+  }
+
+  it('a rollout’s says its waves go with it and its site plans are removed', async () => {
+    const h = factSheet(ROLLOUT_ID)
+    await h.user.click(screen.getByRole('button', { name: 'Delete…' }))
+    const dialog = screen.getByRole('dialog', { name: 'Delete element from the model' })
+    expect(dialog).toHaveTextContent(
+      `Its 5 waves go with it, and its ${SITES} site plans are removed.`,
+    )
+    await h.user.click(within(dialog).getByRole('button', { name: 'Delete from model' }))
+    expect(screen.getByRole('status')).toHaveTextContent(
+      `Its 5 waves went with it, and its ${SITES} site plans were removed. Undo brings it back.`,
+    )
+    expect(h.store.element(waveId(1))).toBeUndefined()
+  })
+
+  it('a wave’s says its sites stay in the rollout, unassigned', async () => {
+    const store = storeOf()
+    const inWave = rolloutPlanOf(store.element(ROLLOUT_ID))!.sites.filter(
+      (site) => site.wave === waveId(2),
+    ).length
+    expect(inWave).toBeGreaterThan(1)
+    const h = factSheet(waveId(2), store)
+    await h.user.click(screen.getByRole('button', { name: 'Delete…' }))
+    const dialog = screen.getByRole('dialog', { name: 'Delete element from the model' })
+    expect(dialog).toHaveTextContent(
+      `Its ${inWave} sites stay in the rollout, unassigned, with their dates.`,
+    )
+    await h.user.click(within(dialog).getByRole('button', { name: 'Delete from model' }))
+    expect(screen.getByRole('status')).toHaveTextContent(
+      `Its ${inWave} sites stay in the rollout, unassigned, with their dates. Undo brings it back.`,
+    )
+  })
+
+  it('anything else’s is worded as it was', async () => {
+    const h = factSheet('app-claims')
+    const relations = h.store.relationshipsOf('app-claims').length
+    await h.user.click(screen.getByRole('button', { name: 'Delete…' }))
+    const dialog = screen.getByRole('dialog', { name: 'Delete element from the model' })
+    const said = [...dialog.querySelectorAll('p')].map((p) => p.textContent)
+    expect(said).toEqual([
+      `Application Component “${h.store.element('app-claims')!.name}” leaves the model, with its ${relations} relationships.`,
+      'No view draws it.',
+    ])
+  })
+})
+
+describe('a site whose wave the rollout does not have (#223)', () => {
+  /** Site 003 names a wave that is gone; site 017 is in none. */
+  function dangling(): ModelStore {
+    const store = storeOf()
+    store.updateElement(ROLLOUT_ID, (rollout) => {
+      const plan = rolloutPlanOf(rollout)!
+      return {
+        ...rollout,
+        plan: {
+          ...plan,
+          sites: plan.sites.map((site) =>
+            site.location === siteId(3) ? { ...site, wave: 'wp-gone' } : site,
+          ),
+        },
+      }
+    })
+    return store
+  }
+
+  it('is unassigned on the home and in the list of rollouts alike', async () => {
+    renderApp(dangling().snapshot(), { route: `/rollout/${ROLLOUT_ID}` })
+    expect(screen.getByTestId('kpi-unassigned')).toHaveTextContent('2')
+    await userEvent.setup().click(screen.getByRole('link', { name: 'ROLLOUTS' }))
+    const row = screen.getByRole('button', { name: /Local data to the central lake/ })
+    expect([...row.querySelectorAll('span')].map((cell) => cell.textContent)).toEqual([
+      'Local data to the central lake',
+      String(SITES),
+      '5',
+      '2',
+    ])
+  })
+
+  it('has its wave cleared when dropped on Unassigned, by mouse or by keyboard', async () => {
+    const transfer = () => ({ setData: () => {}, effectAllowed: '', dropEffect: '' })
+    const h = board('writer', dangling())
+    expect(column('unassigned').contains(card(siteId(3)))).toBe(true)
+    const before = h.store.history.length
+    fireEvent.dragStart(card(siteId(3)), { dataTransfer: transfer() })
+    fireEvent.dragOver(column('unassigned'), { dataTransfer: transfer() })
+    fireEvent.drop(column('unassigned'), { dataTransfer: transfer() })
+    expect(h.store.history.length).toBe(before + 1)
+    expect(sitePlan(h.store, siteId(3)).wave).toBeUndefined()
+    expect(validate(h.store.snapshot()).findings).toEqual([])
+
+    act(() => void h.store.undo())
+    expect(sitePlan(h.store, siteId(3)).wave).toBe('wp-gone')
+    card(siteId(3)).focus()
+    await h.user.keyboard(' {Enter}')
+    expect(sitePlan(h.store, siteId(3)).wave).toBeUndefined()
+  })
+
+  it('is listed on a Location that was deleted, by its id', () => {
+    const store = storeOf()
+    store.removeElement(siteId(5))
+    renderScreenAs('writer', store, {
+      route: `/rollout/${ROLLOUT_ID}`,
+      path: '/rollout/:id',
+      screen: <RolloutScreen />,
+    })
+    const row = card(siteId(5))
+    expect(row).toHaveTextContent(`Deleted Location · ${siteId(5)}`)
+    expect(within(row).queryByRole('button')).toBeNull()
+  })
+})
+
+describe('the wave dialog takes a window of mixed precisions (#223)', () => {
+  it('saves a week start with a quarter end that runs past it', async () => {
+    const h = board()
+    await h.user.click(screen.getByRole('button', { name: 'Edit W1' }))
+    const dialog = screen.getByRole('dialog', { name: 'Edit wave' })
+    await h.user.selectOptions(
+      within(dialog).getByRole('combobox', { name: 'Window start precision' }),
+      'week',
+    )
+    fireEvent.change(within(dialog).getByLabelText('Window start day'), {
+      target: { value: '2027-04-05' },
+    })
+    await h.user.selectOptions(
+      within(dialog).getByRole('combobox', { name: 'Window end precision' }),
+      'quarter',
+    )
+    fireEvent.change(within(dialog).getByLabelText('Window end day'), {
+      target: { value: '2027-04-01' },
+    })
+    expect(dialog).toHaveTextContent('2027-Q2')
+    expect(within(dialog).queryByRole('alert')).toBeNull()
+    await h.user.click(within(dialog).getByRole('button', { name: 'Save' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(wavePlanOf(h.store.element(waveId(1)))?.window).toEqual({
+      start: { date: '2027-04-05', precision: 'week' },
+      end: { date: '2027-04-01', precision: 'quarter' },
+    })
+  })
+})
+
+describe('a wave with no label is headed by its name (#223)', () => {
+  function unlabelled(): ModelStore {
+    const store = storeOf()
+    store.updateElement(waveId(1), (wave) => ({
+      ...wave,
+      plan: { ...wavePlanOf(wave)!, label: '' },
+    }))
+    return store
+  }
+
+  it('in the exported SVG, in the document’s face, as on screen', async () => {
+    const downloads = stubDownloads()
+    const h = board('writer', unlabelled())
+    await h.user.click(screen.getByRole('button', { name: 'Timeline' }))
+    expect(
+      within(document.querySelector(`[data-wave="${waveId(1)}"]`)!).getByText('Wave 1'),
+    ).toBeInTheDocument()
+    await h.user.click(screen.getByRole('button', { name: 'Export SVG' }))
+    const svg = await (downloads.createObjectURL.mock.calls[0]![0] as Blob).text()
+    const heading = svg.split('\n').find((line) => line.endsWith('>Wave 1</text>'))
+    expect(heading).toBeDefined()
+    expect(heading).not.toContain('Mono')
+    // A label is still a code, in mono.
+    expect(svg.split('\n').find((line) => line.endsWith('>W2</text>'))).toContain('Mono')
+  })
+})
+
+describe('the register’s bulk assignment after its wave is deleted (#223)', () => {
+  it('does what the select shows, which is No wave', async () => {
+    const store = storeOf()
+    renderScreenAs('writer', store, {
+      route: `/rollout/${ROLLOUT_ID}`,
+      path: '/rollout/:id',
+      screen: <RolloutScreen />,
+    })
+    const user = userEvent.setup()
+    await user.click(within(card(siteId(4))).getByRole('checkbox'))
+    const target = screen.getByRole('combobox', { name: 'Assign to wave' })
+    await user.selectOptions(target, 'W4')
+    act(() => void deleteWave(store, waveId(4)))
+    expect(target).toHaveDisplayValue('No wave')
+    // Site 004 is in W1; the select says No wave, so Assign unassigns it.
+    expect(sitePlan(store, siteId(4)).wave).toBe(waveId(1))
+    const before = store.history.length
+    await user.click(screen.getByRole('button', { name: 'Assign' }))
+    expect(store.history.length).toBe(before + 1)
+    expect(sitePlan(store, siteId(4)).wave).toBeUndefined()
+  })
+
+  it('shows every site when the wave it was filtered to is deleted, as its select does', async () => {
+    const store = storeOf()
+    renderScreenAs('writer', store, {
+      route: `/rollout/${ROLLOUT_ID}`,
+      path: '/rollout/:id',
+      screen: <RolloutScreen />,
+    })
+    const user = userEvent.setup()
+    const filter = screen.getByRole('combobox', { name: 'Show wave' })
+    await user.selectOptions(filter, 'W4')
+    expect(screen.queryByText(`${SITES} of ${SITES} sites`)).toBeNull()
+    expect(screen.getByRole('button', { name: /Wave\s*W4/ })).toBeInTheDocument()
+    act(() => void deleteWave(store, waveId(4)))
+    expect(screen.getByText(`${SITES} of ${SITES} sites`)).toBeInTheDocument()
+    expect(filter).toHaveDisplayValue('All waves')
+    expect(screen.queryByRole('button', { name: /Remove filter/ })).toBeNull()
+  })
+})
+
+describe('the register’s wave filter and an id that looks like a choice (#223)', () => {
+  it.each(['*', 'all', 'none'])(
+    'shows only its own sites for a wave whose id is %j',
+    async (id) => {
+      const store = storeOf()
+      store.addElement({
+        id,
+        type: 'WorkPackage',
+        name: 'Odd wave',
+        properties: {},
+        plan: { kind: 'wave', rollout: ROLLOUT_ID, label: 'ODD', order: 9, templateVersion: 2 },
+      })
+      expect(assignSites(store, ROLLOUT_ID, [siteId(6)], id)).toBe(true)
+      renderScreenAs('writer', store, {
+        route: `/rollout/${ROLLOUT_ID}`,
+        path: '/rollout/:id',
+        screen: <RolloutScreen />,
+      })
+      const user = userEvent.setup()
+      await user.selectOptions(screen.getByRole('combobox', { name: 'Show wave' }), 'ODD')
+      expect(screen.getByText(`1 of ${SITES} sites`)).toBeInTheDocument()
+      await user.selectOptions(screen.getByRole('combobox', { name: 'Show wave' }), 'Unassigned')
+      expect(screen.getByText(`1 of ${SITES} sites`)).toBeInTheDocument()
+      expect(card(siteId(17))).toBeInTheDocument()
+    },
+  )
+})
+
+describe('the board’s keyboard model, in detail (#223)', () => {
+  it('names a reader’s card, as a group a reader can focus', () => {
+    board('reader')
+    const site = screen.getByRole('group', { name: '017 Site 017' })
+    expect(site).toHaveAttribute('tabindex', '0')
+  })
+
+  it('announces the same message twice in a row, so the second is heard too', async () => {
+    const h = board()
+    const live = screen.getByTestId('board-announcement')
+    card(siteId(17)).focus()
+    // ← in the first column stays over it: the same message again.
+    await h.user.keyboard(' {ArrowLeft}')
+    const first = live.textContent
+    expect(first?.trim()).toBe('Over Unassigned.')
+    await h.user.keyboard('{ArrowLeft}')
+    expect(live.textContent?.trim()).toBe('Over Unassigned.')
+    expect(live.textContent).not.toBe(first)
+  })
+
+  it('keeps ↑ and ↓ from scrolling the page while a card is held', async () => {
+    const h = board()
+    card(siteId(17)).focus()
+    await h.user.keyboard(' ')
+    expect(card(siteId(17))).toHaveAttribute('aria-pressed', 'true')
+    // fireEvent returns false when the handler prevented the default.
+    expect(fireEvent.keyDown(card(siteId(17)), { key: 'ArrowDown' })).toBe(false)
+    expect(fireEvent.keyDown(card(siteId(17)), { key: 'ArrowUp' })).toBe(false)
+    expect(card(siteId(17))).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('ends the hold on Tab, and says so', async () => {
+    const h = board()
+    const before = json(h.store)
+    card(siteId(17)).focus()
+    await h.user.keyboard(' ')
+    await h.user.tab()
+    expect(document.activeElement).not.toBe(card(siteId(17)))
+    expect(card(siteId(17))).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByTestId('board-announcement')).toHaveTextContent('017 put back.')
+    expect(json(h.store)).toBe(before)
   })
 })
 

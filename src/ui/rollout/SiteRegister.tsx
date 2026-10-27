@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { formatPlanDate, type SiteRag } from '@/model'
+import { formatPlanDate } from '@/model'
 import { assignSites, unassignSites, useModelStore } from '@/store'
 import { LIST_WINDOW } from '@/ui/inventory/list-window'
-import type { RolloutData, SiteRow } from './rollout-data'
+import { WaveHeading } from './WaveHeading'
+import {
+  RAG_TOKENS,
+  waveHeading,
+  type RolloutData,
+  type SiteRow,
+  type WaveColumn,
+} from './rollout-data'
 
 /**
  * The site register (#211, proposal §6 item 2): the inventory table scoped to
@@ -21,14 +28,19 @@ import type { RolloutData, SiteRow } from './rollout-data'
 
 const COLUMNS_WRITER = '28px 72px minmax(0,1.6fr) 120px 110px 108px 72px minmax(0,1fr)'
 const COLUMNS_READER = '72px minmax(0,1.6fr) 120px 110px 108px 72px minmax(0,1fr)'
-const NO_WAVE = ''
-const ALL = '*'
 
-const RAG_TOKENS: Record<SiteRag, string> = {
-  green: 'var(--lc-act)',
-  amber: 'var(--lc-out)',
-  red: 'var(--lc-eol)',
-}
+/**
+ * The selects' values. A wave's is its id behind a prefix, and the two
+ * choices that are no wave have no prefix, so no id can be taken for either
+ * of them: an id of `*` or `` is a wave like any other (#223).
+ */
+const ALL = 'all'
+const NO_WAVE = 'none'
+const WAVE = 'wave:'
+const waveOption = (id: string) => `${WAVE}${id}`
+/** The wave id an option names, or `undefined` for All and No wave. */
+const waveOfOption = (value: string) =>
+  value.startsWith(WAVE) ? value.slice(WAVE.length) : undefined
 
 export function SiteRegister({
   data,
@@ -50,20 +62,30 @@ export function SiteRegister({
     if (readOnly) setSelected(new Set())
   }, [readOnly])
 
-  const waveLabels = useMemo(
-    () =>
-      new Map(data.waves.map((wave) => [wave.element.id, wave.plan.label || wave.element.name])),
+  const waves = useMemo(
+    () => new Map<string, WaveColumn>(data.waves.map((wave) => [wave.element.id, wave])),
     [data.waves],
   )
+  // A chosen wave that has since gone (deleted, or undone) is no choice: a
+  // select shows its first option, so that is what it drives, and Assign
+  // never hands the store a dead id it would refuse in silence (#223).
+  const live = (value: string, first: string) => {
+    const wave = waveOfOption(value)
+    return wave !== undefined && !waves.has(wave) ? first : value
+  }
+  const liveTarget = live(target, NO_WAVE)
+  const liveFilter = live(waveFilter, ALL)
+  const filterWave = waveOfOption(liveFilter)
 
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase()
     return data.sites.filter((site) => {
-      if (waveFilter !== ALL && (site.wave ?? NO_WAVE) !== waveFilter) return false
+      const option = site.wave === undefined ? NO_WAVE : waveOption(site.wave)
+      if (liveFilter !== ALL && option !== liveFilter) return false
       if (!needle) return true
       return `${site.code ?? ''} ${site.name}`.toLowerCase().includes(needle)
     })
-  }, [data.sites, query, waveFilter])
+  }, [data.sites, query, liveFilter])
 
   // A site that left the rollout leaves the selection with it.
   const selection = data.sites.filter((site) => selected.has(site.location))
@@ -80,10 +102,11 @@ export function SiteRegister({
   const assign = () => {
     const locations = selection.map((site) => site.location)
     if (!locations.length) return
+    const wave = waveOfOption(liveTarget)
     const done =
-      target === NO_WAVE
+      wave === undefined
         ? unassignSites(store, data.rollout.id, locations)
-        : assignSites(store, data.rollout.id, locations, target)
+        : assignSites(store, data.rollout.id, locations, wave)
     if (done) setSelected(new Set())
   }
 
@@ -105,7 +128,7 @@ export function SiteRegister({
       columns={columns}
       readOnly={readOnly}
       selected={selected.has(site.location)}
-      waveLabel={site.wave ? waveLabels.get(site.wave) : undefined}
+      wave={site.wave === undefined ? undefined : waves.get(site.wave)}
       onToggle={() => toggle(site.location)}
       onOpen={onOpen}
     />
@@ -124,26 +147,30 @@ export function SiteRegister({
         <select
           className="register__select"
           aria-label="Show wave"
-          value={waveFilter}
+          value={liveFilter}
           onChange={(event) => setWaveFilter(event.target.value)}
         >
           <option value={ALL}>All waves</option>
           <option value={NO_WAVE}>Unassigned</option>
           {data.waves.map((wave) => (
-            <option key={wave.element.id} value={wave.element.id}>
-              {wave.plan.label || wave.element.name}
+            <option key={wave.element.id} value={waveOption(wave.element.id)}>
+              {waveHeading(wave).text}
             </option>
           ))}
         </select>
         <span className="register__count mono">{`${shown.length} of ${data.sites.length} sites`}</span>
       </div>
 
-      {waveFilter !== ALL && (
+      {liveFilter !== ALL && (
         <div className="chips">
           <button type="button" className="chip" onClick={() => setWaveFilter(ALL)}>
             <span className="chip__group">Wave</span>
             <span className="chip__value">
-              {waveFilter === NO_WAVE ? 'Unassigned' : waveLabels.get(waveFilter)}
+              {filterWave === undefined ? (
+                'Unassigned'
+              ) : (
+                <WaveHeading wave={waves.get(filterWave)!} />
+              )}
             </span>
             <span className="chip__remove" aria-hidden="true">
               ×
@@ -161,13 +188,13 @@ export function SiteRegister({
             <select
               className="register__select"
               aria-label="Assign to wave"
-              value={target}
+              value={liveTarget}
               onChange={(event) => setTarget(event.target.value)}
             >
               <option value={NO_WAVE}>No wave</option>
               {data.waves.map((wave) => (
-                <option key={wave.element.id} value={wave.element.id}>
-                  {wave.plan.label || wave.element.name}
+                <option key={wave.element.id} value={waveOption(wave.element.id)}>
+                  {waveHeading(wave).text}
                 </option>
               ))}
             </select>
@@ -248,7 +275,7 @@ function RegisterRow({
   columns,
   readOnly,
   selected,
-  waveLabel,
+  wave,
   onToggle,
   onOpen,
 }: {
@@ -256,7 +283,7 @@ function RegisterRow({
   columns: string
   readOnly: boolean
   selected: boolean
-  waveLabel: string | undefined
+  wave: WaveColumn | undefined
   onToggle: () => void
   onOpen: (locationId: string) => void
 }) {
@@ -285,7 +312,11 @@ function RegisterRow({
           <span className="mono">{site.location}</span>
         </span>
       )}
-      <span className="register__mono mono">{waveLabel ?? '—'}</span>
+      {wave ? (
+        <WaveHeading wave={wave} className="register__mono" />
+      ) : (
+        <span className="register__mono mono">—</span>
+      )}
       <span className="table__secondary">{site.archetype ?? '—'}</span>
       <span className="register__mono mono">
         {site.cutover ? formatPlanDate(site.cutover) : '—'}

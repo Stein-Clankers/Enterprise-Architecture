@@ -5,6 +5,7 @@ import { AddSitesDialog, WaveDialog } from './RolloutDialogs'
 import { SiteRegister } from './SiteRegister'
 import { WaveBoard } from './WaveBoard'
 import { WaveTimeline } from './WaveTimeline'
+import { WaveHeading } from './WaveHeading'
 import { rolloutData, type RolloutData, type WaveColumn } from './rollout-data'
 import '@/ui/inventory/inventory.css'
 import '@/ui/graph/graph.css'
@@ -194,7 +195,7 @@ function Kpis({ data }: { data: RolloutData }) {
         <ul className="kpi__list" aria-label="Sites per wave">
           {data.waves.map((wave) => (
             <li key={wave.element.id} className="kpi__row">
-              <span className="kpi__key mono">{wave.plan.label || wave.element.name}</span>
+              <WaveHeading wave={wave} className="kpi__key" />
               <span className={`kpi__count mono${wave.over ? ' kpi__count--alert' : ''}`}>
                 {wave.capacity === undefined
                   ? wave.sites.length

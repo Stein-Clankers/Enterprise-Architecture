@@ -41,6 +41,7 @@ import {
   type CommandRecord,
   type ViewChange,
 } from './commands'
+import { removalSummary, type RemovalSummary } from './removal'
 import { newId } from './ids'
 
 /**
@@ -484,6 +485,14 @@ export class ModelStore {
     const [only] = commands
     if (commands.length === 1 && only) this.dispatch(only)
     else if (commands.length) this.dispatch({ kind: 'batch', commands })
+  }
+
+  /**
+   * What `removeElement(id)` would do, read off the commands it would
+   * dispatch, for a confirmation to say before it is asked (#223).
+   */
+  removalPreview(id: string): RemovalSummary {
+    return removalSummary([id], this.removalCommands([id]))
   }
 
   /**

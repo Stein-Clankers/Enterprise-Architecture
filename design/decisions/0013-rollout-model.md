@@ -34,12 +34,21 @@ The research behind the proposal (`migration-planning-research.md`) found that n
 8. **Site fields start as interim properties** (D6) under `archipelago.site.*`, handled as `profile-properties.ts` handles the portfolio profile. A `migrate.ts` step moves them to #70's custom fields when #70 lands.
 9. **Site phases reuse the lifecycle ramp** (D7):
 
-   | Site phase | Token |
+   | Site phase, RAG or load | Token |
    |---|---|
    | Unplanned | neutral ink |
    | Planned | `--lc-plan` |
    | Preparing, Cutover, Hypercare | `--lc-in` |
    | Migrated, Done | `--lc-act` |
+   | RAG green | `--lc-act` |
+   | RAG amber | `--lc-out` |
+   | RAG red | `--lc-eol` |
+   | RAG none (not rated) | `--lc-plan` |
+   | Load within capacity | `--lc-in` |
+   | Load over capacity | `--lc-eol` |
+   | Load none (no capacity) | `--lc-plan` |
+
+   Extended 2026-10-27 (#223): RAG and load rows, under D7.
 
    No new tokens.
 10. **What the exchange format carries.** Rollout, waves and site plans travel as Work Packages. A wave's end travels as a Plateau. Milestones and plan fields travel as namespaced `archipelago.plan.*` properties. The template and exceptions travel as canonical JSON in a property. Implementation Event and Gap are not used. Anything the exchange cannot carry is reported, never dropped.
