@@ -1,5 +1,38 @@
 # Session Log
 
+## 2026-10-27 — #205 and #224 merged; #223 approved; rules harvested
+
+- **#205 (#52), the import dialog:** fixed and re-reviewed twice, then merged.
+  - The second re-review found a picker refusal reported as "a fault in Archipelago"; it now gets its own `file.picker-refused` problem.
+  - `importFile` no longer rejects.
+  - The third re-review approved it, and kept the dialog's `try … finally` as a backstop nothing reaches.
+- **#224 (#210 and #221), the rollout workbook:** approved and merged.
+  - It closes #221.
+  - #210 stays open, because the first criterion ("edit in Excel") is only simulated. The tests use inline strings, while Excel and LibreOffice rewrite the whole package. This is the same LibreOffice-fixture debt as #208.
+  - Non-blocking findings are in #226. The most important: an empty text cell silently sets a property to `''`.
+- **#223 (#211), the rollout screens:**
+  - **First review: request changes.** Every capacity bar was painted red by an unscoped CSS rule, untested off the DOM. Delete dialogs did not name the plan cascade. The colour mapping for RAG and load was not recorded.
+  - **Fixed** in `80f36c4`. `ModelStore.removalPreview` is now the one source of delete wording. ADR 0013 point 9 gained RAG and load rows, dated, under D7.
+  - **Re-review approves.** Non-blocking findings are in #227.
+  - **Merged with `main`** after #224 (`9f0a10a`): `PaletteProvider.tsx` and `global-shortcuts.test.tsx` keep both blocks. Typecheck, lint, all 2,661 tests and the 4 rollout journeys pass on the merged state.
+- **The session limit** interrupted three agents (the #205 fix and the #223 and #224 reviews); all three were resumed through SendMessage with their work intact.
+- **Harvested:**
+  - CLAUDE.md:
+    - the fix's own fallback is the next closed branch;
+    - a second call site of a fix is a guard of its own;
+    - a `switch` over a precision has one test per case;
+    - when a `try … finally` is not such a branch;
+    - a colour is read off the computed style against a sibling that must differ.
+  - Review skill:
+    - a confirmation names the whole cascade at every call site, and `describeCommand` is a consumer of the command shape;
+    - a freshness check holds what the dry run read, and a docblock's guarantee is a criterion.
+- **Filed:** #225 (stylelint `no-duplicate-selectors`), #226 (#224 follow-ups) and #227 (#223 follow-ups).
+- **Open:**
+  - the sponsor merges #223;
+  - next in R1 is #212 (the 160-site demo);
+  - R2 is #213–#215;
+  - a LibreOffice-saved fixture is owed for #208 and #210.
+
 ## 2026-10-26 — #216 and #217 fixed, re-reviewed and approved; ADR 0015
 
 - **Fixes** were made by fresh Opus agents in their own worktrees. #216's are in `38aaf42`. #217's are in `18eee41`, which is ADR 0015 (plan dates and the exchange mapping of rollouts, amending ADR 0013 points 5 and 10: no Plateau per wave), and `d1583bd`.
