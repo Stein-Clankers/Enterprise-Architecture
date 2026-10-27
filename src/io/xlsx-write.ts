@@ -141,14 +141,29 @@ function checkSheetNames(names: readonly string[]): void {
                 ? 'contains a control character'
                 : NOT_XML.test(name)
                   ? 'contains a character XML cannot hold (a lone surrogate, U+FFFE or U+FFFF)'
-                  : name.toUpperCase() === 'HISTORY'
+                  : caseKey(name) === 'HISTORY'
                     ? 'is reserved by Excel'
-                    : seen.has(name.toUpperCase())
+                    : seen.has(caseKey(name))
                       ? 'is used twice (Excel compares sheet names ignoring case)'
                       : undefined
     if (reason) throw new XlsxWriteError(`The sheet name ${JSON.stringify(name)} ${reason}.`)
-    seen.add(name.toUpperCase())
+    seen.add(caseKey(name))
   }
+}
+
+/**
+ * A sheet name upper-cased one character at a time, as the key two names that
+ * differ only in case share. `toUpperCase` applies full case mapping, which
+ * turns `ß` into `SS` and so made `Maß` and `MASS` one name (#221); a
+ * character whose upper case is longer than itself is kept as it is.
+ */
+function caseKey(name: string): string {
+  let key = ''
+  for (const character of name) {
+    const upper = character.toUpperCase()
+    key += upper.length === character.length ? upper : character
+  }
+  return key
 }
 
 // Written as escapes: a raw control character in a source file is a hazard of its own.

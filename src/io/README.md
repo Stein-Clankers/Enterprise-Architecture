@@ -86,7 +86,15 @@ a time keeps its day (`xlsx.date-time-dropped`), and so does an ISO date whose
 offset puts it on another day in UTC (`xlsx.date-offset-shifts-day`); a number
 whose style is missing or whose built-in format depends on Excel's language is
 read as a number and said (`xlsx.style-missing`, `xlsx.number-format-unknown`),
-and one whose style index is not a number is unreadable. A row or cell
+and one whose style index is not a number, or whose style names a number format
+that is no id, has no code or is not defined, is unreadable (#221). A bare
+`<xf/>` keeps its place among the styles. An element written twice where the
+schema allows one (two `<v>`, two `<t>`) makes the cell unreadable rather than
+empty. A date before 1900-03-01, the first day the writer writes, is unreadable
+too, so whatever reads can be written back. A workbook that lists no sheets, or
+a sheet with no name, is not read at all. Relationship targets are
+percent-decoded, and sheet names compare case one character at a time, so `Maß`
+and `MASS` are two names. A row or cell
 reference that places nothing, a cell held twice (the second copy is not read
 at all, so it adds nothing to a tally), and a chart sheet are reported too. A
 bare `<row/>` or `<c/>` with no reference still takes its place. Formula cells read as their stored result, said once per sheet. A file that
@@ -406,6 +414,63 @@ said (`exchange.plan-location-missing`, `exchange.plan-wave-missing`).
 
 `npm run validate:xsd` validates a 160-site rollout as written and as it comes
 back out of a round trip.
+
+## The rollout workbook (#210)
+
+`rollout-workbook.ts` turns one rollout into a workbook and a workbook back
+into a dry run; nothing in it touches the store. The palette's "Export rollout
+workbook…" and "Import rollout workbook…" open `src/ui/rollout-workbook/`, and
+`applyRolloutImport` (`src/store/rollout-workbook.ts`) applies a dry run as one
+command.
+
+**Sheets.** Row 1 holds the keys the import reads, row 2 the labels (#94).
+
+| Sheet | Columns |
+|---|---|
+| Sites | `id`, `name`, `parent`, `archipelago.site.code`, every other `archipelago.site.*` property the rollout's Locations hold, `action` |
+| Waves | `id`, `label`, `order`, `windowStart`, `windowEnd`, `capacity`, `templateVersion` |
+| SitePlan | `location`, `name` (read only), `wave`, `archetype`, `rag`, one `milestone.<id>` per milestone |
+| Template | the template's changes, for reference; read only |
+
+A site's fields are the Location's `archipelago.site.*` properties, and a cell
+keeps its type (text, number, boolean, or a date as its ISO day). A site's
+parent is the Location aggregating it. Dates are written and read in ADR
+0015's forms (`2027-Q2`, `2027-05`, `2027-W19`, `2027-05-03`), and a date cell
+is read as a day.
+
+**Import, by #94's conventions.** A blank cell deletes its value; a column the
+sheet does not have leaves its values as they are; a sheet the workbook does
+not have leaves everything of it as it is (`rollout-workbook.sheet-missing`).
+A Sites row with no id creates a Location (and adds it to the rollout), and
+`action = remove` takes the site out of the rollout, leaving the Location. A
+blank parent removes the Location's parents, a parent it already has changes
+nothing, and any other replaces them; a view drawing a removed relationship
+loses it in the same command. Waves are updated, never created, from the
+workbook, and a site created in Sites cannot be planned in the same import,
+since SitePlan names sites by id.
+
+**Every problem names its sheet, row and column**, as an `ImportProblem` with
+`row` and `column` and a message that starts with them. A row whose identity
+cannot be read (no id, an id that is no site of the rollout, a duplicate id,
+whose first row is kept) is skipped; a value that cannot be read (`2027-W53`,
+an unknown wave, archetype or RAG, a number where text belongs) leaves that one
+cell's value as it was. Columns with no key, with a key the sheet does not
+know, or with a key twice are reported and not read, and a sheet missing its
+key column is not read at all. The tallies count a row only once it is kept,
+so the preview's counts are what Apply changes.
+
+**Apply refuses a stale dry run.** The dry run holds the elements and
+relationships it read; if any is no longer the store's (an edit, an undo, a
+second tab), or an id it would add is taken, nothing is applied and the dialog
+says so. A reader's apply throws `ReadOnlyModelError`, even for a dry run that
+changes nothing.
+
+**What the workbook does not carry yet:** actual dates and notes (R2). An
+export says how many sites have them, and an import leaves them as they are.
+
+`rollout-workspace.json` is the rollout test fixture at eight sites, written by
+`scripts/fixtures/build-rollout-workspace.ts` through the canonical writer; the
+e2e journey opens it, since the demo has no rollout yet (#212).
 
 ## Import problems are data, not exceptions
 

@@ -266,6 +266,12 @@ describe('the writer refuses what Excel cannot open', () => {
     expect(write({ sheets: [sheet('x'.repeat(31)), sheet("it's")] })).not.toThrow()
   })
 
+  it('compares case one character at a time, so ß is not SS (#221)', () => {
+    // Full case mapping upper-cases `Maß` to `MASS`, two different names.
+    expect(write({ sheets: [sheet('Maß'), sheet('MASS')] })).not.toThrow()
+    expect(write({ sheets: [sheet('maß'), sheet('MAß')] })).toThrow('used twice')
+  })
+
   it('more rows or columns than Excel has', () => {
     expect(write({ sheets: [sheet('S', new Array<Cell[]>(MAX_ROWS + 1))] })).toThrow(
       'more than Excel’s',
@@ -1086,5 +1092,204 @@ describe('cell references', () => {
     expect(parseCellReference('XFD1048576')).toEqual({ row: MAX_ROWS - 1, column: MAX_COLUMNS - 1 })
     for (const ref of ['', 'a1', 'A', '1', 'XFE1', 'A1048577', 'A01'])
       expect(parseCellReference(ref), ref).toBeUndefined()
+  })
+})
+
+describe('follow-ups from the #216 re-review (#221)', () => {
+  /** The cell at C3 of a one-sheet package, and every problem the read reported. */
+  async function c3(xml: string, spec: Omit<Spec, 'sheets'> = {}) {
+    const { rows, problems } = await readOne({
+      ...spec,
+      sheets: [{ name: 'Plan', data: row(xml, 3) }],
+    })
+    return { found: rows[2]?.[2], problems }
+  }
+  const malformed = (text: string) => ({
+    found: { kind: 'unreadable', text },
+    problems: [
+      expect.objectContaining({
+        code: 'xlsx.cell-malformed',
+        severity: 'warning',
+        sheet: 'Plan',
+        cell: 'C3',
+      }),
+    ],
+  })
+
+  describe('a number format the styles part writes wrongly is not guessed at', () => {
+    it.each([
+      ['an empty numFmtId', '<cellXfs><xf numFmtId="0"/><xf numFmtId=""/></cellXfs>', '""'],
+      [
+        'a numFmtId that is no number',
+        '<cellXfs><xf numFmtId="0"/><xf numFmtId="abc"/></cellXfs>',
+        '"abc"',
+      ],
+      [
+        'a custom format with no format code',
+        '<numFmts><numFmt numFmtId="164"/></numFmts><cellXfs><xf numFmtId="0"/><xf numFmtId="164"/></cellXfs>',
+        'no format code',
+      ],
+      [
+        'a custom format the file does not define',
+        '<cellXfs><xf numFmtId="0"/><xf numFmtId="170"/></cellXfs>',
+        'does not define',
+      ],
+      [
+        'a custom format whose definition has no usable id',
+        '<numFmts><numFmt numFmtId="" formatCode="yyyy-mm-dd"/></numFmts><cellXfs><xf numFmtId="0"/><xf numFmtId="164"/></cellXfs>',
+        'does not define',
+      ],
+    ])('%s makes the cell unreadable, naming its style', async (_, styleSheet, said) => {
+      const read = await c3('<c r="C3" s="1"><v>46519</v></c>', { styles: styleSheet })
+      expect(read).toEqual(malformed('46519'))
+      expect(read.problems[0]!.message).toContain('style 1 names the number format')
+      expect(read.problems[0]!.message).toContain(said)
+    })
+
+    it('a custom format with an empty id defines nothing, so General stays General', async () => {
+      // `Number('')` is 0: taken as an id, the definition made format 0 a date.
+      const styleSheet =
+        '<numFmts><numFmt numFmtId="" formatCode="yyyy-mm-dd"/></numFmts><cellXfs><xf numFmtId="0"/></cellXfs>'
+      const read = await c3('<c r="C3" s="0"><v>46519</v></c>', { styles: styleSheet })
+      expect(read).toEqual({ found: numberCell(46519), problems: [] })
+    })
+
+    it('a bare <xf/> keeps its place, so the styles after it keep theirs', async () => {
+      // Filtered out, the bare entry let the date style slide into index 0.
+      const styleSheet = '<cellXfs><xf/><xf numFmtId="14"/></cellXfs>'
+      expect((await c3('<c r="C3" s="0"><v>46519</v></c>', { styles: styleSheet })).found).toEqual(
+        numberCell(46519),
+      )
+      expect((await c3('<c r="C3" s="1"><v>46519</v></c>', { styles: styleSheet })).found).toEqual(
+        dateCell('2027-05-12'),
+      )
+    })
+  })
+
+  describe('an element written twice where it is written once is not read as no value', () => {
+    it('two <v> in one cell', async () => {
+      expect(await c3('<c r="C3"><v>1</v><v>2</v></c>')).toEqual(malformed('["1","2"]'))
+    })
+
+    it.each([
+      ['a shared string with two <t>', '<si><t>a</t><t>b</t></si>'],
+      ['a rich-text run with two <t>', '<si><r><t>a</t></r><r><t>b</t><t>c</t></r></si>'],
+    ])('%s', async (_, si) => {
+      expect(await c3('<c r="C3" t="s"><v>0</v></c>', { strings: si })).toEqual(malformed('0'))
+    })
+
+    it.each([
+      ['inline text with two <t>', '<c r="C3" t="inlineStr"><is><t>a</t><t>b</t></is></c>'],
+      [
+        'a cell with two inline strings',
+        '<c r="C3" t="inlineStr"><is><t>a</t></is><is><t>b</t></is></c>',
+      ],
+    ])('%s', async (_, xml) => {
+      const read = await c3(xml)
+      expect(read).toEqual(malformed(''))
+      // Not "holds none": it holds two, and says so.
+      expect(read.problems[0]!.message).toContain('written more than once')
+    })
+  })
+
+  describe('a workbook that lists no sheet, or one with no name, is not read', () => {
+    async function fatal(bytes: Uint8Array) {
+      const result = await readXlsx(bytes, 'bad.xlsx')
+      expect(result.workbook).toBeUndefined()
+      return onlyProblem(result.problems)
+    }
+    const workbook = (sheets: string) =>
+      pkg({
+        parts: {
+          'xl/workbook.xml': `<workbook xmlns="${MAIN}" xmlns:r="${REL}">${sheets}</workbook>`,
+        },
+      })
+
+    it.each([
+      [
+        'an empty <workbook/>',
+        pkg({ parts: { 'xl/workbook.xml': `<workbook xmlns="${MAIN}"/>` } }),
+      ],
+      ['an empty <sheets/>', workbook('<sheets/>')],
+    ])('%s', async (_, bytes) => {
+      expect(await fatal(bytes)).toEqual(
+        expect.objectContaining({ code: 'xlsx.no-sheets', severity: 'error', file: 'bad.xlsx' }),
+      )
+    })
+
+    it.each([
+      ['no name', '<sheets><sheet sheetId="1" r:id="rId1"/></sheets>'],
+      ['an empty name', '<sheets><sheet name="" sheetId="1" r:id="rId1"/></sheets>'],
+      // Filtered out as no element, a bare second sheet left the first to read alone.
+      [
+        'a bare <sheet/> after a named one',
+        '<sheets><sheet name="S" sheetId="1" r:id="rId1"/><sheet/></sheets>',
+      ],
+    ])('a sheet with %s', async (_, sheets) => {
+      expect(await fatal(workbook(sheets))).toEqual(
+        expect.objectContaining({ code: 'xlsx.sheet-unnamed', severity: 'error' }),
+      )
+    })
+  })
+
+  describe('the reader and the writer agree on the first day', () => {
+    it.each([
+      ['serial 5, which programs read as different days', '<c r="C3" s="1"><v>5</v></c>', '5'],
+      ['serial 59, the last before the phantom day', '<c r="C3" s="1"><v>59</v></c>', '59'],
+      ['an ISO date in 1850', '<c r="C3" t="d"><v>1850-01-01</v></c>', '1850-01-01'],
+    ])('%s is unreadable', async (_, xml, text) => {
+      const read = await c3(xml, { styles: styles([0, 14]) })
+      expect(read.found).toEqual({ kind: 'unreadable', text })
+      expect(read.problems).toEqual([
+        expect.objectContaining({ code: 'xlsx.date-out-of-range', cell: 'C3' }),
+      ])
+      expect(read.problems[0]!.message).toContain('before 1900-03-01')
+    })
+
+    it('1900-03-01 reads, and what reads writes back', async () => {
+      for (const xml of [
+        '<c r="C3" s="1"><v>61</v></c>',
+        '<c r="C3" t="d"><v>1900-03-01</v></c>',
+      ]) {
+        const { found, problems } = await c3(xml, { styles: styles([0, 14]) })
+        expect(found).toEqual(dateCell('1900-03-01'))
+        expect(problems).toEqual([])
+        expect(() => writeXlsx({ sheets: [{ name: 'S', rows: [[found as Cell]] }] })).not.toThrow()
+      }
+    })
+  })
+
+  describe('a relationship target is a URI, so it is percent-decoded', () => {
+    const rels = (target: string) =>
+      `<Relationships xmlns="${PKG}"><Relationship Id="rId1" Type="${REL}/worksheet" Target="${target}"/></Relationships>`
+    const sheetXml = `<worksheet xmlns="${MAIN}"><sheetData>${row('<c r="A1" t="inlineStr"><is><t>found</t></is></c>')}</sheetData></worksheet>`
+
+    it.each([
+      [
+        'an encoded target for a part stored with its space',
+        'worksheets/my%20sheet.xml',
+        'xl/worksheets/my sheet.xml',
+      ],
+      [
+        'an encoded target for a part stored encoded',
+        'worksheets/my%20sheet.xml',
+        'xl/worksheets/my%20sheet.xml',
+      ],
+      ['a non-ASCII name', 'worksheets/%C3%BCbersicht.xml', 'xl/worksheets/übersicht.xml'],
+      // Not an escape: compared as written rather than thrown on.
+      ['a % that starts no escape', 'worksheets/100%%zz.xml', 'xl/worksheets/100%%zz.xml'],
+    ])('%s', async (_, target, stored) => {
+      const result = await readXlsx(
+        pkg({
+          parts: {
+            'xl/_rels/workbook.xml.rels': rels(target),
+            'xl/worksheets/sheet1.xml': null,
+            [stored]: sheetXml,
+          },
+        }),
+      )
+      expect(result.problems).toEqual([])
+      expect(result.workbook?.sheets[0]?.rows).toEqual([[textCell('found')]])
+    })
   })
 })

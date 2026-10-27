@@ -1,6 +1,6 @@
 import { XMLParser } from 'fast-xml-parser'
 import { readZipDirectory, readZipEntry, ZipError, type ZipEntry } from './zip'
-import { serialToIsoDay, parseIsoDay } from './xlsx-dates'
+import { FIRST_WRITABLE_DAY, isoDayToSerial, parseIsoDay, serialToIsoDay } from './xlsx-dates'
 import { problem, type ProblemSeverity } from './problems'
 import {
   cellReference,
@@ -104,7 +104,7 @@ async function readPackage(
   let entries: Map<string, ZipEntry>
   try {
     // OPC part names compare ignoring case.
-    entries = new Map(readZipDirectory(bytes).map((entry) => [entry.name.toLowerCase(), entry]))
+    entries = new Map(readZipDirectory(bytes).map((entry) => [partKey(entry.name), entry]))
   } catch (error) {
     const fault = zipFault(error)
     return fail(
@@ -115,7 +115,7 @@ async function readPackage(
 
   /** A part as parsed XML, or a fatal problem naming the part and, when it has one, its sheet. */
   const part = async (name: string, sheet?: string): Promise<Node> => {
-    const entry = entries.get(name.toLowerCase())
+    const entry = entries.get(partKey(name))
     if (!entry)
       return fail(
         'xlsx.part-missing',
@@ -189,9 +189,23 @@ async function readPackage(
   const stringsRel = workbookRels.find((rel) => typeOf(rel) === 'sharedStrings')
   const strings = stringsRel ? list((await root(target(stringsRel), 'sst')).si).map(richText) : []
 
+  // A bare `<sheet/>` is still a sheet the workbook lists: `asNode`, not a
+  // filter, so it is refused below rather than passed over.
+  const listed = list(asNode(workbookXml.sheets).sheet).map(asNode)
+  if (listed.length === 0) {
+    return fail('xlsx.no-sheets', 'The workbook lists no sheets, so it holds nothing to read.')
+  }
   const sheets: Sheet<ReadCell>[] = []
-  for (const entry of list(asNode(workbookXml.sheets).sheet).filter(isNode)) {
+  for (const [index, entry] of listed.entries()) {
     const name = attribute(entry, 'name') ?? ''
+    // Excel opens no sheet without a name, the writer would refuse it on the
+    // way back out, and which sheet a table belongs to could not be told.
+    if (name === '') {
+      return fail(
+        'xlsx.sheet-unnamed',
+        `The workbook's sheet ${index + 1} has no name, which Excel does not open.`,
+      )
+    }
     const id = attribute(entry, 'id')
     const rel = workbookRels.find((candidate) => attribute(candidate, 'Id') === id)
     if (!rel) {
@@ -227,9 +241,10 @@ async function readPackage(
 
 interface SheetContext {
   name: string
-  strings: readonly string[]
+  /** Each shared string, or `undefined` for one whose text cannot be told. */
+  strings: readonly (string | undefined)[]
   /** Each `cellXfs` entry's kind of number format; absent when the file has no styles part. */
-  formats: readonly FormatKind[] | undefined
+  formats: readonly StyleFormat[] | undefined
   date1904: boolean
   where: { file?: string }
 }
@@ -337,11 +352,20 @@ type Report = (severity: ProblemSeverity, code: string, message: string, cell?: 
 
 function readCell(c: Node, at: string, sheet: SheetContext, report: Report): ReadCell {
   const type = attribute(c, 't') ?? 'n'
-  const v = textOf(c.v)
   const unreadable = (code: string, message: string, found: string): ReadCell => {
     report('warning', code, message, at)
     return { kind: 'unreadable', text: found }
   }
+  // A cell holds one value. Two `<v>` parse as an array, which `textOf` would
+  // read as no value at all: an empty cell, which to #94 deletes (#221).
+  if (Array.isArray(c.v)) {
+    return unreadable(
+      'xlsx.cell-malformed',
+      `the cell holds ${c.v.length} values where a cell holds one, so it was not read.`,
+      JSON.stringify(c.v.map((value) => textOf(value) ?? '')),
+    )
+  }
+  const v = textOf(c.v)
   if (!isCellType(type)) {
     return unreadable(
       'xlsx.cell-type-unknown',
@@ -372,25 +396,41 @@ function readCell(c: Node, at: string, sheet: SheetContext, report: Report): Rea
       return readNumber(c, v!, at, sheet, report, unreadable)
     case 's': {
       const index = /^\d+$/.test(v!) ? Number(v) : -1
-      const value = sheet.strings[index]
-      if (value === undefined) {
+      if (index < 0 || index >= sheet.strings.length) {
         return unreadable(
           'xlsx.cell-malformed',
           `the cell points at shared string ${JSON.stringify(v)}, which the file does not hold.`,
           v!,
         )
       }
+      const value = sheet.strings[index]
+      if (value === undefined) {
+        return unreadable(
+          'xlsx.cell-malformed',
+          `the cell points at shared string ${index}, whose text is written more than once where it is written once, so which text is meant cannot be told; it was not read.`,
+          v!,
+        )
+      }
       return { kind: 'string', value }
     }
-    case 'inlineStr':
-      if (!isNode(c.is) && c.is !== '') {
+    case 'inlineStr': {
+      if (!isNode(c.is) && c.is !== '' && !Array.isArray(c.is)) {
         return unreadable(
           'xlsx.cell-malformed',
           'the cell says it holds inline text but holds none.',
           v ?? '',
         )
       }
-      return { kind: 'string', value: richText(c.is) }
+      const value = richText(c.is)
+      if (value === undefined) {
+        return unreadable(
+          'xlsx.cell-malformed',
+          'the cell’s inline text is written more than once where it is written once, so which text is meant cannot be told; it was not read.',
+          v ?? '',
+        )
+      }
+      return { kind: 'string', value }
+    }
     case 'str':
       return { kind: 'string', value: decodeEscapes(v!) }
     case 'b':
@@ -419,6 +459,7 @@ function readCell(c: Node, at: string, sheet: SheetContext, report: Report): Rea
           v!,
         )
       }
+      if (isoDayToSerial(match[1]!) === undefined) return beforeFirstDay(match[1]!, v!, unreadable)
       isoDateTime(match, at, report)
       return { kind: 'date', value: match[1]! }
     }
@@ -471,6 +512,13 @@ function readNumber(
   }
   const style = Number(written)
   const format = sheet.formats ? sheet.formats[style] : style === 0 ? 'number' : undefined
+  if (typeof format === 'object') {
+    return unreadable(
+      'xlsx.cell-malformed',
+      `the cell's style ${style} ${format.malformed}, so whether it is a date cannot be told; it was not read.`,
+      v,
+    )
+  }
   if (format === undefined) {
     report(
       'warning',
@@ -506,8 +554,27 @@ function readNumber(
       v,
     )
   }
+  if (isoDayToSerial(iso) === undefined) return beforeFirstDay(iso, v, unreadable)
   if (whole !== value) timeNotRead(at, report)
   return { kind: 'date', value: iso }
+}
+
+/**
+ * A date before the first day the writer writes (#221). Below serial 61 the
+ * 1900 system's serials open as different days in Excel and in other programs,
+ * which is why the writer refuses those days; a reader that took them would
+ * hand back a workbook that cannot be written again.
+ */
+function beforeFirstDay(
+  day: string,
+  found: string,
+  unreadable: (code: string, message: string, found: string) => ReadCell,
+): ReadCell {
+  return unreadable(
+    'xlsx.date-out-of-range',
+    `the cell is the date ${day}, before ${FIRST_WRITABLE_DAY}: before it Excel and other programs count days differently, so which day is meant cannot be told; it was not read.`,
+    found,
+  )
 }
 
 function timeNotRead(at: string, report: Report, more = ''): void {
@@ -547,6 +614,8 @@ function isoDateTime(match: RegExpExecArray, at: string, report: Report): void {
 }
 
 type FormatKind = 'number' | 'date' | 'time' | 'unknown'
+/** A style's kind of number format, or what is wrong with it, to end "the cell's style 3 …". */
+type StyleFormat = FormatKind | { malformed: string }
 
 /** Built-in number formats (ECMA-376 lists 0–49 and leaves some ids to each language). */
 const BUILT_IN_DATES = new Set([14, 15, 16, 17, 22])
@@ -556,18 +625,48 @@ const BUILT_IN_BY_LANGUAGE = new Set([
   27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 50, 51, 52, 53, 54, 55, 56, 57, 58,
 ])
 
-/** The kind of number format of each `cellXfs` entry, by its index. */
-function numberFormats(styleSheet: Node): FormatKind[] {
-  const custom = new Map<number, string>()
-  for (const format of list(asNode(styleSheet.numFmts).numFmt).filter(isNode)) {
-    custom.set(Number(attribute(format, 'numFmtId')), attribute(format, 'formatCode') ?? '')
+/** The first id of a custom number format; every id below it is Excel's own. */
+const FIRST_CUSTOM_FORMAT = 164
+
+/**
+ * The kind of number format of each `cellXfs` entry, by its index. A style the
+ * file writes wrongly is not guessed at (#221): a `numFmtId` that is no number
+ * would read as format 0, and a custom format with no code as a plain number,
+ * either of which decides in silence whether a cell is a date.
+ */
+function numberFormats(styleSheet: Node): StyleFormat[] {
+  /** Each custom format's code by its id, `undefined` when its definition has none. */
+  const custom = new Map<number, string | undefined>()
+  for (const format of list(asNode(styleSheet.numFmts).numFmt).map(asNode)) {
+    // A definition without a usable id defines nothing a style can name: a
+    // style naming the format it was meant to be finds no definition, and the
+    // cell says so below.
+    const id = attribute(format, 'numFmtId')
+    if (id !== undefined && /^\d+$/.test(id)) {
+      custom.set(Number(id), attribute(format, 'formatCode'))
+    }
   }
+  // A bare `<xf/>` parses as '' and is still an entry: filtering it out would
+  // shift every style after it onto its neighbour's format.
   return list(asNode(styleSheet.cellXfs).xf)
-    .filter(isNode)
-    .map((xf) => {
-      const id = Number(attribute(xf, 'numFmtId') ?? '0')
-      const code = custom.get(id)
-      if (code !== undefined) return formatKind(code)
+    .map(asNode)
+    .map((xf): StyleFormat => {
+      const written = attribute(xf, 'numFmtId') ?? '0'
+      if (!/^\d+$/.test(written)) {
+        return {
+          malformed: `names the number format ${JSON.stringify(written)}, which is no format id`,
+        }
+      }
+      const id = Number(written)
+      if (custom.has(id)) {
+        const code = custom.get(id)
+        return code === undefined
+          ? { malformed: `names the number format ${id}, whose definition has no format code` }
+          : formatKind(code)
+      }
+      if (id >= FIRST_CUSTOM_FORMAT) {
+        return { malformed: `names the number format ${id}, which the file does not define` }
+      }
       if (BUILT_IN_DATES.has(id)) return 'date'
       if (BUILT_IN_TIMES.has(id)) return 'time'
       if (BUILT_IN_BY_LANGUAGE.has(id)) return 'unknown'
@@ -601,15 +700,17 @@ export function formatKind(code: string): FormatKind {
  * Phonetic guides (`<rPh>`) are not text. Each `<t>` is decoded on its own,
  * before the join: an `_xHHHH_` escape never spans two runs, so `_x00` in one
  * and `41_` in the next is the text `_x0041_`, not `A`.
+ *
+ * `undefined` when a `<t>`, or the inline string itself, is written twice where
+ * the schema allows one (#221): it parses as an array, which `textOf` would
+ * read as no text at all.
  */
-function richText(node: unknown): string {
+function richText(node: unknown): string | undefined {
+  if (Array.isArray(node)) return undefined
   if (!isNode(node)) return decodeEscapes(textOf(node) ?? '')
-  return (
-    decodeEscapes(textOf(node.t) ?? '') +
-    list(node.r)
-      .map((run) => (isNode(run) ? decodeEscapes(textOf(run.t) ?? '') : ''))
-      .join('')
-  )
+  const pieces = [node.t, ...list(node.r).map((run) => (isNode(run) ? run.t : undefined))]
+  if (pieces.some((piece) => Array.isArray(piece))) return undefined
+  return pieces.map((piece) => decodeEscapes(textOf(piece) ?? '')).join('')
 }
 
 /** Undo OOXML's `_xHHHH_` escape; `_x005F_` is an underscore, so an escaped escape reads as written. */
@@ -623,6 +724,23 @@ function decodeEscapes(value: string): string {
 function typeOf(rel: Node): string {
   const type = attribute(rel, 'Type') ?? ''
   return type.slice(type.lastIndexOf('/') + 1)
+}
+
+/**
+ * A part name as the reader compares it: percent-decoded, since a relationship
+ * `Target` is a URI and `my%20sheet.xml` names the part `my sheet.xml` (#221),
+ * and ignoring case, as OPC compares part names. The archive's names and the
+ * targets both go through it, so a part is found whichever way it is stored.
+ * A `%` that starts no escape is a character of the name, as written.
+ */
+function partKey(name: string): string {
+  let decoded = name
+  try {
+    decoded = decodeURIComponent(name)
+  } catch {
+    // Not percent-encoded: compared as written.
+  }
+  return decoded.toLowerCase()
 }
 
 /** A relationship target as a part name: absolute from the package root, or relative to its owner's folder. */
