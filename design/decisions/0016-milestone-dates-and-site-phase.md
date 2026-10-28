@@ -2,14 +2,14 @@
 adr: '0016'
 title: 'Milestone dates: where they live, how they resolve, and the derived site phase'
 date: 2026-10-28
-status: Proposed
+status: Accepted
 scope: project
 tags: [transformation, rollout, model, exchange-format]
 ---
 
 # ADR 0016 — Milestone dates: where they live, how they resolve, and the derived site phase
 
-Extends ADR 0013 points 5, 6 and 9, and ADR 0015 point 3. Nothing either ADR says is reversed.
+Extends ADR 0013 points 5, 6 and 9, and ADR 0015 point 3. Nothing either ADR says is reversed. The sponsor accepted it on 2026-10-28.
 
 ## Context
 

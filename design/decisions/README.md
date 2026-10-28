@@ -19,4 +19,4 @@ Product ADRs for Archipelago. Fresh sequence started 2026-08 (the knowledge-base
 | [0013](0013-rollout-model.md) | Rollout model: one template, waves, and site plans keyed by location | 2026-10-26 | Accepted |
 | [0014](0014-time-and-change-model.md) | Time and change: dated validity, change entries owned by initiatives, scenarios as overlays | 2026-10-26 | Accepted |
 | [0015](0015-plan-dates-and-rollout-exchange-mapping.md) | Plan dates and the exchange mapping of rollouts | 2026-10-26 | Accepted |
-| [0016](0016-milestone-dates-and-site-phase.md) | Milestone dates: where they live, how they resolve, and the derived site phase | 2026-10-28 | Proposed |
+| [0016](0016-milestone-dates-and-site-phase.md) | Milestone dates: where they live, how they resolve, and the derived site phase | 2026-10-28 | Accepted |
