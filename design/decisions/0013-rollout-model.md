@@ -11,6 +11,8 @@ tags: [transformation, rollout, model, archimate]
 
 Points 5 and 10 are amended by [ADR 0015](0015-plan-dates-and-rollout-exchange-mapping.md): how a plan date is stored, and how rollouts travel in the exchange format.
 
+Points 5, 6 and 9 are extended by [ADR 0016](0016-milestone-dates-and-site-phase.md): where the rollout's and a wave's dates live, how a site's date resolves and is spaced, when a milestone counts as reached or overdue, and the colour of Unplanned.
+
 ## Context
 
 ADR 0012 starts multi-site rollout planning (#206) alongside the editor. The model it needs is laid out in `design/specs/migration-planning-proposal.md` §3–§4 and §8. The proposal's §11 left four points for this ADR: D2, D5, D6 and D7. The sponsor accepted all four as proposed on 2026-10-26 (#207).

@@ -16,6 +16,8 @@ UI reference: `design/specs/open-ea-repository-ui-spec.md` §3.1, §2.2.
 | `profile.ts` | portfolio profile types, scales, TIME, tags |
 | `plan.ts` | rollouts, waves and site plans; `PlanDate`; change entries; their guards (#209) |
 | `lifecycle.ts` | phase derivation from dates |
+| `site-phase.ts` | a site's milestone dates resolved (set, inherited or spaced) and its derived phase and overdue flag (#213, ADR 0016) |
+| `presets.ts` | the rollout presets, as data: milestone sets and default durations (#213) |
 | `completeness.ts` | completeness scoring and model health |
 | `workspace.ts` | `Element`, `Relationship`, `View`, `Folder`, `ReportDefinition`, `Workspace` |
 | `views.ts` | pure view operations: node removal with lifting, absolute bounds |
@@ -205,7 +207,19 @@ Where the port follows Archi rather than the obvious reading:
 
 ADR 0013 and ADR 0014 decide the model; `plan.ts` holds the shapes and their
 guards, and nothing that evaluates them. Date inheritance, the derived site
-phase, presets, exceptions, dependencies and plan checks are #213 and #214.
+phase and presets are `site-phase.ts` and `presets.ts` (#213, ADR 0016);
+exceptions, dependencies and plan checks are #214.
+
+- **A milestone date resolves from the site, else its wave, else its
+  rollout** (`SitePlan.milestones`, `WavePlan.milestones`, `Milestone.date`).
+  Only the site's own date is *set*; a milestone none of them dates is spaced
+  from a neighbour by the site's archetype's durations, at that neighbour's
+  precision. Nothing resolved is stored: the screens resolve each time.
+- **The site phase is derived, never stored**, as a lifecycle phase is: the
+  phase started by the last milestone reached, an actual day taking
+  precedence, a planned one reached on the first day of its period. A site
+  in no wave is Unplanned. Overdue is a flag: a planned period that has ended
+  with no actual day.
 
 - **A rollout is a Work Package with `plan.kind === 'rollout'`.** Its plan
   holds the template version, the ordered milestone set, the ordered scope

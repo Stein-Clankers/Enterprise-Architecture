@@ -38,7 +38,9 @@ import { setKey } from './records'
  * readable in Archi's property sheet: a plan date in the form people write it
  * (`2027-Q2`, `2027-W19`), each milestone of a site under its own key
  * (`archipelago.plan.milestone.<id>`), and a site's notes as the Work
- * Package's documentation.
+ * Package's documentation. A wave's milestone dates, which its sites inherit,
+ * use the same key family on the wave's Work Package (ADR 0016); a rollout's
+ * travel in its milestone set's JSON.
  *
  * Site plans are records, not elements (ADR 0013 point 3), so the Work Package
  * each one is written as, and its two relationships, exist only in the file.

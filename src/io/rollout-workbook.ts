@@ -44,9 +44,11 @@ import {
  * `applyRolloutImport` (`src/store/rollout-workbook.ts`) commits that dry run
  * as one command. The file format is `xlsx-read.ts` and `xlsx-write.ts`.
  *
- * **Sheets.** `Sites` (one row per site's Location), `Waves`, `SitePlan` (wave,
- * archetype, RAG and one planned column per milestone of the rollout's set),
- * and `Template`, written for reference and never read back (R1). Row 1 holds
+ * **Sheets.** `Sites` (one row per site's Location), `Waves` (with one column
+ * per milestone for the date its sites inherit), `SitePlan` (wave, archetype,
+ * RAG and one planned column per milestone of the rollout's set: the site's
+ * own date, a blank cell making it inherit again, ADR 0016), and `Template`
+ * and `Milestones`, written for reference and never read back (R1). Row 1 holds
  * each column's technical key, the file's contract, and row 2 its label.
  *
  * **Reading a cell.** A blank cell deletes the value it stands for; a column

@@ -477,9 +477,8 @@ export function milestoneUsage(
     record !== undefined && Object.hasOwn(record, milestoneId)
   return {
     sites: plan?.sites.filter((site) => uses(site.milestones) || uses(site.actuals)).length ?? 0,
-    waves: wavesOf(store.elements(), rolloutId).filter((wave) =>
-      uses(wavePlanOf(wave)?.milestones),
-    ).length,
+    waves: wavesOf(store.elements(), rolloutId).filter((wave) => uses(wavePlanOf(wave)?.milestones))
+      .length,
     archetypes: plan?.archetypes.filter((archetype) => uses(archetype.durations)).length ?? 0,
     anchoredChanges:
       plan?.template
@@ -626,7 +625,11 @@ function withoutKey<T>(
 }
 
 /** `object` with `key` set to `value`, or without `key` when `value` is undefined. */
-function withRecord<T extends object, K extends keyof T>(object: T, key: K, value: T[K] | undefined): T {
+function withRecord<T extends object, K extends keyof T>(
+  object: T,
+  key: K,
+  value: T[K] | undefined,
+): T {
   const out = { ...object }
   if (value === undefined) delete out[key]
   else out[key] = value
