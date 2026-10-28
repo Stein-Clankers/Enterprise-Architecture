@@ -387,7 +387,7 @@ window travels as two properties, and no Plateau is written for it):
 | Plan object | Written as |
 |---|---|
 | Rollout | its own Work Package; `archipelago.plan.kind` and `templateVersion` as properties, the milestone set, template, constraints and archetypes as canonical JSON, one property each |
-| Wave | its own Work Package; label, order, window, capacity and template version as properties, a window end as `2027-Q2` or `2027-W19` |
+| Wave | its own Work Package; label, order, window, capacity and template version as properties, a window end as `2027-Q2` or `2027-W19`; each milestone date its sites inherit under `archipelago.plan.milestone.<id>` (ADR 0016) |
 | Site plan | a Work Package only the file holds, aggregated by its wave (or by the rollout when unassigned) and associated with its Location; each field a property, each milestone under `archipelago.plan.milestone.<id>`, each actual under `archipelago.plan.actual.<id>`, the notes as its documentation |
 
 A site plan's Work Package and its two relationships get ids derived from the

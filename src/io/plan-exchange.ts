@@ -38,7 +38,9 @@ import { setKey } from './records'
  * readable in Archi's property sheet: a plan date in the form people write it
  * (`2027-Q2`, `2027-W19`), each milestone of a site under its own key
  * (`archipelago.plan.milestone.<id>`), and a site's notes as the Work
- * Package's documentation.
+ * Package's documentation. A wave's milestone dates, which its sites inherit,
+ * use the same key family on the wave's Work Package (ADR 0016); a rollout's
+ * travel in its milestone set's JSON.
  *
  * Site plans are records, not elements (ADR 0013 point 3), so the Work Package
  * each one is written as, and its two relationships, exist only in the file.
@@ -124,6 +126,10 @@ export function planToProperties(
     if (plan.window?.end) out[PLAN_KEYS.windowEnd] = formatPlanDate(plan.window.end)
     if (plan.capacity !== undefined) out[PLAN_KEYS.capacity] = String(plan.capacity)
     out[PLAN_KEYS.templateVersion] = String(plan.templateVersion)
+    // The dates its sites inherit, under the site plans' own key family (ADR 0016).
+    for (const id of Object.keys(plan.milestones ?? {}).sort()) {
+      setKey(out, `${MILESTONE_KEY_PREFIX}${id}`, formatPlanDate(plan.milestones![id]!))
+    }
     return out
   }
   out[PLAN_KEYS.templateVersion] = String(plan.templateVersion)
@@ -403,7 +409,7 @@ function readPlanElement(element: Element, kind: 'rollout' | 'wave', sink: PlanS
     const parsed = parse(value)
     if (parsed === undefined) unreadable.push(key)
     else {
-      into[field] = parsed
+      setKey(into, field, parsed)
       used.add(key)
     }
   }
@@ -422,6 +428,12 @@ function readPlanElement(element: Element, kind: 'rollout' | 'wave', sink: PlanS
     read(PLAN_KEYS.windowStart, 'start', parsePlanDate, window)
     read(PLAN_KEYS.windowEnd, 'end', parsePlanDate, window)
     if (Object.keys(window).length) raw.window = window
+    const milestones: Record<string, unknown> = {}
+    for (const key of Object.keys(properties)) {
+      const id = milestoneOf(key, MILESTONE_KEY_PREFIX)
+      if (id !== undefined) read(key, id, parsePlanDate, milestones)
+    }
+    if (Object.keys(milestones).length) raw.milestones = milestones
   }
   // Keys of the right family on the wrong kind of plan: kept, and said.
   for (const key of Object.keys(properties)) {

@@ -1,17 +1,23 @@
 import { useMemo, useState } from 'react'
 import { downloadText } from '@/io'
 import { ReportChrome } from '@/ui/graph/ReportChrome'
-import { waveHeading, type RolloutData } from './rollout-data'
+import { SITE_PHASE_TOKENS, waveHeading, type RolloutData } from './rollout-data'
 import {
   AXIS_HEIGHT,
   BAR_HEIGHT,
   COLOUR_VIEWS,
   COLOUR_VIEW_LABELS,
+  LABEL_WIDTH,
+  SITE_ROW_HEIGHT,
+  TICK_HEIGHT,
   barFill,
   barStroke,
   barText,
   layoutTimeline,
   legendFor,
+  siteStatusText,
+  tickFill,
+  tickStroke,
   timelineSvg,
   xOf,
   type TimelineColourView,
@@ -20,8 +26,9 @@ import {
 /**
  * The wave timeline (#211, proposal §6 item 5): waves as bars on a
  * quarter-to-month axis, under the shared report chrome (UI spec §3.4), with
- * the time point drawn as a line. Expanding a wave to its sites, milestone
- * ticks and blackout bands are #213's.
+ * the time point drawn as a line. A wave expands to its sites (#213), each a
+ * row of milestone ticks with its phase at the time point. Blackout bands are
+ * #214's.
  */
 
 function slug(name: string): string {
@@ -37,13 +44,17 @@ export function WaveTimeline({ data }: { data: RolloutData }) {
   const thisYear = new Date().getUTCFullYear()
   const [view, setView] = useState<TimelineColourView>('load')
   const [year, setYear] = useState(thisYear)
-  const layout = useMemo(() => layoutTimeline(data.waves), [data.waves])
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
+  const timePoint = Date.UTC(year, 0, 1)
+  const layout = useMemo(
+    () => layoutTimeline(data.waves, { expanded, at: timePoint }),
+    [data.waves, expanded, timePoint],
+  )
 
   const fromYear = layout.bars.length ? new Date(layout.from).getUTCFullYear() : thisYear
   const toYear = layout.bars.length ? new Date(layout.to - 1).getUTCFullYear() : thisYear
   const min = Math.min(fromYear, thisYear)
   const max = Math.max(toYear, thisYear)
-  const timePoint = Date.UTC(year, 0, 1)
   const marker = xOf(layout, timePoint)
 
   const stats = [
@@ -53,6 +64,14 @@ export function WaveTimeline({ data }: { data: RolloutData }) {
     `time point ${year}`,
   ].join(' · ')
   const title = `${data.rollout.name}: wave timeline`
+
+  const toggle = (id: string) =>
+    setExpanded((was) => {
+      const next = new Set(was)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
 
   return (
     <div className="timeline">
@@ -67,7 +86,7 @@ export function WaveTimeline({ data }: { data: RolloutData }) {
         }}
         timePoint={{ value: year, min, max, today: thisYear }}
         onTimePointChange={setYear}
-        legend={legendFor(view)}
+        legend={legendFor(view, layout.sites.length > 0)}
         exportDisabledReason={layout.bars.length ? undefined : 'No wave has a window to draw'}
         onExport={() =>
           downloadText(
@@ -78,6 +97,24 @@ export function WaveTimeline({ data }: { data: RolloutData }) {
         }
       />
       <div className="timeline__canvas">
+        {layout.bars.length > 0 && (
+          <div className="timeline__expand">
+            <span className="section-label">Show sites of</span>
+            <div className="segmented" role="group" aria-label="Show sites of">
+              {layout.bars.map((bar) => (
+                <button
+                  key={bar.id}
+                  type="button"
+                  className={`segmented__option${expanded.has(bar.id) ? ' segmented__option--active' : ''}${bar.heading.code ? '' : ' timeline__bar-label--name'}`}
+                  aria-pressed={expanded.has(bar.id)}
+                  onClick={() => toggle(bar.id)}
+                >
+                  {bar.heading.text}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {layout.bars.length === 0 ? (
           <p className="table__empty">
             {data.waves.length
@@ -147,6 +184,51 @@ export function WaveTimeline({ data }: { data: RolloutData }) {
                 </text>
               </g>
             ))}
+            {layout.sites.map((site) => {
+              const middle = site.y + SITE_ROW_HEIGHT / 2
+              return (
+                <g key={site.location} data-site={site.location} data-phase={site.phase}>
+                  <rect
+                    x={12}
+                    y={middle - 4}
+                    width={8}
+                    height={8}
+                    className="timeline__phase"
+                    style={{ fill: SITE_PHASE_TOKENS[site.phase] }}
+                  />
+                  <text x={26} y={middle + 4} className="timeline__site-label">
+                    <tspan className={site.label.code ? undefined : 'timeline__bar-label--name'}>
+                      {site.label.text}
+                    </tspan>
+                    <tspan className="timeline__bar-label--name">{siteStatusText(site)}</tspan>
+                  </text>
+                  <line
+                    x1={LABEL_WIDTH}
+                    x2={layout.width - 16}
+                    y1={middle}
+                    y2={middle}
+                    className="timeline__site-line"
+                    strokeDasharray="1 3"
+                  />
+                  {site.ticks.map((tick) => (
+                    <rect
+                      key={tick.milestone}
+                      data-milestone={tick.milestone}
+                      data-precision={tick.precision}
+                      data-source={tick.source}
+                      x={tick.x}
+                      y={middle - TICK_HEIGHT / 2}
+                      width={tick.width}
+                      height={TICK_HEIGHT}
+                      fill={tickFill(tick)}
+                      stroke={tickStroke(tick)}
+                    >
+                      <title>{tick.title}</title>
+                    </rect>
+                  ))}
+                </g>
+              )
+            })}
             {marker !== undefined && (
               <line
                 x1={marker}

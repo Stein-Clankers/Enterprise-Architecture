@@ -11,9 +11,9 @@ import type { Element, Workspace } from './workspace'
  * (#209). It is reported here instead, against its rollout, so it can be
  * reassigned or removed on purpose. The same goes for the other references a
  * site plan or a wave holds: a wave, an archetype, a milestone, a wave's
- * rollout. The references in a rollout's template (a change's subject and
+ * rollout, the milestones a wave dates (#213). The references in a rollout's template (a change's subject and
  * successor, its applicability, a date's anchor, an archetype's durations) are
- * not checked yet; they are checked where they are resolved (#213, #214).
+ * not checked yet: #214, which owns plan checks, reports them.
  *
  * These are integrity findings, not the plan checks of #214 (a wave over
  * capacity, a cutover in a blackout): those judge a plan, these say it points
@@ -26,7 +26,8 @@ export function planFindings(
 ): void {
   for (const element of workspace.elements) {
     const wave = wavePlanOf(element)
-    if (wave && !rolloutPlanOf(elementsById.get(wave.rollout))) {
+    const waveRollout = wave && rolloutPlanOf(elementsById.get(wave.rollout))
+    if (wave && !waveRollout) {
       findings.push({
         severity: 'warning',
         code: 'plan.wave-rollout-missing',
@@ -34,6 +35,19 @@ export function planFindings(
         subjectId: element.id,
         subjectKind: 'element',
       })
+    }
+    if (wave && waveRollout) {
+      const known = new Set(waveRollout.milestones.map((milestone) => milestone.id))
+      const unknown = Object.keys(wave.milestones ?? {}).filter((id) => !known.has(id))
+      if (unknown.length) {
+        findings.push({
+          severity: 'warning',
+          code: 'plan.wave-milestone-unknown',
+          message: `Wave “${element.name}” has dates for ${unknown.map((id) => `"${id}"`).join(', ')}, which ${unknown.length === 1 ? 'is not a milestone' : 'are not milestones'} of its rollout.`,
+          subjectId: element.id,
+          subjectKind: 'element',
+        })
+      }
     }
 
     const plan = rolloutPlanOf(element)
