@@ -11,9 +11,10 @@ import type { Element } from './workspace'
  * rollout, keyed by Location id (ADR 0013 point 3), not elements: 160 of them
  * would bury the ten Work Packages that matter in the inventory.
  *
- * This module holds the shapes and their type guards, nothing that evaluates
- * them. Date inheritance, the derived site phase, presets, exceptions,
- * dependencies and plan checks are #213 and #214. Every guard here is strict:
+ * This module holds the shapes and their type guards, and the calendar
+ * arithmetic of plan dates. Date inheritance and the derived site phase are
+ * `site-phase.ts` (#213), the presets `presets.ts`; exceptions, dependencies
+ * and plan checks are #214. Every guard here is strict:
  * it accepts exactly the shape, with no key it does not know, so a value it
  * passes is one canonical JSON writes back unchanged and the published schema
  * accepts. The store calls them on the write path, the readers on the read path.
@@ -179,6 +180,36 @@ export function parsePlanDate(text: string): PlanDate | undefined {
 }
 
 /**
+ * The period of `precision` that the ISO day `day` falls in, as a plan date:
+ * 2027-05-12 at week precision is the week of Monday 2027-05-10. The one door
+ * from an arbitrary day to a plan date (ADR 0015 point 1): forms snap through
+ * it, and so does a date spaced from another by days (#213).
+ */
+export function periodOf(day: string, precision: PlanDatePrecision): PlanDate {
+  const { year, month, date } = parts(day)
+  switch (precision) {
+    case 'quarter':
+      return { date: isoDayOf(utcDay(year, month - ((month - 1) % 3), 1)), precision }
+    case 'month':
+      return { date: isoDayOf(utcDay(year, month, 1)), precision }
+    case 'week':
+      return { date: isoDayOf(new Date(date.getTime() - weekday(date) * DAY_MS)), precision }
+    case 'day':
+      return { date: day, precision }
+  }
+}
+
+/** The ISO day `days` whole days after `day`; negative is before it. */
+export function addDays(day: string, days: number): string {
+  return isoDayOf(new Date(parts(day).date.getTime() + days * DAY_MS))
+}
+
+/** UTC midnight of an ISO day, in ms: when a plan date's period starts. */
+export function dayStart(day: string): number {
+  return parts(day).date.getTime()
+}
+
+/**
  * The first day after the period a plan date names, as an ISO day: the
  * period's end, exclusive. `2027-Q2` runs to the day before `2027-07-01`.
  */
@@ -249,15 +280,21 @@ export interface Milestone {
   id: string
   label: string
   startsPhase: MilestonePhase
+  /**
+   * The rollout's own date for this milestone: what a site inherits when
+   * neither it nor its wave sets one (ADR 0013 point 5, ADR 0016).
+   */
+  date?: PlanDate
 }
 
 export function isMilestone(value: unknown): value is Milestone {
   return (
     isRecord(value) &&
-    hasOnlyKeys(value, ['id', 'label', 'startsPhase']) &&
+    hasOnlyKeys(value, ['id', 'label', 'startsPhase', 'date']) &&
     isId(value.id) &&
     typeof value.label === 'string' &&
-    isMilestonePhase(value.startsPhase)
+    isMilestonePhase(value.startsPhase) &&
+    (value.date === undefined || isPlanDate(value.date))
   )
 }
 
@@ -400,7 +437,9 @@ export interface Archetype {
   label: string
   /**
    * Default days from the previous milestone to each milestone, keyed by
-   * milestone id. Stored for #213, which resolves dates; nothing reads it yet.
+   * milestone id. A site of this archetype whose milestone neither it, its
+   * wave nor the rollout dates is spaced from its neighbour by these
+   * (`resolveSiteMilestones`, ADR 0016).
    */
   durations?: Record<string, number>
 }
@@ -539,6 +578,11 @@ export interface WavePlan {
   capacity?: number
   /** The template version this wave is locked to. */
   templateVersion: number
+  /**
+   * The dates its sites inherit, keyed by milestone id (proposal §4.3): a site
+   * that sets none of its own takes the wave's (ADR 0013 point 5).
+   */
+  milestones?: Record<string, PlanDate>
 }
 
 export type PlanProfile = RolloutPlan | WavePlan
@@ -590,6 +634,7 @@ export function isWavePlan(value: unknown): value is WavePlan {
       'window',
       'capacity',
       'templateVersion',
+      'milestones',
     ]) &&
     value.kind === 'wave' &&
     isId(value.rollout) &&
@@ -597,7 +642,8 @@ export function isWavePlan(value: unknown): value is WavePlan {
     Number.isSafeInteger(value.order) &&
     (value.window === undefined || isWaveWindow(value.window)) &&
     (value.capacity === undefined || isPositiveInteger(value.capacity)) &&
-    isPositiveInteger(value.templateVersion)
+    isPositiveInteger(value.templateVersion) &&
+    (value.milestones === undefined || isRecordOf(value.milestones, isPlanDate))
   )
 }
 

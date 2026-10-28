@@ -19,6 +19,7 @@ import {
   type WavePlan,
 } from '@/model'
 import { problem, type ProblemSeverity } from './problems'
+import { setKey } from './records'
 import {
   booleanCell,
   cellAt,
@@ -65,6 +66,7 @@ export const SHEET_NAMES = {
   sites: 'Sites',
   waves: 'Waves',
   sitePlan: 'SitePlan',
+  milestones: 'Milestones',
   template: 'Template',
 } as const
 
@@ -159,7 +161,7 @@ export function exportRolloutWorkbook(
   const wavesSheet: Sheet = {
     name: SHEET_NAMES.waves,
     rows: tableRows(
-      WAVE_COLUMNS,
+      waveColumns(plan),
       waves.map((wave) => {
         const p = wavePlanOf(wave)!
         return [
@@ -170,6 +172,7 @@ export function exportRolloutWorkbook(
           planDateCell(p.window?.end),
           p.capacity === undefined ? EMPTY : numberCell(p.capacity),
           numberCell(p.templateVersion),
+          ...plan.milestones.map((milestone) => planDateCell(p.milestones?.[milestone.id])),
         ]
       }),
     ),
@@ -200,7 +203,7 @@ export function exportRolloutWorkbook(
 
   return {
     workbook: {
-      sheets: [sitesSheet, wavesSheet, sitePlanSheet, templateSheet(plan)],
+      sheets: [sitesSheet, wavesSheet, sitePlanSheet, milestonesSheet(plan), templateSheet(plan)],
     },
     problems,
   }
@@ -257,6 +260,17 @@ const WAVE_COLUMNS: readonly Column[] = [
   { key: 'templateVersion', label: 'Template version' },
 ]
 
+/** The wave's own columns, then one per milestone: the dates its sites inherit (#213). */
+function waveColumns(plan: RolloutPlan): Column[] {
+  return [
+    ...WAVE_COLUMNS,
+    ...plan.milestones.map((milestone) => ({
+      key: `${MILESTONE_COLUMN_PREFIX}${milestone.id}`,
+      label: `${milestone.label} (its sites inherit this)`,
+    })),
+  ]
+}
+
 function sitePlanColumns(plan: RolloutPlan): Column[] {
   return [
     { key: 'location', label: 'Site (Location id)' },
@@ -266,9 +280,36 @@ function sitePlanColumns(plan: RolloutPlan): Column[] {
     { key: 'rag', label: 'RAG (green, amber, red)' },
     ...plan.milestones.map((milestone) => ({
       key: `${MILESTONE_COLUMN_PREFIX}${milestone.id}`,
-      label: `${milestone.label} (planned)`,
+      label: `${milestone.label} (set at the site; blank: inherit)`,
     })),
   ]
+}
+
+const MILESTONE_COLUMNS: readonly Column[] = [
+  { key: 'id', label: 'Id (read-only sheet)' },
+  { key: 'label', label: 'Label' },
+  { key: 'startsPhase', label: 'Starts phase' },
+  { key: 'date', label: 'Rollout date (sites inherit it last)' },
+]
+
+/**
+ * The milestone set, in order, with the rollout's own dates (#213): written
+ * for reference and never read back, as the template is. The set is edited
+ * in the app.
+ */
+function milestonesSheet(plan: RolloutPlan): Sheet {
+  return {
+    name: SHEET_NAMES.milestones,
+    rows: tableRows(
+      MILESTONE_COLUMNS,
+      plan.milestones.map((milestone) => [
+        textCell(milestone.id),
+        textCell(milestone.label),
+        textCell(milestone.startsPhase),
+        planDateCell(milestone.date),
+      ]),
+    ),
+  }
 }
 
 const TEMPLATE_COLUMNS: readonly Column[] = [
@@ -443,8 +484,10 @@ export function planRolloutImport(
   if (wavesSheet) importWaves(context, wavesSheet)
   const sitePlanSheet = sheets.get(SHEET_NAMES.sitePlan)
   if (sitePlanSheet) importSitePlans(context, sitePlanSheet)
+  const milestones = sheets.get(SHEET_NAMES.milestones)
+  if (milestones) checkReadOnly(context, milestones, milestonesSheet(plan), 'milestone set')
   const template = sheets.get(SHEET_NAMES.template)
-  if (template) checkTemplate(context, template)
+  if (template) checkReadOnly(context, template, templateSheet(plan), 'template')
 
   if (context.sitesChanged) {
     const after: Element = {
@@ -963,9 +1006,46 @@ function parentChange(
 
 const WAVE_KEYS = new Set(WAVE_COLUMNS.map((column) => column.key))
 
+/** Is `key` the column of a milestone of the rollout? */
+function isMilestoneColumn(context: ImportContext, key: string): boolean {
+  return (
+    key.startsWith(MILESTONE_COLUMN_PREFIX) &&
+    context.plan.milestones.some(
+      (milestone) => milestone.id === key.slice(MILESTONE_COLUMN_PREFIX.length),
+    )
+  )
+}
+
+/**
+ * Each milestone column of `row` into `dates`, which it changes: a date sets
+ * it, a blank deletes it (so the site or the wave inherits again, ADR 0016), a
+ * cell that could not be read leaves it, and has been reported.
+ */
+function readMilestoneDates(
+  row: Row,
+  keys: readonly string[],
+  dates: Record<string, PlanDate> | undefined,
+): Record<string, PlanDate> | undefined {
+  const out: Record<string, PlanDate> = { ...dates }
+  for (const key of keys) {
+    const field = row.planDate(key)
+    if (field === undefined) continue
+    const milestone = key.slice(MILESTONE_COLUMN_PREFIX.length)
+    if (field.value === undefined) delete out[milestone]
+    else setKey(out, milestone, field.value)
+  }
+  return Object.keys(out).length ? out : undefined
+}
+
 function importWaves(context: ImportContext, sheet: Sheet<ReadCell>): void {
-  const table = readTable(context, sheet, (key) => WAVE_KEYS.has(key), 'id')
+  const table = readTable(
+    context,
+    sheet,
+    (key) => WAVE_KEYS.has(key) || isMilestoneColumn(context, key),
+    'id',
+  )
   if (!table) return
+  const milestoneKeys = [...table.columns.keys()].filter((key) => !WAVE_KEYS.has(key))
   for (const [rowIndex, id] of rowKeys(context, table, 'id')) {
     const row = new Row(context, table, rowIndex)
     if (id === '') {
@@ -1022,6 +1102,9 @@ function importWaves(context: ImportContext, sheet: Sheet<ReadCell>): void {
     }
     if (window.start || window.end) plan.window = window
     else delete plan.window
+    const milestones = readMilestoneDates(row, milestoneKeys, plan.milestones)
+    if (milestones) plan.milestones = milestones
+    else delete plan.milestones
 
     if (sameJson(plan, before)) {
       context.result.tallies.waves.unchanged++
@@ -1048,14 +1131,10 @@ function required(row: Row, key: string, field: Field<number>): number | undefin
 const SITE_PLAN_KEYS = new Set(['location', 'name', 'wave', 'archetype', 'rag'])
 
 function importSitePlans(context: ImportContext, sheet: Sheet<ReadCell>): void {
-  const milestones = new Set(context.plan.milestones.map((milestone) => milestone.id))
   const table = readTable(
     context,
     sheet,
-    (key) =>
-      SITE_PLAN_KEYS.has(key) ||
-      (key.startsWith(MILESTONE_COLUMN_PREFIX) &&
-        milestones.has(key.slice(MILESTONE_COLUMN_PREFIX.length))),
+    (key) => SITE_PLAN_KEYS.has(key) || isMilestoneColumn(context, key),
     'location',
   )
   if (!table) return
@@ -1143,15 +1222,8 @@ function importSitePlans(context: ImportContext, sheet: Sheet<ReadCell>): void {
         location,
       )
     }
-    const dates = { ...after.milestones }
-    for (const key of milestoneKeys) {
-      const field = row.planDate(key)
-      if (field === undefined) continue
-      const milestone = key.slice(MILESTONE_COLUMN_PREFIX.length)
-      if (field.value === undefined) delete dates[milestone]
-      else dates[milestone] = field.value
-    }
-    if (Object.keys(dates).length) after.milestones = dates
+    const dates = readMilestoneDates(row, milestoneKeys, after.milestones)
+    if (dates) after.milestones = dates
     else delete after.milestones
 
     // A site the Sites sheet removes still has its row here, as exported; only
@@ -1179,11 +1251,16 @@ function importSitePlans(context: ImportContext, sheet: Sheet<ReadCell>): void {
 }
 
 /**
- * The `Template` sheet is not read in R1. A copy that differs from the
- * rollout's template says so, so an edit to it is never lost in silence.
+ * The `Template` and `Milestones` sheets are written for reference and not
+ * read. A copy that differs from what the rollout holds says so, so an edit
+ * to it is never lost in silence.
  */
-function checkTemplate(context: ImportContext, sheet: Sheet<ReadCell>): void {
-  const expected = templateSheet(context.plan)
+function checkReadOnly(
+  context: ImportContext,
+  sheet: Sheet<ReadCell>,
+  expected: Sheet,
+  what: 'template' | 'milestone set',
+): void {
   const height = Math.max(sheet.rows.length, expected.rows.length)
   for (let row = 0; row < height; row++) {
     const width = Math.max(sheet.rows[row]?.length ?? 0, expected.rows[row]?.length ?? 0)
@@ -1191,8 +1268,10 @@ function checkTemplate(context: ImportContext, sheet: Sheet<ReadCell>): void {
       if (!sameJson(cellAt(sheet, row, column), cellAt(expected, row, column))) {
         context.report(
           'warning',
-          'rollout-workbook.template-read-only',
-          `the sheet differs from the rollout's template, first at cell ${cellReference(row, column)}. The template is changed in the app, not in the workbook, so the sheet was not read.`,
+          what === 'template'
+            ? 'rollout-workbook.template-read-only'
+            : 'rollout-workbook.milestones-read-only',
+          `the sheet differs from the rollout's ${what}, first at cell ${cellReference(row, column)}. The ${what} is changed in the app, not in the workbook, so the sheet was not read.`,
           { sheet: sheet.name, row, column },
         )
         return

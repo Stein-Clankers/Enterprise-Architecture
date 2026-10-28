@@ -579,6 +579,11 @@ describe('each unreadable part of a canonical plan is named (#209)', () => {
       (plan) => (plan.constraints = { freeze: true }),
       'constraints.freeze',
     ],
+    [
+      'a milestone whose rollout date is no plan date (#213)',
+      (plan) => (plan.milestones = [{ ...m(), date: { date: '2027-05-12', precision: 'month' } }]),
+      'milestones[0]',
+    ],
   ]
 
   function m() {
@@ -607,6 +612,16 @@ describe('each unreadable part of a canonical plan is named (#209)', () => {
     ['an unknown window key', (plan) => (plan.window = { middle: 1 }), 'window.middle'],
     ['a capacity of nought', (plan) => (plan.capacity = 0), 'capacity 0'],
     ['an unknown key', (plan) => (plan.owner = 'PMO'), 'owner'],
+    [
+      'milestone dates that are not a record (#213)',
+      (plan) => (plan.milestones = []),
+      'milestones',
+    ],
+    [
+      'a milestone date that is not a plan date (#213)',
+      (plan) => (plan.milestones = { freezeStart: '2027-Q3' }),
+      'milestones.freezeStart',
+    ],
   ]
 
   it.each(wave)('a wave with %s', (_, edit, part) => {
@@ -692,6 +707,22 @@ describe('each exchange plan value that cannot be read is said (#209)', () => {
     const wave = element(workspace, waveId(1))!
     expect(wavePlanOf(wave)?.window).toEqual({ end: { date: '2027-06-01', precision: 'month' } })
     expect(wave.properties).toEqual({ [PLAN_KEYS.windowStart]: 'soon' })
+    expect(codes(problems)).toEqual(['exchange.plan-unreadable'])
+  })
+
+  it('reads a wave’s milestone dates, and keeps one it cannot read as a property (#213)', () => {
+    const key = 'archipelago.plan.milestone.freezeStart'
+    expect(definitionOf(EXPORTED, key)).toBeDefined()
+    const clean = element(read(EXPORTED).workspace, waveId(2))!
+    expect(wavePlanOf(clean)?.milestones).toEqual({
+      freezeStart: { date: '2027-07-01', precision: 'quarter' },
+    })
+    expect(clean.properties).toEqual({})
+
+    const { workspace, problems } = read(setProperty(EXPORTED, waveId(2), key, 'soon'))
+    const wave = element(workspace, waveId(2))!
+    expect(wavePlanOf(wave)?.milestones).toBeUndefined()
+    expect(wave.properties).toEqual({ [key]: 'soon' })
     expect(codes(problems)).toEqual(['exchange.plan-unreadable'])
   })
 

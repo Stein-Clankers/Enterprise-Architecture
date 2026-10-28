@@ -199,6 +199,10 @@
             "startsPhase": "migrated"
           },
           {
+            "date": {
+              "date": "2028-10-01",
+              "precision": "quarter"
+            },
             "id": "legacyDecommissioned",
             "label": "Legacy decommissioned",
             "startsPhase": "done"
@@ -389,6 +393,24 @@
         "capacity": 5,
         "kind": "wave",
         "label": "Pilot",
+        "milestones": {
+          "freezeStart": {
+            "date": "2027-02-22",
+            "precision": "day"
+          },
+          "hypercareEnd": {
+            "date": "2027-03-29",
+            "precision": "day"
+          },
+          "mappingSignedOff": {
+            "date": "2027-01-11",
+            "precision": "day"
+          },
+          "reconciliationSignedOff": {
+            "date": "2027-03-01",
+            "precision": "day"
+          }
+        },
         "order": 0,
         "rollout": "wp-rollout-data",
         "templateVersion": 1,
@@ -411,6 +433,24 @@
       "plan": {
         "kind": "wave",
         "label": "W1",
+        "milestones": {
+          "freezeStart": {
+            "date": "2027-05-17",
+            "precision": "day"
+          },
+          "hypercareEnd": {
+            "date": "2027-06-21",
+            "precision": "day"
+          },
+          "mappingSignedOff": {
+            "date": "2027-04-05",
+            "precision": "day"
+          },
+          "reconciliationSignedOff": {
+            "date": "2027-05-24",
+            "precision": "day"
+          }
+        },
         "order": 1,
         "rollout": "wp-rollout-data",
         "templateVersion": 2,
@@ -433,6 +473,12 @@
       "plan": {
         "kind": "wave",
         "label": "W2",
+        "milestones": {
+          "freezeStart": {
+            "date": "2027-07-01",
+            "precision": "quarter"
+          }
+        },
         "order": 2,
         "rollout": "wp-rollout-data",
         "templateVersion": 2,
@@ -455,6 +501,12 @@
       "plan": {
         "kind": "wave",
         "label": "W3",
+        "milestones": {
+          "freezeStart": {
+            "date": "2027-10-01",
+            "precision": "quarter"
+          }
+        },
         "order": 3,
         "rollout": "wp-rollout-data",
         "templateVersion": 2,

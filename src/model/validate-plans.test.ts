@@ -83,6 +83,16 @@ describe('validate() on rollouts (#209)', () => {
     ).toEqual(['plan.site-milestone-unknown'])
   })
 
+  it('reports a wave’s date for a milestone its rollout does not have (#213)', () => {
+    const workspace = workspaceWith((ws) => {
+      const wave = ws.elements.find((element) => element.id === 'wp-wave-2')!
+      if (wave.plan?.kind === 'wave') {
+        wave.plan.milestones = { goLive: { date: '2027-05-12', precision: 'day' } }
+      }
+    })
+    expect(planCodes(workspace)).toEqual(['plan.wave-milestone-unknown'])
+  })
+
   it('reports a wave whose rollout is not in the model', () => {
     // The rollout deleted on its own, as the inventory's Delete would: its five waves stay.
     const workspace = workspaceWith((ws) => {

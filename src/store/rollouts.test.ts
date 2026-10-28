@@ -1,21 +1,38 @@
 import { describe, expect, it } from 'vitest'
-import { rolloutPlanOf, validate, wavePlanOf, wavesOf, type Element, type View } from '@/model'
+import {
+  ROLLOUT_PRESETS,
+  presetPlan,
+  resolveSiteMilestones,
+  rolloutPlanOf,
+  validate,
+  wavePlanOf,
+  wavesOf,
+  type Element,
+  type View,
+} from '@/model'
 import { toCanonicalJson } from '@/io'
 import { ROLLOUT_ID, rolloutWorkspace, siteId, waveId } from '@/test/rollout-fixture'
 import { ModelStore, ReadOnlyModelError } from './model-store'
 import {
+  addMilestone,
   addSites,
   assignSites,
   createRollout,
   createWave,
   deleteRollout,
   deleteWave,
+  milestoneIdFor,
+  milestoneUsage,
+  moveMilestone,
+  removeMilestone,
   removeSites,
   renameRollout,
   renameWave,
   setArchetype,
+  setSiteMilestones,
   snapPlanDate,
   unassignSites,
+  updateMilestone,
   updateWave,
 } from './rollouts'
 import { planCascadeText } from './removal'
@@ -542,6 +559,14 @@ describe('as a reader (#209)', () => {
     ['unassignSites', (s) => unassignSites(s, ROLLOUT_ID, forty)],
     ['setArchetype', (s) => setArchetype(s, ROLLOUT_ID, forty, 'plant')],
     ['updateWave', (s) => updateWave(s, waveId(1), { capacity: 9 })],
+    ['addMilestone', (s) => addMilestone(s, ROLLOUT_ID, { label: 'Go', startsPhase: 'cutover' })],
+    ['updateMilestone', (s) => updateMilestone(s, ROLLOUT_ID, 'freezeStart', { label: 'F' })],
+    ['moveMilestone', (s) => moveMilestone(s, ROLLOUT_ID, 'freezeStart', 1)],
+    ['removeMilestone', (s) => removeMilestone(s, ROLLOUT_ID, 'legacyDecommissioned')],
+    [
+      'setSiteMilestones',
+      (s) => setSiteMilestones(s, ROLLOUT_ID, siteId(4), { freezeStart: null }),
+    ],
   ]
 
   it.each(commands)('%s works for a writer', (_, command) => {
@@ -590,6 +615,17 @@ describe('as a reader (#209)', () => {
     ['unassignSites', (s) => unassignSites(s, 'nope', forty)],
     ['setArchetype', (s) => setArchetype(s, ROLLOUT_ID, forty, 'warehouse')],
     ['updateWave', (s) => updateWave(s, ROLLOUT_ID, { capacity: 9 })],
+    ['addMilestone', (s) => addMilestone(s, ROLLOUT_ID, { label: 'Go', startsPhase: '' })],
+    ['updateMilestone', (s) => updateMilestone(s, ROLLOUT_ID, 'freezeStart', { startsPhase: '' })],
+    ['moveMilestone', (s) => moveMilestone(s, ROLLOUT_ID, 'nope', 1)],
+    ['removeMilestone', (s) => removeMilestone(s, ROLLOUT_ID, 'freezeStart')],
+    [
+      'setSiteMilestones',
+      (s) =>
+        setSiteMilestones(s, ROLLOUT_ID, siteId(4), {
+          freezeStart: { date: '2027-05-10', precision: '' },
+        }),
+    ],
   ]
 
   it.each(refused)('%s refuses this input as a writer', (_, command) => {
@@ -647,5 +683,268 @@ describe('what each command refuses, and what it records nothing for (#209)', ()
     const wave = createWave(s, ROLLOUT_ID, { name: 'Spare', label: 'W9' })!
     expect(deleteWave(s, wave.id)).toBe(true)
     expect(s.history.at(-1)?.command.kind).toBe('remove-element')
+  })
+})
+
+// ── #213: milestone sets, site overrides and wave dates ──────────────────────
+
+const freeze = (s: ModelStore, n: number) => {
+  const p = plan(s)
+  const site = p.sites.find((candidate) => candidate.location === siteId(n))!
+  const wave = site.wave === undefined ? undefined : wavePlanOf(s.element(site.wave))
+  return resolveSiteMilestones(p, site, wave).find((r) => r.milestone.id === 'freezeStart')!
+}
+
+describe('milestone sets (#213)', () => {
+  it('a rollout made from a preset starts with its milestones and a Standard archetype of its durations', () => {
+    const s = store()
+    const preset = ROLLOUT_PRESETS.dataMigration
+    const rollout = createRollout(s, { name: 'Data', ...presetPlan(preset) })!
+    expect(plan(s, rollout.id).milestones).toEqual(preset.milestones)
+    expect(plan(s, rollout.id).archetypes).toEqual([
+      { id: 'standard', label: 'Standard', durations: preset.durations },
+    ])
+  })
+
+  it('adds a milestone with an id made from its label, unique in the set, one command each', () => {
+    const s = store()
+    const before = state(s)
+    expect(addMilestone(s, ROLLOUT_ID, { label: ' Go/no-go ', startsPhase: 'preparing' })).toBe(
+      'goNoGo',
+    )
+    expect(addMilestone(s, ROLLOUT_ID, { label: 'Go/No-Go', startsPhase: 'cutover' })).toBe(
+      'goNoGo2',
+    )
+    expect(addMilestone(s, ROLLOUT_ID, { label: '— · —', startsPhase: 'done' })).toBe('milestone')
+    expect(s.history.length).toBe(before.history + 3)
+    expect(plan(s).milestones.at(-3)).toEqual({
+      id: 'goNoGo',
+      label: 'Go/no-go',
+      startsPhase: 'preparing',
+    })
+  })
+
+  it('refuses a milestone with no label, or with an empty phase, and stores nothing', () => {
+    const s = store()
+    const before = state(s)
+    expect(addMilestone(s, ROLLOUT_ID, { label: ' ', startsPhase: 'cutover' })).toBeUndefined()
+    expect(addMilestone(s, ROLLOUT_ID, { label: 'Go', startsPhase: '' })).toBeUndefined()
+    expect(addMilestone(s, ROLLOUT_ID, { label: 'Go', startsPhase: 'unplanned' })).toBeUndefined()
+    expect(addMilestone(s, waveId(1), { label: 'Go', startsPhase: 'cutover' })).toBeUndefined()
+    expect(state(s)).toEqual(before)
+  })
+
+  it('edits a label, a phase and the rollout’s date as one command, and null clears the date', () => {
+    const s = store()
+    const before = state(s)
+    const q3 = { date: '2027-07-01', precision: 'quarter' } as const
+    expect(
+      updateMilestone(s, ROLLOUT_ID, 'freezeStart', {
+        label: 'Freeze',
+        startsPhase: 'hypercare',
+        date: q3,
+      }),
+    ).toBe(true)
+    expect(s.history.length).toBe(before.history + 1)
+    expect(plan(s).milestones[1]).toEqual({
+      id: 'freezeStart',
+      label: 'Freeze',
+      startsPhase: 'hypercare',
+      date: q3,
+    })
+    expect(updateMilestone(s, ROLLOUT_ID, 'freezeStart', { date: null })).toBe(true)
+    expect(plan(s).milestones[1]).not.toHaveProperty('date')
+    s.undo()
+    s.undo()
+    expect(state(s).json).toBe(before.json)
+  })
+
+  it('records nothing for an edit that changes nothing, and refuses a bad one', () => {
+    const s = store()
+    const before = state(s)
+    expect(updateMilestone(s, ROLLOUT_ID, 'freezeStart', { label: 'Freeze starts' })).toBe(true)
+    const legacy = plan(s).milestones.at(-1)!
+    expect(updateMilestone(s, ROLLOUT_ID, legacy.id, { date: { ...legacy.date! } })).toBe(true)
+    expect(state(s)).toEqual(before)
+    expect(updateMilestone(s, ROLLOUT_ID, 'freezeStart', { label: '' })).toBe(false)
+    expect(updateMilestone(s, ROLLOUT_ID, 'freezeStart', { startsPhase: '' })).toBe(false)
+    expect(
+      updateMilestone(s, ROLLOUT_ID, 'freezeStart', {
+        date: { date: '2027-07-02', precision: 'quarter' },
+      }),
+    ).toBe(false)
+    expect(updateMilestone(s, ROLLOUT_ID, 'nope', { label: 'X' })).toBe(false)
+    expect(state(s)).toEqual(before)
+  })
+
+  it('moves a milestone one place, as one command, and does nothing at either end', () => {
+    const s = store()
+    const before = state(s)
+    expect(moveMilestone(s, ROLLOUT_ID, 'freezeStart', 1)).toBe(true)
+    expect(
+      plan(s)
+        .milestones.map((m) => m.id)
+        .slice(0, 3),
+    ).toEqual(['mappingSignedOff', 'reconciliationSignedOff', 'freezeStart'])
+    expect(s.history.length).toBe(before.history + 1)
+    expect(moveMilestone(s, ROLLOUT_ID, 'freezeStart', -1)).toBe(true)
+    expect(plan(s).milestones.map((m) => m.id)[1]).toBe('freezeStart')
+    const moved = state(s)
+    expect(moveMilestone(s, ROLLOUT_ID, 'mappingSignedOff', -1)).toBe(true)
+    expect(moveMilestone(s, ROLLOUT_ID, 'legacyDecommissioned', 1)).toBe(true)
+    expect(state(s)).toEqual(moved)
+    expect(moveMilestone(s, ROLLOUT_ID, 'nope', 1)).toBe(false)
+  })
+
+  it('says what uses a milestone: sites, waves, archetypes and anchored template changes', () => {
+    const s = store()
+    const p = plan(s)
+    const sites = p.sites.filter(
+      (site) => site.milestones?.freezeStart !== undefined || site.actuals?.freezeStart,
+    ).length
+    expect(sites).toBeGreaterThan(2)
+    expect(milestoneUsage(s, ROLLOUT_ID, 'freezeStart')).toEqual({
+      sites,
+      waves: 4,
+      archetypes: 1,
+      anchoredChanges: ['tc-replace-store'],
+    })
+    expect(milestoneUsage(s, ROLLOUT_ID, 'legacyDecommissioned')).toEqual({
+      sites: 0,
+      waves: 0,
+      archetypes: 0,
+      anchoredChanges: [],
+    })
+  })
+
+  /** Reconciliation, used by a site's date and actual, two waves and an archetype. */
+  function reconciliationInUse(): ModelStore {
+    const workspace = rolloutWorkspace(160)
+    const rollout = rolloutPlanOf(workspace.elements.find((e) => e.id === ROLLOUT_ID))!
+    rollout.archetypes.find((a) => a.id === 'plant')!.durations!.reconciliationSignedOff = 7
+    const site = rollout.sites.find((candidate) => candidate.location === siteId(1))!
+    site.actuals = { ...site.actuals, reconciliationSignedOff: '2027-03-04' }
+    const five = rollout.sites.find((candidate) => candidate.location === siteId(5))!
+    five.milestones = { reconciliationSignedOff: { date: '2027-05-01', precision: 'month' } }
+    return new ModelStore(workspace)
+  }
+
+  it('deletes a milestone with every date and duration for it, as one command one undo puts back', () => {
+    const s = reconciliationInUse()
+    const before = state(s)
+    expect(milestoneUsage(s, ROLLOUT_ID, 'reconciliationSignedOff')).toEqual({
+      sites: 2,
+      waves: 2,
+      archetypes: 1,
+      anchoredChanges: [],
+    })
+    expect(removeMilestone(s, ROLLOUT_ID, 'reconciliationSignedOff')).toBe(true)
+    expect(s.history.length).toBe(before.history + 1)
+    const p = plan(s)
+    expect(p.milestones.map((m) => m.id)).not.toContain('reconciliationSignedOff')
+    expect(JSON.stringify(p)).not.toContain('reconciliationSignedOff')
+    expect(JSON.stringify(s.snapshot())).not.toContain('reconciliationSignedOff')
+    // Site 5 had only that date: it has no dates left, not an empty record.
+    expect(p.sites.find((site) => site.location === siteId(5))).not.toHaveProperty('milestones')
+    expect(validate(s.snapshot()).findings).toEqual([])
+    s.undo()
+    expect(state(s).json).toBe(before.json)
+  })
+
+  it('refuses to delete a milestone a template change is anchored on, or one not in the set', () => {
+    const s = store()
+    const before = state(s)
+    expect(removeMilestone(s, ROLLOUT_ID, 'freezeStart')).toBe(false)
+    expect(removeMilestone(s, ROLLOUT_ID, 'nope')).toBe(false)
+    expect(removeMilestone(s, waveId(1), 'freezeStart')).toBe(false)
+    expect(state(s)).toEqual(before)
+  })
+
+  it('makes an id from the label’s words, and a free one when it is taken', () => {
+    expect(milestoneIdFor('Hypercare ends', [])).toBe('hypercareEnds')
+    expect(milestoneIdFor('UAT 2 sign-off', [])).toBe('uat2SignOff')
+    const taken = [
+      { id: 'cutover', label: 'C', startsPhase: 'cutover' },
+      { id: 'cutover2', label: 'C', startsPhase: 'cutover' },
+    ] as const
+    expect(milestoneIdFor('Cutover', [...taken])).toBe('cutover3')
+  })
+})
+
+describe('a site’s own dates, and inheriting again (#213, ADR 0016)', () => {
+  it('clearing an override makes the site inherit its wave’s date again, as one command', () => {
+    const s = store()
+    // Site 4 is in W1 and sets its own freeze, at week precision.
+    expect(freeze(s, 4)).toMatchObject({
+      source: 'site',
+      planned: { date: '2027-05-10', precision: 'week' },
+    })
+    const before = state(s)
+    expect(setSiteMilestones(s, ROLLOUT_ID, siteId(4), { freezeStart: null })).toBe(true)
+    expect(s.history.length).toBe(before.history + 1)
+    expect(freeze(s, 4)).toMatchObject({
+      source: 'wave',
+      planned: { date: '2027-05-17', precision: 'day' },
+    })
+  })
+
+  it('sets an override at any precision, which is then the site’s and set', () => {
+    const s = store()
+    const q = { date: '2027-04-01', precision: 'quarter' } as const
+    expect(setSiteMilestones(s, ROLLOUT_ID, siteId(5), { freezeStart: q })).toBe(true)
+    expect(freeze(s, 5)).toMatchObject({ source: 'site', planned: q })
+  })
+
+  it('refuses a date whose precision is empty, stores nothing, and keeps the other values', () => {
+    const s = store()
+    const before = state(s)
+    expect(
+      setSiteMilestones(s, ROLLOUT_ID, siteId(4), {
+        mappingSignedOff: null,
+        freezeStart: { date: '2027-05-10', precision: '' },
+      }),
+    ).toBe(false)
+    expect(setSiteMilestones(s, ROLLOUT_ID, siteId(4), { freezeStart: undefined })).toBe(false)
+    expect(state(s)).toEqual(before)
+  })
+
+  it('refuses a date for a milestone the rollout does not have, or a site not in it', () => {
+    const s = store()
+    const before = state(s)
+    const day = { date: '2027-05-10', precision: 'day' } as const
+    expect(setSiteMilestones(s, ROLLOUT_ID, siteId(4), { goLive: day })).toBe(false)
+    expect(setSiteMilestones(s, ROLLOUT_ID, 'loc-emea', { freezeStart: day })).toBe(false)
+    expect(setSiteMilestones(s, waveId(1), siteId(4), { freezeStart: day })).toBe(false)
+    expect(state(s)).toEqual(before)
+  })
+})
+
+describe('a wave’s milestone dates (#213)', () => {
+  it('are set, replaced and cleared with the wave’s other fields, in one command each', () => {
+    const s = store()
+    const before = state(s)
+    const q = { date: '2027-07-01', precision: 'quarter' } as const
+    expect(updateWave(s, waveId(4), { milestones: { freezeStart: q } })).toBe(true)
+    expect(wavePlanOf(s.element(waveId(4)))?.milestones).toEqual({ freezeStart: q })
+    expect(updateWave(s, waveId(4), { milestones: {} })).toBe(true)
+    expect(wavePlanOf(s.element(waveId(4)))).not.toHaveProperty('milestones')
+    expect(s.history.length).toBe(before.history + 2)
+  })
+
+  it('refuse a date for a milestone the rollout does not have, on create and on edit', () => {
+    const s = store()
+    const before = state(s)
+    const day = { date: '2027-05-10', precision: 'day' } as const
+    expect(updateWave(s, waveId(4), { milestones: { goLive: day } })).toBe(false)
+    expect(
+      createWave(s, ROLLOUT_ID, { name: 'W5', label: 'W5', milestones: { goLive: day } }),
+    ).toBeUndefined()
+    expect(state(s)).toEqual(before)
+    const wave = createWave(s, ROLLOUT_ID, {
+      name: 'W5',
+      label: 'W5',
+      milestones: { freezeStart: day },
+    })!
+    expect(wavePlanOf(s.element(wave.id))?.milestones).toEqual({ freezeStart: day })
   })
 })

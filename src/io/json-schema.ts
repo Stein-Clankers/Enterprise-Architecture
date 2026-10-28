@@ -508,13 +508,28 @@ function planDefinitions(): Record<string, unknown> {
           ...positive,
           description: 'The template version the wave is locked to.',
         },
+        milestones: {
+          type: 'object',
+          description:
+            "The dates the wave's sites inherit when they set none of their own, by milestone id.",
+          additionalProperties: { $ref: '#/$defs/planDate' },
+        },
       },
     },
     milestone: {
       type: 'object',
       required: ['id', 'label', 'startsPhase'],
       additionalProperties: false,
-      properties: { id, label: { type: 'string' }, startsPhase: { enum: [...MILESTONE_PHASES] } },
+      properties: {
+        id,
+        label: { type: 'string' },
+        startsPhase: { enum: [...MILESTONE_PHASES] },
+        date: {
+          $ref: '#/$defs/planDate',
+          description:
+            "The rollout's own date for the milestone, which a site inherits when neither it nor its wave sets one.",
+        },
+      },
     },
     templateChange: {
       type: 'object',
