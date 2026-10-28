@@ -6,6 +6,7 @@
 export * from './model-store'
 export * from './commands'
 export * from './rollouts'
+export * from './removal'
 export * from './persistence'
 export * from './autosave'
 export * from './tab-lock'

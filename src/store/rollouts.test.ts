@@ -14,8 +14,11 @@ import {
   renameRollout,
   renameWave,
   setArchetype,
+  snapPlanDate,
   unassignSites,
+  updateWave,
 } from './rollouts'
+import { planCascadeText } from './removal'
 
 /** The 160-site fixture, in a store. */
 function store(): ModelStore {
@@ -309,6 +312,219 @@ describe('deleting a Location (#209)', () => {
       expect.objectContaining({ code: 'plan.site-location-missing', subjectId: ROLLOUT_ID }),
     ])
   })
+
+  it('still reassigns, and unassigns, a site whose Location is gone (#222)', () => {
+    const s = store()
+    s.removeElement(siteId(5))
+    const before = state(s)
+
+    expect(assignSites(s, ROLLOUT_ID, [siteId(5)], waveId(3))).toBe(true)
+    expect(s.history.length).toBe(before.history + 1)
+    expect(plan(s).sites.find((site) => site.location === siteId(5))?.wave).toBe(waveId(3))
+    // A gone Location is still refused for a site the rollout does not hold.
+    s.removeElement(siteId(6))
+    expect(removeSites(s, ROLLOUT_ID, [siteId(6)])).toBe(true)
+    const refused = state(s)
+    expect(assignSites(s, ROLLOUT_ID, [siteId(6)], waveId(3))).toBe(false)
+    expect(state(s)).toEqual(refused)
+  })
+})
+
+describe('deleting a plan element anywhere cascades the plan (#222)', () => {
+  it('Delete on a wave, through removeElement, unassigns its sites in the same step', () => {
+    const s = store()
+    const before = state(s)
+    const inWave = plan(s).sites.filter((site) => site.wave === waveId(2))
+    expect(inWave.length).toBeGreaterThan(0)
+
+    s.removeElement(waveId(2))
+    expect(s.history.length).toBe(before.history + 1)
+    expect(s.element(waveId(2))).toBeUndefined()
+    expect(plan(s).sites.filter((site) => site.wave === waveId(2))).toEqual([])
+    expect(plan(s).sites).toHaveLength(160)
+    expect(validate(s.snapshot()).findings).toEqual([])
+
+    s.undo()
+    expect(state(s).json).toBe(before.json)
+  })
+
+  it('Delete on a rollout, through removeElement, takes its waves with it', () => {
+    const s = store()
+    const before = state(s)
+    s.removeElement(ROLLOUT_ID)
+    expect(s.history.length).toBe(before.history + 1)
+    expect(s.element(ROLLOUT_ID)).toBeUndefined()
+    expect(wavesOf(s.elements(), ROLLOUT_ID)).toEqual([])
+    expect(validate(s.snapshot()).findings).toEqual([])
+
+    s.undo()
+    expect(state(s).json).toBe(before.json)
+  })
+
+  it('a wave deleted with its rollout needs no unassignment of the rollout it goes with', () => {
+    const s = store()
+    const commands = s.removalCommands([waveId(1), ROLLOUT_ID])
+    expect(commands.every((command) => command.kind === 'remove-element')).toBe(true)
+    expect(commands).toHaveLength(1 + 5)
+  })
+})
+
+describe('editing a wave (#211)', () => {
+  it('changes name, label, window and capacity as one command, and undoes as one', () => {
+    const s = store()
+    const before = state(s)
+    const window = {
+      start: { date: '2027-04-01', precision: 'quarter' },
+      end: { date: '2027-05-10', precision: 'week' },
+    } as const
+    expect(
+      updateWave(s, waveId(1), { name: 'First wave', label: 'W1a', window, capacity: 12 }),
+    ).toBe(true)
+    expect(s.history.length).toBe(before.history + 1)
+    expect(s.element(waveId(1))?.name).toBe('First wave')
+    expect(wavePlanOf(s.element(waveId(1)))).toMatchObject({ label: 'W1a', window, capacity: 12 })
+    s.undo()
+    expect(state(s).json).toBe(before.json)
+  })
+
+  it('clears the window with {} and the capacity with null', () => {
+    const s = store()
+    expect(updateWave(s, waveId(0), { window: {}, capacity: null })).toBe(true)
+    const wave = wavePlanOf(s.element(waveId(0)))!
+    expect('window' in wave).toBe(false)
+    expect('capacity' in wave).toBe(false)
+  })
+
+  it('refuses a capacity of nought, an unaligned date, an end before the start, or no wave', () => {
+    const s = store()
+    const before = state(s)
+    expect(updateWave(s, waveId(1), { capacity: 0 })).toBe(false)
+    expect(
+      updateWave(s, waveId(1), { window: { start: { date: '2027-05-12', precision: 'week' } } }),
+    ).toBe(false)
+    expect(
+      updateWave(s, waveId(1), {
+        window: {
+          start: { date: '2027-06-01', precision: 'month' },
+          end: { date: '2027-05-01', precision: 'month' },
+        },
+      }),
+    ).toBe(false)
+    expect(updateWave(s, ROLLOUT_ID, { label: 'X' })).toBe(false)
+    expect(state(s)).toEqual(before)
+  })
+
+  it('records nothing when nothing changes', () => {
+    const s = store()
+    const before = state(s)
+    expect(updateWave(s, waveId(1), { label: 'W1' })).toBe(true)
+    expect(state(s)).toEqual(before)
+  })
+
+  it('takes a window whose end period runs past its start, though the end’s first day is earlier (#223)', () => {
+    const s = store()
+    // 2027-W14 starts Monday 5 April; 2027-Q2 starts 1 April and runs to June.
+    const window = {
+      start: { date: '2027-04-05', precision: 'week' },
+      end: { date: '2027-04-01', precision: 'quarter' },
+    } as const
+    expect(updateWave(s, waveId(1), { window })).toBe(true)
+    expect(wavePlanOf(s.element(waveId(1)))?.window).toEqual(window)
+    // And an end period over before the start begins is still refused.
+    const before = state(s)
+    expect(
+      updateWave(s, waveId(1), {
+        window: {
+          start: { date: '2027-04-05', precision: 'week' },
+          end: { date: '2027-03-01', precision: 'month' },
+        },
+      }),
+    ).toBe(false)
+    expect(state(s)).toEqual(before)
+  })
+})
+
+describe('what a delete would do, read off its commands (#223)', () => {
+  it('a rollout: its waves and its site plans go with it', () => {
+    const s = store()
+    const preview = s.removalPreview(ROLLOUT_ID)
+    expect(preview).toEqual({
+      relationships: s.relationshipsOf(ROLLOUT_ID).length,
+      waves: 5,
+      sitePlans: 160,
+      unassigned: 0,
+      askedWaves: 0,
+    })
+    expect(planCascadeText(preview, 'asked')).toBe(
+      'Its 5 waves go with it, and its 160 site plans are removed.',
+    )
+    expect(planCascadeText(preview, 'done')).toBe(
+      'Its 5 waves went with it, and its 160 site plans were removed.',
+    )
+  })
+
+  it('a wave: its sites stay in the rollout, unassigned', () => {
+    const s = store()
+    const inWave = plan(s).sites.filter((site) => site.wave === waveId(2)).length
+    const preview = s.removalPreview(waveId(2))
+    expect(preview).toMatchObject({ waves: 0, sitePlans: 0, unassigned: inWave, askedWaves: 1 })
+    expect(planCascadeText(preview, 'asked')).toBe(
+      `Its ${inWave} sites stay in the rollout, unassigned, with their dates.`,
+    )
+    // One site, in the singular; none, said as such.
+    expect(planCascadeText({ ...preview, unassigned: 1 }, 'asked')).toBe(
+      'Its 1 site stays in the rollout, unassigned, with its dates.',
+    )
+    expect(planCascadeText({ ...preview, unassigned: 0 }, 'asked')).toBe('No site is in it.')
+    expect(planCascadeText({ ...preview, unassigned: 0 }, 'done')).toBe('')
+  })
+
+  it('anything else: its relationships, and nothing about plans', () => {
+    const s = store()
+    const preview = s.removalPreview('app-claims')
+    expect(preview).toEqual({
+      relationships: s.relationshipsOf('app-claims').length,
+      waves: 0,
+      sitePlans: 0,
+      unassigned: 0,
+      askedWaves: 0,
+    })
+    expect(planCascadeText(preview, 'asked')).toBe('')
+  })
+
+  it('is what removeElement does: the rollout delete and deleteRollout dispatch the same', () => {
+    const s = store()
+    const viaCommand = store()
+    s.removeElement(ROLLOUT_ID)
+    deleteRollout(viaCommand, ROLLOUT_ID)
+    expect(state(viaCommand)).toEqual(state(s))
+  })
+})
+
+describe('snapping a form’s plan date to its period (#222, ADR 0015)', () => {
+  it.each([
+    ['2027-05-12', 'week', '2027-05-10'],
+    ['2027-05-10', 'week', '2027-05-10'],
+    ['2027-01-01', 'week', '2026-12-28'],
+    ['2027-05-12', 'month', '2027-05-01'],
+    ['2027-05-12', 'quarter', '2027-04-01'],
+    ['2027-12-31', 'quarter', '2027-10-01'],
+    ['2027-05-12', 'day', '2027-05-12'],
+  ] as const)('%s at %s precision is the period starting %s', (day, precision, start) => {
+    expect(snapPlanDate(day, precision)).toEqual({ date: start, precision })
+  })
+
+  it('names no period for an empty field, a day that is not one, or an unknown precision', () => {
+    for (const [day, precision] of [
+      ['', 'week'],
+      ['2027-02-30', 'day'],
+      ['2027-05-12', ''],
+      ['2027-05-12', 'year'],
+      [undefined, 'month'],
+    ]) {
+      expect(snapPlanDate(day, precision), `${day} ${precision}`).toBeUndefined()
+    }
+  })
 })
 
 describe('as a reader (#209)', () => {
@@ -325,6 +541,7 @@ describe('as a reader (#209)', () => {
     ['assignSites', (s) => assignSites(s, ROLLOUT_ID, forty, waveId(3))],
     ['unassignSites', (s) => unassignSites(s, ROLLOUT_ID, forty)],
     ['setArchetype', (s) => setArchetype(s, ROLLOUT_ID, forty, 'plant')],
+    ['updateWave', (s) => updateWave(s, waveId(1), { capacity: 9 })],
   ]
 
   it.each(commands)('%s works for a writer', (_, command) => {
@@ -372,6 +589,7 @@ describe('as a reader (#209)', () => {
     ['assignSites', (s) => assignSites(s, ROLLOUT_ID, forty, '')],
     ['unassignSites', (s) => unassignSites(s, 'nope', forty)],
     ['setArchetype', (s) => setArchetype(s, ROLLOUT_ID, forty, 'warehouse')],
+    ['updateWave', (s) => updateWave(s, ROLLOUT_ID, { capacity: 9 })],
   ]
 
   it.each(refused)('%s refuses this input as a writer', (_, command) => {

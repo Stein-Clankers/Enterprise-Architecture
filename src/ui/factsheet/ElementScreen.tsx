@@ -9,7 +9,13 @@ import {
   type PortfolioProfile,
   type RelationshipType,
 } from '@/model'
-import { newId, useModelSelector, useModelStoreContext } from '@/store'
+import {
+  newId,
+  planCascadeText,
+  useModelSelector,
+  useModelStoreContext,
+  type RemovalSummary,
+} from '@/store'
 import { TypeCodeBadge } from '@/ui/common/TypeCodeBadge'
 import { guideHref } from '@/ui/guide/connections'
 import { CompletenessRing } from '@/ui/common/meters'
@@ -53,7 +59,7 @@ export function ElementScreen() {
   const [addingRelation, setAddingRelation] = useState<RelationshipType | undefined>(undefined)
   const [deleting, setDeleting] = useState(false)
   /** What was deleted from this fact sheet, for the notice that replaces it. */
-  const [deleted, setDeleted] = useState<{ name: string; relations: number } | null>(null)
+  const [deleted, setDeleted] = useState<{ name: string; removal: RemovalSummary } | null>(null)
   // Whatever was opened as a writer ends when the tab becomes a reader, and
   // none of it reopens if the tab can write again: edit mode, a relation being
   // added, a delete (#195).
@@ -455,13 +461,13 @@ export function ElementScreen() {
       {deleting && (
         <DeleteElementDialog
           element={element}
-          relations={view.relationships.length}
+          removal={store.removalPreview(element.id)}
           inView={false}
           elsewhere={store.viewsDrawing(element.id)}
           onConfirm={() => {
             setDeleted({
               name: element.name || typeLabel(element.type),
-              relations: view.relationships.length,
+              removal: store.removalPreview(element.id),
             })
             setDeleting(false)
             store.removeElement(element.id)
@@ -478,17 +484,19 @@ export function ElementScreen() {
  * went with the sheet, so focus comes here, as the delete ends, rather than
  * falling to the page.
  */
-function DeletedNotice({ name, relations }: { name: string; relations: number }) {
+function DeletedNotice({ name, removal }: { name: string; removal: RemovalSummary }) {
   const ref = useRef<HTMLParagraphElement>(null)
   useEffect(() => {
     ref.current?.focus()
   }, [])
+  const relations = removal.relationships
+  const cascade = planCascadeText(removal, 'done')
   return (
     <div className="sheet">
       <p className="sheet__missing" tabIndex={-1} ref={ref} role="status">
         “{name}” is deleted from the model
         {relations > 0 ? `, with its ${relations} relationship${relations === 1 ? '' : 's'}` : ''}.
-        Undo brings it back.
+        {cascade ? ` ${cascade}` : ''} Undo brings it back.
       </p>
     </div>
   )

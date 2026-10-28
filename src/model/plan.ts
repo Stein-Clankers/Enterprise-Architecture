@@ -178,6 +178,34 @@ export function parsePlanDate(text: string): PlanDate | undefined {
   return isIsoDay(text) ? { date: text, precision: 'day' } : undefined
 }
 
+/**
+ * The first day after the period a plan date names, as an ISO day: the
+ * period's end, exclusive. `2027-Q2` runs to the day before `2027-07-01`.
+ */
+export function dayAfterPeriod(value: PlanDate): string {
+  const { year, month, date } = parts(value.date)
+  switch (value.precision) {
+    case 'quarter':
+      return isoDayOf(utcDay(year, month + 3, 1))
+    case 'month':
+      return isoDayOf(utcDay(year, month + 1, 1))
+    case 'week':
+      return isoDayOf(new Date(date.getTime() + 7 * DAY_MS))
+    case 'day':
+      return isoDayOf(new Date(date.getTime() + DAY_MS))
+  }
+}
+
+/**
+ * Whether a window ending in period `end` can start at `start`: the end's
+ * period must run past the start's first day. Comparing first days refuses a
+ * window from `2027-W14` (5 April) to `2027-Q2` (first day 1 April), though
+ * the quarter runs to June (#223).
+ */
+export function isWindowInOrder(start: PlanDate, end: PlanDate): boolean {
+  return dayAfterPeriod(end) > start.date
+}
+
 // ── Site phases and milestones ───────────────────────────────────────────────
 
 /**

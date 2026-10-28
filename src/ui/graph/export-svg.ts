@@ -189,7 +189,8 @@ function truncate(text: string, limit: number): string | undefined {
   return text.length > limit ? `${text.slice(0, limit - 1)}…` : text
 }
 
-function escapeXml(value: string): string {
+/** Text for an SVG's character data or an attribute in double quotes. */
+export function escapeXml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

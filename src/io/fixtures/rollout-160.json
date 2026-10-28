@@ -1,0 +1,3969 @@
+{
+  "documentation": "A small insurance landscape for tests.",
+  "elements": [
+    {
+      "documentation": "New rules-driven claim assessment platform.",
+      "id": "app-claims",
+      "name": "Claim Handling Engine",
+      "profile": {
+        "businessCriticality": 4,
+        "functionalFit": 4,
+        "lifecycle": {
+          "active": "2027-01-01",
+          "endOfLife": "2034-01-01",
+          "phaseIn": "2025-01-01",
+          "phaseOut": "2033-01-01",
+          "plan": "2024-01-01"
+        },
+        "tags": [
+          "Core",
+          "Cloud target"
+        ],
+        "technicalFit": 4,
+        "timeClassification": "Invest"
+      },
+      "properties": {
+        "owner": "Claims"
+      },
+      "type": "ApplicationComponent"
+    },
+    {
+      "documentation": "Intake, assessment, settlement and recovery of claims.",
+      "id": "cap-claim",
+      "name": "Claim Handling",
+      "profile": {
+        "tags": [
+          "Core"
+        ]
+      },
+      "properties": {
+        "owner": "Claims"
+      },
+      "type": "Capability"
+    },
+    {
+      "id": "loc-emea",
+      "name": "EMEA",
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-001",
+      "name": "Site 001",
+      "properties": {
+        "archipelago.site.code": "001"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-002",
+      "name": "Site 002",
+      "properties": {
+        "archipelago.site.code": "002"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-003",
+      "name": "Site 003",
+      "properties": {
+        "archipelago.site.code": "003"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-004",
+      "name": "Site 004",
+      "properties": {
+        "archipelago.site.code": "004"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-005",
+      "name": "Site 005",
+      "properties": {
+        "archipelago.site.code": "005"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-006",
+      "name": "Site 006",
+      "properties": {
+        "archipelago.site.code": "006"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-007",
+      "name": "Site 007",
+      "properties": {
+        "archipelago.site.code": "007"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-008",
+      "name": "Site 008",
+      "properties": {
+        "archipelago.site.code": "008"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-009",
+      "name": "Site 009",
+      "properties": {
+        "archipelago.site.code": "009"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-010",
+      "name": "Site 010",
+      "properties": {
+        "archipelago.site.code": "010"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-011",
+      "name": "Site 011",
+      "properties": {
+        "archipelago.site.code": "011"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-012",
+      "name": "Site 012",
+      "properties": {
+        "archipelago.site.code": "012"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-013",
+      "name": "Site 013",
+      "properties": {
+        "archipelago.site.code": "013"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-014",
+      "name": "Site 014",
+      "properties": {
+        "archipelago.site.code": "014"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-015",
+      "name": "Site 015",
+      "properties": {
+        "archipelago.site.code": "015"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-016",
+      "name": "Site 016",
+      "properties": {
+        "archipelago.site.code": "016"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-017",
+      "name": "Site 017",
+      "properties": {
+        "archipelago.site.code": "017"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-018",
+      "name": "Site 018",
+      "properties": {
+        "archipelago.site.code": "018"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-019",
+      "name": "Site 019",
+      "properties": {
+        "archipelago.site.code": "019"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-020",
+      "name": "Site 020",
+      "properties": {
+        "archipelago.site.code": "020"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-021",
+      "name": "Site 021",
+      "properties": {
+        "archipelago.site.code": "021"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-022",
+      "name": "Site 022",
+      "properties": {
+        "archipelago.site.code": "022"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-023",
+      "name": "Site 023",
+      "properties": {
+        "archipelago.site.code": "023"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-024",
+      "name": "Site 024",
+      "properties": {
+        "archipelago.site.code": "024"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-025",
+      "name": "Site 025",
+      "properties": {
+        "archipelago.site.code": "025"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-026",
+      "name": "Site 026",
+      "properties": {
+        "archipelago.site.code": "026"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-027",
+      "name": "Site 027",
+      "properties": {
+        "archipelago.site.code": "027"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-028",
+      "name": "Site 028",
+      "properties": {
+        "archipelago.site.code": "028"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-029",
+      "name": "Site 029",
+      "properties": {
+        "archipelago.site.code": "029"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-030",
+      "name": "Site 030",
+      "properties": {
+        "archipelago.site.code": "030"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-031",
+      "name": "Site 031",
+      "properties": {
+        "archipelago.site.code": "031"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-032",
+      "name": "Site 032",
+      "properties": {
+        "archipelago.site.code": "032"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-033",
+      "name": "Site 033",
+      "properties": {
+        "archipelago.site.code": "033"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-034",
+      "name": "Site 034",
+      "properties": {
+        "archipelago.site.code": "034"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-035",
+      "name": "Site 035",
+      "properties": {
+        "archipelago.site.code": "035"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-036",
+      "name": "Site 036",
+      "properties": {
+        "archipelago.site.code": "036"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-037",
+      "name": "Site 037",
+      "properties": {
+        "archipelago.site.code": "037"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-038",
+      "name": "Site 038",
+      "properties": {
+        "archipelago.site.code": "038"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-039",
+      "name": "Site 039",
+      "properties": {
+        "archipelago.site.code": "039"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-040",
+      "name": "Site 040",
+      "properties": {
+        "archipelago.site.code": "040"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-041",
+      "name": "Site 041",
+      "properties": {
+        "archipelago.site.code": "041"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-042",
+      "name": "Site 042",
+      "properties": {
+        "archipelago.site.code": "042"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-043",
+      "name": "Site 043",
+      "properties": {
+        "archipelago.site.code": "043"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-044",
+      "name": "Site 044",
+      "properties": {
+        "archipelago.site.code": "044"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-045",
+      "name": "Site 045",
+      "properties": {
+        "archipelago.site.code": "045"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-046",
+      "name": "Site 046",
+      "properties": {
+        "archipelago.site.code": "046"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-047",
+      "name": "Site 047",
+      "properties": {
+        "archipelago.site.code": "047"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-048",
+      "name": "Site 048",
+      "properties": {
+        "archipelago.site.code": "048"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-049",
+      "name": "Site 049",
+      "properties": {
+        "archipelago.site.code": "049"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-050",
+      "name": "Site 050",
+      "properties": {
+        "archipelago.site.code": "050"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-051",
+      "name": "Site 051",
+      "properties": {
+        "archipelago.site.code": "051"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-052",
+      "name": "Site 052",
+      "properties": {
+        "archipelago.site.code": "052"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-053",
+      "name": "Site 053",
+      "properties": {
+        "archipelago.site.code": "053"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-054",
+      "name": "Site 054",
+      "properties": {
+        "archipelago.site.code": "054"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-055",
+      "name": "Site 055",
+      "properties": {
+        "archipelago.site.code": "055"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-056",
+      "name": "Site 056",
+      "properties": {
+        "archipelago.site.code": "056"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-057",
+      "name": "Site 057",
+      "properties": {
+        "archipelago.site.code": "057"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-058",
+      "name": "Site 058",
+      "properties": {
+        "archipelago.site.code": "058"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-059",
+      "name": "Site 059",
+      "properties": {
+        "archipelago.site.code": "059"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-060",
+      "name": "Site 060",
+      "properties": {
+        "archipelago.site.code": "060"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-061",
+      "name": "Site 061",
+      "properties": {
+        "archipelago.site.code": "061"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-062",
+      "name": "Site 062",
+      "properties": {
+        "archipelago.site.code": "062"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-063",
+      "name": "Site 063",
+      "properties": {
+        "archipelago.site.code": "063"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-064",
+      "name": "Site 064",
+      "properties": {
+        "archipelago.site.code": "064"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-065",
+      "name": "Site 065",
+      "properties": {
+        "archipelago.site.code": "065"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-066",
+      "name": "Site 066",
+      "properties": {
+        "archipelago.site.code": "066"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-067",
+      "name": "Site 067",
+      "properties": {
+        "archipelago.site.code": "067"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-068",
+      "name": "Site 068",
+      "properties": {
+        "archipelago.site.code": "068"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-069",
+      "name": "Site 069",
+      "properties": {
+        "archipelago.site.code": "069"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-070",
+      "name": "Site 070",
+      "properties": {
+        "archipelago.site.code": "070"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-071",
+      "name": "Site 071",
+      "properties": {
+        "archipelago.site.code": "071"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-072",
+      "name": "Site 072",
+      "properties": {
+        "archipelago.site.code": "072"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-073",
+      "name": "Site 073",
+      "properties": {
+        "archipelago.site.code": "073"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-074",
+      "name": "Site 074",
+      "properties": {
+        "archipelago.site.code": "074"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-075",
+      "name": "Site 075",
+      "properties": {
+        "archipelago.site.code": "075"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-076",
+      "name": "Site 076",
+      "properties": {
+        "archipelago.site.code": "076"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-077",
+      "name": "Site 077",
+      "properties": {
+        "archipelago.site.code": "077"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-078",
+      "name": "Site 078",
+      "properties": {
+        "archipelago.site.code": "078"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-079",
+      "name": "Site 079",
+      "properties": {
+        "archipelago.site.code": "079"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-080",
+      "name": "Site 080",
+      "properties": {
+        "archipelago.site.code": "080"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-081",
+      "name": "Site 081",
+      "properties": {
+        "archipelago.site.code": "081"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-082",
+      "name": "Site 082",
+      "properties": {
+        "archipelago.site.code": "082"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-083",
+      "name": "Site 083",
+      "properties": {
+        "archipelago.site.code": "083"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-084",
+      "name": "Site 084",
+      "properties": {
+        "archipelago.site.code": "084"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-085",
+      "name": "Site 085",
+      "properties": {
+        "archipelago.site.code": "085"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-086",
+      "name": "Site 086",
+      "properties": {
+        "archipelago.site.code": "086"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-087",
+      "name": "Site 087",
+      "properties": {
+        "archipelago.site.code": "087"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-088",
+      "name": "Site 088",
+      "properties": {
+        "archipelago.site.code": "088"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-089",
+      "name": "Site 089",
+      "properties": {
+        "archipelago.site.code": "089"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-090",
+      "name": "Site 090",
+      "properties": {
+        "archipelago.site.code": "090"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-091",
+      "name": "Site 091",
+      "properties": {
+        "archipelago.site.code": "091"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-092",
+      "name": "Site 092",
+      "properties": {
+        "archipelago.site.code": "092"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-093",
+      "name": "Site 093",
+      "properties": {
+        "archipelago.site.code": "093"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-094",
+      "name": "Site 094",
+      "properties": {
+        "archipelago.site.code": "094"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-095",
+      "name": "Site 095",
+      "properties": {
+        "archipelago.site.code": "095"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-096",
+      "name": "Site 096",
+      "properties": {
+        "archipelago.site.code": "096"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-097",
+      "name": "Site 097",
+      "properties": {
+        "archipelago.site.code": "097"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-098",
+      "name": "Site 098",
+      "properties": {
+        "archipelago.site.code": "098"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-099",
+      "name": "Site 099",
+      "properties": {
+        "archipelago.site.code": "099"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-100",
+      "name": "Site 100",
+      "properties": {
+        "archipelago.site.code": "100"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-101",
+      "name": "Site 101",
+      "properties": {
+        "archipelago.site.code": "101"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-102",
+      "name": "Site 102",
+      "properties": {
+        "archipelago.site.code": "102"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-103",
+      "name": "Site 103",
+      "properties": {
+        "archipelago.site.code": "103"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-104",
+      "name": "Site 104",
+      "properties": {
+        "archipelago.site.code": "104"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-105",
+      "name": "Site 105",
+      "properties": {
+        "archipelago.site.code": "105"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-106",
+      "name": "Site 106",
+      "properties": {
+        "archipelago.site.code": "106"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-107",
+      "name": "Site 107",
+      "properties": {
+        "archipelago.site.code": "107"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-108",
+      "name": "Site 108",
+      "properties": {
+        "archipelago.site.code": "108"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-109",
+      "name": "Site 109",
+      "properties": {
+        "archipelago.site.code": "109"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-110",
+      "name": "Site 110",
+      "properties": {
+        "archipelago.site.code": "110"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-111",
+      "name": "Site 111",
+      "properties": {
+        "archipelago.site.code": "111"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-112",
+      "name": "Site 112",
+      "properties": {
+        "archipelago.site.code": "112"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-113",
+      "name": "Site 113",
+      "properties": {
+        "archipelago.site.code": "113"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-114",
+      "name": "Site 114",
+      "properties": {
+        "archipelago.site.code": "114"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-115",
+      "name": "Site 115",
+      "properties": {
+        "archipelago.site.code": "115"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-116",
+      "name": "Site 116",
+      "properties": {
+        "archipelago.site.code": "116"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-117",
+      "name": "Site 117",
+      "properties": {
+        "archipelago.site.code": "117"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-118",
+      "name": "Site 118",
+      "properties": {
+        "archipelago.site.code": "118"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-119",
+      "name": "Site 119",
+      "properties": {
+        "archipelago.site.code": "119"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-120",
+      "name": "Site 120",
+      "properties": {
+        "archipelago.site.code": "120"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-121",
+      "name": "Site 121",
+      "properties": {
+        "archipelago.site.code": "121"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-122",
+      "name": "Site 122",
+      "properties": {
+        "archipelago.site.code": "122"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-123",
+      "name": "Site 123",
+      "properties": {
+        "archipelago.site.code": "123"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-124",
+      "name": "Site 124",
+      "properties": {
+        "archipelago.site.code": "124"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-125",
+      "name": "Site 125",
+      "properties": {
+        "archipelago.site.code": "125"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-126",
+      "name": "Site 126",
+      "properties": {
+        "archipelago.site.code": "126"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-127",
+      "name": "Site 127",
+      "properties": {
+        "archipelago.site.code": "127"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-128",
+      "name": "Site 128",
+      "properties": {
+        "archipelago.site.code": "128"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-129",
+      "name": "Site 129",
+      "properties": {
+        "archipelago.site.code": "129"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-130",
+      "name": "Site 130",
+      "properties": {
+        "archipelago.site.code": "130"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-131",
+      "name": "Site 131",
+      "properties": {
+        "archipelago.site.code": "131"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-132",
+      "name": "Site 132",
+      "properties": {
+        "archipelago.site.code": "132"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-133",
+      "name": "Site 133",
+      "properties": {
+        "archipelago.site.code": "133"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-134",
+      "name": "Site 134",
+      "properties": {
+        "archipelago.site.code": "134"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-135",
+      "name": "Site 135",
+      "properties": {
+        "archipelago.site.code": "135"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-136",
+      "name": "Site 136",
+      "properties": {
+        "archipelago.site.code": "136"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-137",
+      "name": "Site 137",
+      "properties": {
+        "archipelago.site.code": "137"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-138",
+      "name": "Site 138",
+      "properties": {
+        "archipelago.site.code": "138"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-139",
+      "name": "Site 139",
+      "properties": {
+        "archipelago.site.code": "139"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-140",
+      "name": "Site 140",
+      "properties": {
+        "archipelago.site.code": "140"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-141",
+      "name": "Site 141",
+      "properties": {
+        "archipelago.site.code": "141"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-142",
+      "name": "Site 142",
+      "properties": {
+        "archipelago.site.code": "142"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-143",
+      "name": "Site 143",
+      "properties": {
+        "archipelago.site.code": "143"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-144",
+      "name": "Site 144",
+      "properties": {
+        "archipelago.site.code": "144"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-145",
+      "name": "Site 145",
+      "properties": {
+        "archipelago.site.code": "145"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-146",
+      "name": "Site 146",
+      "properties": {
+        "archipelago.site.code": "146"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-147",
+      "name": "Site 147",
+      "properties": {
+        "archipelago.site.code": "147"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-148",
+      "name": "Site 148",
+      "properties": {
+        "archipelago.site.code": "148"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-149",
+      "name": "Site 149",
+      "properties": {
+        "archipelago.site.code": "149"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-150",
+      "name": "Site 150",
+      "properties": {
+        "archipelago.site.code": "150"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-151",
+      "name": "Site 151",
+      "properties": {
+        "archipelago.site.code": "151"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-152",
+      "name": "Site 152",
+      "properties": {
+        "archipelago.site.code": "152"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-153",
+      "name": "Site 153",
+      "properties": {
+        "archipelago.site.code": "153"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-154",
+      "name": "Site 154",
+      "properties": {
+        "archipelago.site.code": "154"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-155",
+      "name": "Site 155",
+      "properties": {
+        "archipelago.site.code": "155"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-156",
+      "name": "Site 156",
+      "properties": {
+        "archipelago.site.code": "156"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-157",
+      "name": "Site 157",
+      "properties": {
+        "archipelago.site.code": "157"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-158",
+      "name": "Site 158",
+      "properties": {
+        "archipelago.site.code": "158"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-159",
+      "name": "Site 159",
+      "properties": {
+        "archipelago.site.code": "159"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-160",
+      "name": "Site 160",
+      "properties": {
+        "archipelago.site.code": "160"
+      },
+      "type": "Location"
+    },
+    {
+      "id": "obj-claim",
+      "name": "Claim Record",
+      "type": "DataObject"
+    },
+    {
+      "id": "proc-claim",
+      "name": "Handle Claim",
+      "properties": {
+        "owner": "Claims"
+      },
+      "type": "BusinessProcess"
+    },
+    {
+      "id": "sys-central-store",
+      "name": "Central data lake",
+      "type": "SystemSoftware"
+    },
+    {
+      "id": "sys-local-store",
+      "name": "Local file store",
+      "type": "SystemSoftware"
+    },
+    {
+      "id": "tec-k8s",
+      "name": "Kubernetes Platform",
+      "properties": {
+        "owner": "Platform Ops"
+      },
+      "type": "Node"
+    },
+    {
+      "documentation": "Moves every site’s local data into the central stores.",
+      "id": "wp-rollout-data",
+      "name": "Local data to the central lake",
+      "plan": {
+        "archetypes": [
+          {
+            "id": "office",
+            "label": "Office"
+          },
+          {
+            "durations": {
+              "freezeStart": 42,
+              "hypercareEnd": 28
+            },
+            "id": "plant",
+            "label": "Plant"
+          }
+        ],
+        "constraints": {
+          "blackouts": [
+            {
+              "end": "2027-09-05",
+              "id": "bo-audit",
+              "start": "2027-09-01"
+            },
+            {
+              "end": "2028-01-10",
+              "id": "bo-year-end",
+              "label": "Year-end close",
+              "start": "2027-12-15"
+            }
+          ],
+          "defaultCapacity": 40
+        },
+        "kind": "rollout",
+        "milestones": [
+          {
+            "id": "mappingSignedOff",
+            "label": "Mapping signed off",
+            "startsPhase": "preparing"
+          },
+          {
+            "id": "freezeStart",
+            "label": "Freeze starts",
+            "startsPhase": "cutover"
+          },
+          {
+            "id": "reconciliationSignedOff",
+            "label": "Reconciliation signed off",
+            "startsPhase": "hypercare"
+          },
+          {
+            "id": "hypercareEnd",
+            "label": "Hypercare ends",
+            "startsPhase": "migrated"
+          },
+          {
+            "id": "legacyDecommissioned",
+            "label": "Legacy decommissioned",
+            "startsPhase": "done"
+          }
+        ],
+        "sites": [
+          {
+            "actuals": {
+              "freezeStart": "2027-03-02",
+              "mappingSignedOff": "2027-02-12"
+            },
+            "archetype": "office",
+            "location": "loc-site-001",
+            "wave": "wp-wave-0"
+          },
+          {
+            "actuals": {
+              "freezeStart": "2027-03-03",
+              "mappingSignedOff": "2027-02-12"
+            },
+            "archetype": "plant",
+            "location": "loc-site-002",
+            "wave": "wp-wave-0"
+          },
+          {
+            "location": "loc-site-003",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-004",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-005",
+            "rag": "green",
+            "wave": "wp-wave-2"
+          },
+          {
+            "location": "loc-site-006",
+            "milestones": {
+              "hypercareEnd": {
+                "date": "2027-07-07",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-007",
+            "rag": "red",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-008",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "location": "loc-site-009",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-010",
+            "rag": "amber",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-011",
+            "notes": "Site 011: HR files stay <local> & \"on site\"\nuntil the works council agrees.",
+            "wave": "wp-wave-4"
+          },
+          {
+            "location": "loc-site-012",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              },
+              "hypercareEnd": {
+                "date": "2027-07-13",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-013",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-014",
+            "wave": "wp-wave-3"
+          },
+          {
+            "location": "loc-site-015",
+            "rag": "green",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-016",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-017"
+          },
+          {
+            "location": "loc-site-018",
+            "milestones": {
+              "hypercareEnd": {
+                "date": "2027-07-19",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-019",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-020",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "rag": "amber",
+            "wave": "wp-wave-1"
+          },
+          {
+            "location": "loc-site-021",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-022",
+            "notes": "Site 022: HR files stay <local> & \"on site\"\nuntil the works council agrees.",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-023",
+            "wave": "wp-wave-4"
+          },
+          {
+            "location": "loc-site-024",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              },
+              "hypercareEnd": {
+                "date": "2027-07-25",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-025",
+            "rag": "green",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-026",
+            "wave": "wp-wave-3"
+          },
+          {
+            "location": "loc-site-027",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-028",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-029",
+            "wave": "wp-wave-2"
+          },
+          {
+            "location": "loc-site-030",
+            "milestones": {
+              "hypercareEnd": {
+                "date": "2027-07-03",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "rag": "amber",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-031",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-032",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "location": "loc-site-033",
+            "notes": "Site 033: HR files stay <local> & \"on site\"\nuntil the works council agrees.",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-034"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-035",
+            "rag": "green",
+            "wave": "wp-wave-4"
+          },
+          {
+            "location": "loc-site-036",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              },
+              "hypercareEnd": {
+                "date": "2027-07-09",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-037",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-038",
+            "wave": "wp-wave-3"
+          },
+          {
+            "location": "loc-site-039",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-040",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "rag": "amber",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-041",
+            "wave": "wp-wave-2"
+          },
+          {
+            "location": "loc-site-042",
+            "milestones": {
+              "hypercareEnd": {
+                "date": "2027-07-15",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-043",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-044",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "notes": "Site 044: HR files stay <local> & \"on site\"\nuntil the works council agrees.",
+            "wave": "wp-wave-1"
+          },
+          {
+            "location": "loc-site-045",
+            "rag": "green",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-046",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-047",
+            "wave": "wp-wave-4"
+          },
+          {
+            "location": "loc-site-048",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              },
+              "hypercareEnd": {
+                "date": "2027-07-21",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-049",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-050",
+            "rag": "amber",
+            "wave": "wp-wave-3"
+          },
+          {
+            "location": "loc-site-051"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-052",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-053",
+            "wave": "wp-wave-2"
+          },
+          {
+            "location": "loc-site-054",
+            "milestones": {
+              "hypercareEnd": {
+                "date": "2027-07-27",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-055",
+            "notes": "Site 055: HR files stay <local> & \"on site\"\nuntil the works council agrees.",
+            "rag": "green",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-056",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "location": "loc-site-057",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-058",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-059",
+            "wave": "wp-wave-4"
+          },
+          {
+            "location": "loc-site-060",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              },
+              "hypercareEnd": {
+                "date": "2027-07-05",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "rag": "amber",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-061",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-062",
+            "wave": "wp-wave-3"
+          },
+          {
+            "location": "loc-site-063",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-064",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-065",
+            "rag": "green",
+            "wave": "wp-wave-2"
+          },
+          {
+            "location": "loc-site-066",
+            "milestones": {
+              "hypercareEnd": {
+                "date": "2027-07-11",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "notes": "Site 066: HR files stay <local> & \"on site\"\nuntil the works council agrees.",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-067",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-068",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            }
+          },
+          {
+            "location": "loc-site-069",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-070",
+            "rag": "amber",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-071",
+            "wave": "wp-wave-4"
+          },
+          {
+            "location": "loc-site-072",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              },
+              "hypercareEnd": {
+                "date": "2027-07-17",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-073",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-074",
+            "wave": "wp-wave-3"
+          },
+          {
+            "location": "loc-site-075",
+            "rag": "green",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-076",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-077",
+            "notes": "Site 077: HR files stay <local> & \"on site\"\nuntil the works council agrees.",
+            "wave": "wp-wave-2"
+          },
+          {
+            "location": "loc-site-078",
+            "milestones": {
+              "hypercareEnd": {
+                "date": "2027-07-23",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-079",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-080",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "rag": "amber",
+            "wave": "wp-wave-1"
+          },
+          {
+            "location": "loc-site-081",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-082",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-083",
+            "wave": "wp-wave-4"
+          },
+          {
+            "location": "loc-site-084",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              },
+              "hypercareEnd": {
+                "date": "2027-07-01",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-085",
+            "rag": "green"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-086",
+            "wave": "wp-wave-3"
+          },
+          {
+            "location": "loc-site-087",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-088",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "notes": "Site 088: HR files stay <local> & \"on site\"\nuntil the works council agrees.",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-089",
+            "wave": "wp-wave-2"
+          },
+          {
+            "location": "loc-site-090",
+            "milestones": {
+              "hypercareEnd": {
+                "date": "2027-07-07",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "rag": "amber",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-091",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-092",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "location": "loc-site-093",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-094",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-095",
+            "rag": "green",
+            "wave": "wp-wave-4"
+          },
+          {
+            "location": "loc-site-096",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              },
+              "hypercareEnd": {
+                "date": "2027-07-13",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-097",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-098",
+            "wave": "wp-wave-3"
+          },
+          {
+            "location": "loc-site-099",
+            "notes": "Site 099: HR files stay <local> & \"on site\"\nuntil the works council agrees.",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-100",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "rag": "amber",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-101",
+            "wave": "wp-wave-2"
+          },
+          {
+            "location": "loc-site-102",
+            "milestones": {
+              "hypercareEnd": {
+                "date": "2027-07-19",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            }
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-103",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-104",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "location": "loc-site-105",
+            "rag": "green",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-106",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-107",
+            "wave": "wp-wave-4"
+          },
+          {
+            "location": "loc-site-108",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              },
+              "hypercareEnd": {
+                "date": "2027-07-25",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-109",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-110",
+            "notes": "Site 110: HR files stay <local> & \"on site\"\nuntil the works council agrees.",
+            "rag": "amber",
+            "wave": "wp-wave-3"
+          },
+          {
+            "location": "loc-site-111",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-112",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-113",
+            "wave": "wp-wave-2"
+          },
+          {
+            "location": "loc-site-114",
+            "milestones": {
+              "hypercareEnd": {
+                "date": "2027-07-03",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-115",
+            "rag": "green",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-116",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "location": "loc-site-117",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-118",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-119"
+          },
+          {
+            "location": "loc-site-120",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              },
+              "hypercareEnd": {
+                "date": "2027-07-09",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "rag": "amber",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-121",
+            "notes": "Site 121: HR files stay <local> & \"on site\"\nuntil the works council agrees.",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-122",
+            "wave": "wp-wave-3"
+          },
+          {
+            "location": "loc-site-123",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-124",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-125",
+            "rag": "green",
+            "wave": "wp-wave-2"
+          },
+          {
+            "location": "loc-site-126",
+            "milestones": {
+              "hypercareEnd": {
+                "date": "2027-07-15",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-127",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-128",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "location": "loc-site-129",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-130",
+            "rag": "amber",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-131",
+            "wave": "wp-wave-4"
+          },
+          {
+            "location": "loc-site-132",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              },
+              "hypercareEnd": {
+                "date": "2027-07-21",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "notes": "Site 132: HR files stay <local> & \"on site\"\nuntil the works council agrees.",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-133",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-134",
+            "wave": "wp-wave-3"
+          },
+          {
+            "location": "loc-site-135",
+            "rag": "green",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-136",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            }
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-137",
+            "wave": "wp-wave-2"
+          },
+          {
+            "location": "loc-site-138",
+            "milestones": {
+              "hypercareEnd": {
+                "date": "2027-07-27",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-139",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-140",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "rag": "amber",
+            "wave": "wp-wave-1"
+          },
+          {
+            "location": "loc-site-141",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-142",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-143",
+            "notes": "Site 143: HR files stay <local> & \"on site\"\nuntil the works council agrees.",
+            "wave": "wp-wave-4"
+          },
+          {
+            "location": "loc-site-144",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              },
+              "hypercareEnd": {
+                "date": "2027-07-05",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-145",
+            "rag": "green",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-146",
+            "wave": "wp-wave-3"
+          },
+          {
+            "location": "loc-site-147",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-148",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-149",
+            "wave": "wp-wave-2"
+          },
+          {
+            "location": "loc-site-150",
+            "milestones": {
+              "hypercareEnd": {
+                "date": "2027-07-11",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "rag": "amber",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-151",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-152",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "location": "loc-site-153"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-154",
+            "notes": "Site 154: HR files stay <local> & \"on site\"\nuntil the works council agrees.",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-155",
+            "rag": "green",
+            "wave": "wp-wave-4"
+          },
+          {
+            "location": "loc-site-156",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              },
+              "hypercareEnd": {
+                "date": "2027-07-17",
+                "precision": "day"
+              },
+              "mappingSignedOff": {
+                "date": "2027-03-01",
+                "precision": "month"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-157",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-158",
+            "wave": "wp-wave-3"
+          },
+          {
+            "location": "loc-site-159",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-160",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "rag": "amber",
+            "wave": "wp-wave-1"
+          }
+        ],
+        "template": [
+          {
+            "applicability": {
+              "element": "sys-local-store",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 0
+            },
+            "id": "tc-replace-store",
+            "kind": "replace",
+            "subject": "sys-local-store",
+            "successor": "sys-central-store"
+          },
+          {
+            "applicability": {
+              "archetypes": [
+                "plant"
+              ],
+              "kind": "archetypes"
+            },
+            "date": {
+              "anchor": "hypercareEnd",
+              "offsetDays": 30
+            },
+            "id": "tc-retire-store",
+            "kind": "retire",
+            "subject": "sys-local-store"
+          },
+          {
+            "applicability": {
+              "kind": "all"
+            },
+            "date": {
+              "date": "2027-01-01",
+              "precision": "quarter"
+            },
+            "id": "tc-introduce-lake",
+            "kind": "introduce",
+            "subject": "sys-central-store"
+          },
+          {
+            "applicability": {
+              "kind": "all"
+            },
+            "date": {
+              "anchor": "mappingSignedOff",
+              "offsetDays": -14
+            },
+            "field": "timeClassification",
+            "id": "tc-eliminate",
+            "kind": "modify",
+            "subject": "sys-local-store",
+            "value": "Eliminate"
+          },
+          {
+            "applicability": {
+              "kind": "all"
+            },
+            "date": {
+              "date": "2027-05-03",
+              "precision": "week"
+            },
+            "field": "technicalFit",
+            "id": "tc-fit",
+            "kind": "modify",
+            "subject": "sys-central-store",
+            "value": 4
+          },
+          {
+            "applicability": {
+              "kind": "all"
+            },
+            "date": {
+              "date": "2027-06-01",
+              "precision": "month"
+            },
+            "id": "tc-add-serving",
+            "kind": "add",
+            "subject": "rel-k8s-app"
+          },
+          {
+            "applicability": {
+              "archetypes": [
+                "office",
+                "plant"
+              ],
+              "kind": "archetypes"
+            },
+            "date": {
+              "date": "2027-06-15",
+              "precision": "day"
+            },
+            "id": "tc-remove-access",
+            "kind": "remove",
+            "subject": "rel-app-obj"
+          }
+        ],
+        "templateVersion": 2
+      },
+      "properties": {
+        "owner": "Data Office"
+      },
+      "type": "WorkPackage"
+    },
+    {
+      "id": "wp-wave-0",
+      "name": "Pilot wave",
+      "plan": {
+        "capacity": 5,
+        "kind": "wave",
+        "label": "Pilot",
+        "order": 0,
+        "rollout": "wp-rollout-data",
+        "templateVersion": 1,
+        "window": {
+          "end": {
+            "date": "2027-03-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2027-01-01",
+            "precision": "month"
+          }
+        }
+      },
+      "type": "WorkPackage"
+    },
+    {
+      "id": "wp-wave-1",
+      "name": "Wave 1",
+      "plan": {
+        "kind": "wave",
+        "label": "W1",
+        "order": 1,
+        "rollout": "wp-rollout-data",
+        "templateVersion": 2,
+        "window": {
+          "end": {
+            "date": "2027-06-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2027-04-01",
+            "precision": "month"
+          }
+        }
+      },
+      "type": "WorkPackage"
+    },
+    {
+      "id": "wp-wave-2",
+      "name": "Wave 2",
+      "plan": {
+        "kind": "wave",
+        "label": "W2",
+        "order": 2,
+        "rollout": "wp-rollout-data",
+        "templateVersion": 2,
+        "window": {
+          "end": {
+            "date": "2027-09-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2027-07-01",
+            "precision": "month"
+          }
+        }
+      },
+      "type": "WorkPackage"
+    },
+    {
+      "id": "wp-wave-3",
+      "name": "Wave 3",
+      "plan": {
+        "kind": "wave",
+        "label": "W3",
+        "order": 3,
+        "rollout": "wp-rollout-data",
+        "templateVersion": 2,
+        "window": {
+          "end": {
+            "date": "2027-12-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2027-10-01",
+            "precision": "month"
+          }
+        }
+      },
+      "type": "WorkPackage"
+    },
+    {
+      "id": "wp-wave-4",
+      "name": "Wave 4",
+      "plan": {
+        "kind": "wave",
+        "label": "W4",
+        "order": 4,
+        "rollout": "wp-rollout-data",
+        "templateVersion": 2,
+        "window": {
+          "start": {
+            "date": "2028-01-01",
+            "precision": "quarter"
+          }
+        }
+      },
+      "type": "WorkPackage"
+    }
+  ],
+  "folders": [],
+  "id": "ws-rollout",
+  "name": "Data migration rollout",
+  "relationships": [
+    {
+      "id": "rel-app-obj",
+      "profile": {
+        "accessType": "ReadWrite"
+      },
+      "source": "app-claims",
+      "target": "obj-claim",
+      "type": "Access"
+    },
+    {
+      "documentation": "Every claim is registered and assessed in the Claims Engine.",
+      "id": "rel-app-proc",
+      "profile": {
+        "annualCost": 1200000,
+        "currency": "EUR"
+      },
+      "source": "app-claims",
+      "target": "proc-claim",
+      "type": "Serving"
+    },
+    {
+      "id": "rel-emea-001",
+      "source": "loc-emea",
+      "target": "loc-site-001",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-002",
+      "source": "loc-emea",
+      "target": "loc-site-002",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-003",
+      "source": "loc-emea",
+      "target": "loc-site-003",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-004",
+      "source": "loc-emea",
+      "target": "loc-site-004",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-005",
+      "source": "loc-emea",
+      "target": "loc-site-005",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-006",
+      "source": "loc-emea",
+      "target": "loc-site-006",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-007",
+      "source": "loc-emea",
+      "target": "loc-site-007",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-008",
+      "source": "loc-emea",
+      "target": "loc-site-008",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-009",
+      "source": "loc-emea",
+      "target": "loc-site-009",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-010",
+      "source": "loc-emea",
+      "target": "loc-site-010",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-011",
+      "source": "loc-emea",
+      "target": "loc-site-011",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-012",
+      "source": "loc-emea",
+      "target": "loc-site-012",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-013",
+      "source": "loc-emea",
+      "target": "loc-site-013",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-014",
+      "source": "loc-emea",
+      "target": "loc-site-014",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-015",
+      "source": "loc-emea",
+      "target": "loc-site-015",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-016",
+      "source": "loc-emea",
+      "target": "loc-site-016",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-017",
+      "source": "loc-emea",
+      "target": "loc-site-017",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-018",
+      "source": "loc-emea",
+      "target": "loc-site-018",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-019",
+      "source": "loc-emea",
+      "target": "loc-site-019",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-020",
+      "source": "loc-emea",
+      "target": "loc-site-020",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-021",
+      "source": "loc-emea",
+      "target": "loc-site-021",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-022",
+      "source": "loc-emea",
+      "target": "loc-site-022",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-023",
+      "source": "loc-emea",
+      "target": "loc-site-023",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-024",
+      "source": "loc-emea",
+      "target": "loc-site-024",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-025",
+      "source": "loc-emea",
+      "target": "loc-site-025",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-026",
+      "source": "loc-emea",
+      "target": "loc-site-026",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-027",
+      "source": "loc-emea",
+      "target": "loc-site-027",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-028",
+      "source": "loc-emea",
+      "target": "loc-site-028",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-029",
+      "source": "loc-emea",
+      "target": "loc-site-029",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-030",
+      "source": "loc-emea",
+      "target": "loc-site-030",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-031",
+      "source": "loc-emea",
+      "target": "loc-site-031",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-032",
+      "source": "loc-emea",
+      "target": "loc-site-032",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-033",
+      "source": "loc-emea",
+      "target": "loc-site-033",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-034",
+      "source": "loc-emea",
+      "target": "loc-site-034",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-035",
+      "source": "loc-emea",
+      "target": "loc-site-035",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-036",
+      "source": "loc-emea",
+      "target": "loc-site-036",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-037",
+      "source": "loc-emea",
+      "target": "loc-site-037",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-038",
+      "source": "loc-emea",
+      "target": "loc-site-038",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-039",
+      "source": "loc-emea",
+      "target": "loc-site-039",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-040",
+      "source": "loc-emea",
+      "target": "loc-site-040",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-041",
+      "source": "loc-emea",
+      "target": "loc-site-041",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-042",
+      "source": "loc-emea",
+      "target": "loc-site-042",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-043",
+      "source": "loc-emea",
+      "target": "loc-site-043",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-044",
+      "source": "loc-emea",
+      "target": "loc-site-044",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-045",
+      "source": "loc-emea",
+      "target": "loc-site-045",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-046",
+      "source": "loc-emea",
+      "target": "loc-site-046",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-047",
+      "source": "loc-emea",
+      "target": "loc-site-047",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-048",
+      "source": "loc-emea",
+      "target": "loc-site-048",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-049",
+      "source": "loc-emea",
+      "target": "loc-site-049",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-050",
+      "source": "loc-emea",
+      "target": "loc-site-050",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-051",
+      "source": "loc-emea",
+      "target": "loc-site-051",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-052",
+      "source": "loc-emea",
+      "target": "loc-site-052",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-053",
+      "source": "loc-emea",
+      "target": "loc-site-053",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-054",
+      "source": "loc-emea",
+      "target": "loc-site-054",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-055",
+      "source": "loc-emea",
+      "target": "loc-site-055",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-056",
+      "source": "loc-emea",
+      "target": "loc-site-056",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-057",
+      "source": "loc-emea",
+      "target": "loc-site-057",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-058",
+      "source": "loc-emea",
+      "target": "loc-site-058",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-059",
+      "source": "loc-emea",
+      "target": "loc-site-059",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-060",
+      "source": "loc-emea",
+      "target": "loc-site-060",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-061",
+      "source": "loc-emea",
+      "target": "loc-site-061",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-062",
+      "source": "loc-emea",
+      "target": "loc-site-062",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-063",
+      "source": "loc-emea",
+      "target": "loc-site-063",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-064",
+      "source": "loc-emea",
+      "target": "loc-site-064",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-065",
+      "source": "loc-emea",
+      "target": "loc-site-065",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-066",
+      "source": "loc-emea",
+      "target": "loc-site-066",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-067",
+      "source": "loc-emea",
+      "target": "loc-site-067",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-068",
+      "source": "loc-emea",
+      "target": "loc-site-068",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-069",
+      "source": "loc-emea",
+      "target": "loc-site-069",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-070",
+      "source": "loc-emea",
+      "target": "loc-site-070",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-071",
+      "source": "loc-emea",
+      "target": "loc-site-071",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-072",
+      "source": "loc-emea",
+      "target": "loc-site-072",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-073",
+      "source": "loc-emea",
+      "target": "loc-site-073",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-074",
+      "source": "loc-emea",
+      "target": "loc-site-074",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-075",
+      "source": "loc-emea",
+      "target": "loc-site-075",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-076",
+      "source": "loc-emea",
+      "target": "loc-site-076",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-077",
+      "source": "loc-emea",
+      "target": "loc-site-077",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-078",
+      "source": "loc-emea",
+      "target": "loc-site-078",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-079",
+      "source": "loc-emea",
+      "target": "loc-site-079",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-080",
+      "source": "loc-emea",
+      "target": "loc-site-080",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-081",
+      "source": "loc-emea",
+      "target": "loc-site-081",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-082",
+      "source": "loc-emea",
+      "target": "loc-site-082",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-083",
+      "source": "loc-emea",
+      "target": "loc-site-083",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-084",
+      "source": "loc-emea",
+      "target": "loc-site-084",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-085",
+      "source": "loc-emea",
+      "target": "loc-site-085",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-086",
+      "source": "loc-emea",
+      "target": "loc-site-086",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-087",
+      "source": "loc-emea",
+      "target": "loc-site-087",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-088",
+      "source": "loc-emea",
+      "target": "loc-site-088",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-089",
+      "source": "loc-emea",
+      "target": "loc-site-089",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-090",
+      "source": "loc-emea",
+      "target": "loc-site-090",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-091",
+      "source": "loc-emea",
+      "target": "loc-site-091",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-092",
+      "source": "loc-emea",
+      "target": "loc-site-092",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-093",
+      "source": "loc-emea",
+      "target": "loc-site-093",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-094",
+      "source": "loc-emea",
+      "target": "loc-site-094",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-095",
+      "source": "loc-emea",
+      "target": "loc-site-095",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-096",
+      "source": "loc-emea",
+      "target": "loc-site-096",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-097",
+      "source": "loc-emea",
+      "target": "loc-site-097",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-098",
+      "source": "loc-emea",
+      "target": "loc-site-098",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-099",
+      "source": "loc-emea",
+      "target": "loc-site-099",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-100",
+      "source": "loc-emea",
+      "target": "loc-site-100",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-101",
+      "source": "loc-emea",
+      "target": "loc-site-101",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-102",
+      "source": "loc-emea",
+      "target": "loc-site-102",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-103",
+      "source": "loc-emea",
+      "target": "loc-site-103",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-104",
+      "source": "loc-emea",
+      "target": "loc-site-104",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-105",
+      "source": "loc-emea",
+      "target": "loc-site-105",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-106",
+      "source": "loc-emea",
+      "target": "loc-site-106",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-107",
+      "source": "loc-emea",
+      "target": "loc-site-107",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-108",
+      "source": "loc-emea",
+      "target": "loc-site-108",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-109",
+      "source": "loc-emea",
+      "target": "loc-site-109",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-110",
+      "source": "loc-emea",
+      "target": "loc-site-110",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-111",
+      "source": "loc-emea",
+      "target": "loc-site-111",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-112",
+      "source": "loc-emea",
+      "target": "loc-site-112",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-113",
+      "source": "loc-emea",
+      "target": "loc-site-113",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-114",
+      "source": "loc-emea",
+      "target": "loc-site-114",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-115",
+      "source": "loc-emea",
+      "target": "loc-site-115",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-116",
+      "source": "loc-emea",
+      "target": "loc-site-116",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-117",
+      "source": "loc-emea",
+      "target": "loc-site-117",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-118",
+      "source": "loc-emea",
+      "target": "loc-site-118",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-119",
+      "source": "loc-emea",
+      "target": "loc-site-119",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-120",
+      "source": "loc-emea",
+      "target": "loc-site-120",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-121",
+      "source": "loc-emea",
+      "target": "loc-site-121",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-122",
+      "source": "loc-emea",
+      "target": "loc-site-122",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-123",
+      "source": "loc-emea",
+      "target": "loc-site-123",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-124",
+      "source": "loc-emea",
+      "target": "loc-site-124",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-125",
+      "source": "loc-emea",
+      "target": "loc-site-125",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-126",
+      "source": "loc-emea",
+      "target": "loc-site-126",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-127",
+      "source": "loc-emea",
+      "target": "loc-site-127",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-128",
+      "source": "loc-emea",
+      "target": "loc-site-128",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-129",
+      "source": "loc-emea",
+      "target": "loc-site-129",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-130",
+      "source": "loc-emea",
+      "target": "loc-site-130",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-131",
+      "source": "loc-emea",
+      "target": "loc-site-131",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-132",
+      "source": "loc-emea",
+      "target": "loc-site-132",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-133",
+      "source": "loc-emea",
+      "target": "loc-site-133",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-134",
+      "source": "loc-emea",
+      "target": "loc-site-134",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-135",
+      "source": "loc-emea",
+      "target": "loc-site-135",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-136",
+      "source": "loc-emea",
+      "target": "loc-site-136",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-137",
+      "source": "loc-emea",
+      "target": "loc-site-137",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-138",
+      "source": "loc-emea",
+      "target": "loc-site-138",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-139",
+      "source": "loc-emea",
+      "target": "loc-site-139",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-140",
+      "source": "loc-emea",
+      "target": "loc-site-140",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-141",
+      "source": "loc-emea",
+      "target": "loc-site-141",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-142",
+      "source": "loc-emea",
+      "target": "loc-site-142",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-143",
+      "source": "loc-emea",
+      "target": "loc-site-143",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-144",
+      "source": "loc-emea",
+      "target": "loc-site-144",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-145",
+      "source": "loc-emea",
+      "target": "loc-site-145",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-146",
+      "source": "loc-emea",
+      "target": "loc-site-146",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-147",
+      "source": "loc-emea",
+      "target": "loc-site-147",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-148",
+      "source": "loc-emea",
+      "target": "loc-site-148",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-149",
+      "source": "loc-emea",
+      "target": "loc-site-149",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-150",
+      "source": "loc-emea",
+      "target": "loc-site-150",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-151",
+      "source": "loc-emea",
+      "target": "loc-site-151",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-152",
+      "source": "loc-emea",
+      "target": "loc-site-152",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-153",
+      "source": "loc-emea",
+      "target": "loc-site-153",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-154",
+      "source": "loc-emea",
+      "target": "loc-site-154",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-155",
+      "source": "loc-emea",
+      "target": "loc-site-155",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-156",
+      "source": "loc-emea",
+      "target": "loc-site-156",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-157",
+      "source": "loc-emea",
+      "target": "loc-site-157",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-158",
+      "source": "loc-emea",
+      "target": "loc-site-158",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-159",
+      "source": "loc-emea",
+      "target": "loc-site-159",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-emea-160",
+      "source": "loc-emea",
+      "target": "loc-site-160",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-k8s-app",
+      "source": "tec-k8s",
+      "target": "app-claims",
+      "type": "Serving"
+    },
+    {
+      "id": "rel-proc-cap",
+      "source": "proc-claim",
+      "target": "cap-claim",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-rollout-wave-0",
+      "source": "wp-rollout-data",
+      "target": "wp-wave-0",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-rollout-wave-1",
+      "source": "wp-rollout-data",
+      "target": "wp-wave-1",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-rollout-wave-2",
+      "source": "wp-rollout-data",
+      "target": "wp-wave-2",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-rollout-wave-3",
+      "source": "wp-rollout-data",
+      "target": "wp-wave-3",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-rollout-wave-4",
+      "source": "wp-rollout-data",
+      "target": "wp-wave-4",
+      "type": "Aggregation"
+    }
+  ],
+  "reports": [],
+  "schemaVersion": 6,
+  "tagGroups": [
+    {
+      "id": "tg-portfolio",
+      "multiSelect": true,
+      "name": "Portfolio",
+      "tags": [
+        {
+          "colourToken": "var(--app)",
+          "name": "Cloud target"
+        },
+        {
+          "colourToken": "var(--accent2)",
+          "name": "Core"
+        },
+        {
+          "colourToken": "var(--accent)",
+          "name": "Differentiating"
+        },
+        {
+          "colourToken": "var(--mot)",
+          "name": "GDPR"
+        },
+        {
+          "colourToken": "var(--pas)",
+          "name": "Supporting"
+        },
+        {
+          "colourToken": "var(--lc-eol)",
+          "name": "Vendor risk"
+        }
+      ]
+    }
+  ],
+  "views": []
+}
