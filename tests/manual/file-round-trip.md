@@ -8,7 +8,7 @@
 
 - [ ] Build under test: `<commit SHA or Pages deployment>`
 - [ ] Test environment: `<local | preview | github-pages>`
-- [ ] Empty browser profile, then **Explore the demo**
+- [ ] Empty browser profile, then **Explore the demo** → **Insurance landscape**
 - [ ] A text editor. A terminal with `diff` makes step 8 exact; eyeballing works otherwise.
 
 ## Steps

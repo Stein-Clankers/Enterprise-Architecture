@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { downloadText } from '@/io'
+import { dayStart } from '@/model'
 import { ReportChrome } from '@/ui/graph/ReportChrome'
 import { SITE_PHASE_TOKENS, waveHeading, type RolloutData } from './rollout-data'
 import {
@@ -40,12 +41,14 @@ function slug(name: string): string {
   )
 }
 
-export function WaveTimeline({ data }: { data: RolloutData }) {
+export function WaveTimeline({ data, asOf }: { data: RolloutData; asOf?: string }) {
   const thisYear = new Date().getUTCFullYear()
   const [view, setView] = useState<TimelineColourView>('load')
-  const [year, setYear] = useState(thisYear)
+  const [year, setYear] = useState(asOf ? Number(asOf.slice(0, 4)) : thisYear)
+  // The screen's time point, until the slider moves to a year (#212).
+  const [pinned, setPinned] = useState(asOf !== undefined)
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
-  const timePoint = Date.UTC(year, 0, 1)
+  const timePoint = pinned && asOf ? dayStart(asOf) : Date.UTC(year, 0, 1)
   const layout = useMemo(
     () => layoutTimeline(data.waves, { expanded, at: timePoint }),
     [data.waves, expanded, timePoint],
@@ -61,7 +64,7 @@ export function WaveTimeline({ data }: { data: RolloutData }) {
     `${data.waves.length} wave${data.waves.length === 1 ? '' : 's'}`,
     `${data.sites.length} site${data.sites.length === 1 ? '' : 's'}`,
     `${data.unassigned.length} unassigned`,
-    `time point ${year}`,
+    `time point ${pinned && asOf ? asOf : year}`,
   ].join(' · ')
   const title = `${data.rollout.name}: wave timeline`
 
@@ -85,7 +88,10 @@ export function WaveTimeline({ data }: { data: RolloutData }) {
           if (next) setView(next)
         }}
         timePoint={{ value: year, min, max, today: thisYear }}
-        onTimePointChange={setYear}
+        onTimePointChange={(next) => {
+          setPinned(false)
+          setYear(next)
+        }}
         legend={legendFor(view, layout.sites.length > 0)}
         exportDisabledReason={layout.bars.length ? undefined : 'No wave has a window to draw'}
         onExport={() =>

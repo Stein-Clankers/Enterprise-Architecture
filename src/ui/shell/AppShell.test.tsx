@@ -52,6 +52,7 @@ describe('header', () => {
     renderApp(emptyWorkspace('ws-empty', 'Empty'))
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: /Explore the demo/ }))
+    await user.click(screen.getByRole('button', { name: /Insurance landscape/ }))
     expect(screen.getByText('LOCAL · 1 UNSAVED')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'SAVE FILE' }))
@@ -136,6 +137,7 @@ describe('model health footer', () => {
     // the inventory's interim demo button with FirstRun. The assertions below
     // still fail against a hardcoded health, which is what they are for.
     await user.click(screen.getByRole('button', { name: /Explore the demo/ }))
+    await user.click(screen.getByRole('button', { name: /Insurance landscape/ }))
     expect(screen.getByText('29 elements · 47 relations')).toBeInTheDocument()
     // Health has to move with the model, not just the counts beside it: both are
     // rendered by LeftNav, and asserting only the counts left completeness free.

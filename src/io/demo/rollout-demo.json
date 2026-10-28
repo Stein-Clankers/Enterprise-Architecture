@@ -1,0 +1,6908 @@
+{
+  "documentation": "A generated demo (#212): a fictional manufacturer moving the local data of 160 sites into one central data lake per region, with a few planning problems seeded on purpose. Regenerate it with `npm run demo:generate`; never edit it by hand.",
+  "elements": [
+    {
+      "documentation": "The file share every site of the region keeps its own documents on.",
+      "id": "art-files-am",
+      "name": "Site file share (Americas)",
+      "type": "Artifact"
+    },
+    {
+      "documentation": "The file share every site of the region keeps its own documents on.",
+      "id": "art-files-ap",
+      "name": "Site file share (Asia Pacific)",
+      "type": "Artifact"
+    },
+    {
+      "documentation": "The file share every site of the region keeps its own documents on.",
+      "id": "art-files-ce",
+      "name": "Site file share (Central Europe)",
+      "type": "Artifact"
+    },
+    {
+      "documentation": "The file share every site of the region keeps its own documents on.",
+      "id": "art-files-ne",
+      "name": "Site file share (Northern Europe)",
+      "type": "Artifact"
+    },
+    {
+      "documentation": "The file share every site of the region keeps its own documents on.",
+      "id": "art-files-we",
+      "name": "Site file share (Western Europe)",
+      "type": "Artifact"
+    },
+    {
+      "documentation": "The central store the region’s sites migrate their data into.",
+      "id": "art-lake-am",
+      "name": "Americas data lake",
+      "type": "Artifact"
+    },
+    {
+      "documentation": "The central store the region’s sites migrate their data into.",
+      "id": "art-lake-ap",
+      "name": "Asia Pacific data lake",
+      "type": "Artifact"
+    },
+    {
+      "documentation": "The central store the region’s sites migrate their data into.",
+      "id": "art-lake-ce",
+      "name": "Central Europe data lake",
+      "type": "Artifact"
+    },
+    {
+      "documentation": "The central store the region’s sites migrate their data into.",
+      "id": "art-lake-ne",
+      "name": "Northern Europe data lake",
+      "type": "Artifact"
+    },
+    {
+      "documentation": "The central store the region’s sites migrate their data into.",
+      "id": "art-lake-we",
+      "name": "Western Europe data lake",
+      "type": "Artifact"
+    },
+    {
+      "documentation": "The local quality and production database each plant of the region runs.",
+      "id": "art-quality-am",
+      "name": "Plant quality database (Americas)",
+      "type": "Artifact"
+    },
+    {
+      "documentation": "The local quality and production database each plant of the region runs.",
+      "id": "art-quality-ap",
+      "name": "Plant quality database (Asia Pacific)",
+      "type": "Artifact"
+    },
+    {
+      "documentation": "The local quality and production database each plant of the region runs.",
+      "id": "art-quality-ce",
+      "name": "Plant quality database (Central Europe)",
+      "type": "Artifact"
+    },
+    {
+      "documentation": "The local quality and production database each plant of the region runs.",
+      "id": "art-quality-ne",
+      "name": "Plant quality database (Northern Europe)",
+      "type": "Artifact"
+    },
+    {
+      "documentation": "The local quality and production database each plant of the region runs.",
+      "id": "art-quality-we",
+      "name": "Plant quality database (Western Europe)",
+      "type": "Artifact"
+    },
+    {
+      "id": "do-documents",
+      "name": "Site documents",
+      "type": "DataObject"
+    },
+    {
+      "id": "do-hr",
+      "name": "HR records",
+      "type": "DataObject"
+    },
+    {
+      "id": "do-production",
+      "name": "Production records",
+      "type": "DataObject"
+    },
+    {
+      "id": "do-quality",
+      "name": "Quality records",
+      "type": "DataObject"
+    },
+    {
+      "id": "loc-country-at",
+      "name": "Austria",
+      "type": "Location"
+    },
+    {
+      "id": "loc-country-au",
+      "name": "Australia",
+      "type": "Location"
+    },
+    {
+      "id": "loc-country-be",
+      "name": "Belgium",
+      "type": "Location"
+    },
+    {
+      "id": "loc-country-br",
+      "name": "Brazil",
+      "type": "Location"
+    },
+    {
+      "id": "loc-country-ca",
+      "name": "Canada",
+      "type": "Location"
+    },
+    {
+      "id": "loc-country-ch",
+      "name": "Switzerland",
+      "type": "Location"
+    },
+    {
+      "id": "loc-country-de",
+      "name": "Germany",
+      "type": "Location"
+    },
+    {
+      "id": "loc-country-dk",
+      "name": "Denmark",
+      "type": "Location"
+    },
+    {
+      "id": "loc-country-es",
+      "name": "Spain",
+      "type": "Location"
+    },
+    {
+      "id": "loc-country-fr",
+      "name": "France",
+      "type": "Location"
+    },
+    {
+      "id": "loc-country-gb",
+      "name": "United Kingdom",
+      "type": "Location"
+    },
+    {
+      "id": "loc-country-ie",
+      "name": "Ireland",
+      "type": "Location"
+    },
+    {
+      "id": "loc-country-in",
+      "name": "India",
+      "type": "Location"
+    },
+    {
+      "id": "loc-country-it",
+      "name": "Italy",
+      "type": "Location"
+    },
+    {
+      "id": "loc-country-jp",
+      "name": "Japan",
+      "type": "Location"
+    },
+    {
+      "id": "loc-country-mx",
+      "name": "Mexico",
+      "type": "Location"
+    },
+    {
+      "id": "loc-country-pl",
+      "name": "Poland",
+      "type": "Location"
+    },
+    {
+      "id": "loc-country-se",
+      "name": "Sweden",
+      "type": "Location"
+    },
+    {
+      "id": "loc-country-sg",
+      "name": "Singapore",
+      "type": "Location"
+    },
+    {
+      "id": "loc-country-us",
+      "name": "United States",
+      "type": "Location"
+    },
+    {
+      "id": "loc-hub-ash",
+      "name": "Ashburn data centre",
+      "type": "Location"
+    },
+    {
+      "id": "loc-hub-fra",
+      "name": "Frankfurt data centre",
+      "type": "Location"
+    },
+    {
+      "id": "loc-hub-lon",
+      "name": "London data centre",
+      "type": "Location"
+    },
+    {
+      "id": "loc-hub-par",
+      "name": "Paris data centre",
+      "type": "Location"
+    },
+    {
+      "id": "loc-hub-sin",
+      "name": "Singapore data centre",
+      "type": "Location"
+    },
+    {
+      "id": "loc-region-am",
+      "name": "Americas",
+      "type": "Location"
+    },
+    {
+      "id": "loc-region-ap",
+      "name": "Asia Pacific",
+      "type": "Location"
+    },
+    {
+      "id": "loc-region-ce",
+      "name": "Central Europe",
+      "type": "Location"
+    },
+    {
+      "id": "loc-region-ne",
+      "name": "Northern Europe",
+      "type": "Location"
+    },
+    {
+      "id": "loc-region-we",
+      "name": "Western Europe",
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-at-01",
+      "name": "Innsbruck office",
+      "properties": {
+        "archipelago.site.code": "AT-01",
+        "archipelago.site.dataQuality": 86,
+        "archipelago.site.headcount": 175,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 1,
+        "archipelago.site.volumeGb": 602
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-at-02",
+      "name": "Salzburg plant",
+      "properties": {
+        "archipelago.site.code": "AT-02",
+        "archipelago.site.dataQuality": 65,
+        "archipelago.site.headcount": 1557,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 10,
+        "archipelago.site.volumeGb": 2175
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-at-03",
+      "name": "Graz office",
+      "properties": {
+        "archipelago.site.code": "AT-03",
+        "archipelago.site.dataQuality": 73,
+        "archipelago.site.headcount": 579,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 1,
+        "archipelago.site.volumeGb": 374
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-at-04",
+      "name": "Graz plant",
+      "properties": {
+        "archipelago.site.code": "AT-04",
+        "archipelago.site.dataQuality": 86,
+        "archipelago.site.headcount": 1802,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 9,
+        "archipelago.site.volumeGb": 3377
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-at-05",
+      "name": "Graz plant 2",
+      "properties": {
+        "archipelago.site.code": "AT-05",
+        "archipelago.site.dataQuality": 78,
+        "archipelago.site.headcount": 216,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 4,
+        "archipelago.site.volumeGb": 4272
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-at-06",
+      "name": "Innsbruck plant",
+      "properties": {
+        "archipelago.site.code": "AT-06",
+        "archipelago.site.dataQuality": 60,
+        "archipelago.site.headcount": 1779,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 6,
+        "archipelago.site.volumeGb": 3030
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-at-07",
+      "name": "Wien office",
+      "properties": {
+        "archipelago.site.code": "AT-07",
+        "archipelago.site.dataQuality": 91,
+        "archipelago.site.headcount": 553,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 3,
+        "archipelago.site.volumeGb": 116
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-at-08",
+      "name": "Linz office",
+      "properties": {
+        "archipelago.site.code": "AT-08",
+        "archipelago.site.dataQuality": 55,
+        "archipelago.site.headcount": 342,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 1,
+        "archipelago.site.volumeGb": 533
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-at-09",
+      "name": "Wien office 2",
+      "properties": {
+        "archipelago.site.code": "AT-09",
+        "archipelago.site.dataQuality": 95,
+        "archipelago.site.headcount": 293,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 529
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-au-01",
+      "name": "Melbourne office",
+      "properties": {
+        "archipelago.site.code": "AU-01",
+        "archipelago.site.dataQuality": 78,
+        "archipelago.site.headcount": 454,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 225
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-au-02",
+      "name": "Brisbane office",
+      "properties": {
+        "archipelago.site.code": "AU-02",
+        "archipelago.site.dataQuality": 79,
+        "archipelago.site.headcount": 408,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 3,
+        "archipelago.site.volumeGb": 569
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-au-03",
+      "name": "Melbourne plant",
+      "properties": {
+        "archipelago.site.code": "AU-03",
+        "archipelago.site.dataQuality": 65,
+        "archipelago.site.headcount": 238,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 9,
+        "archipelago.site.volumeGb": 5382
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-au-04",
+      "name": "Melbourne office 2",
+      "properties": {
+        "archipelago.site.code": "AU-04",
+        "archipelago.site.dataQuality": 61,
+        "archipelago.site.headcount": 382,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 1,
+        "archipelago.site.volumeGb": 612
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-au-05",
+      "name": "Perth warehouse",
+      "properties": {
+        "archipelago.site.code": "AU-05",
+        "archipelago.site.dataQuality": 72,
+        "archipelago.site.headcount": 226,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 4,
+        "archipelago.site.volumeGb": 478
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-au-06",
+      "name": "Perth plant",
+      "properties": {
+        "archipelago.site.code": "AU-06",
+        "archipelago.site.dataQuality": 71,
+        "archipelago.site.headcount": 1842,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 8,
+        "archipelago.site.volumeGb": 2418
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-au-07",
+      "name": "Brisbane office 2",
+      "properties": {
+        "archipelago.site.code": "AU-07",
+        "archipelago.site.dataQuality": 77,
+        "archipelago.site.headcount": 62,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 256
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-au-08",
+      "name": "Sydney plant",
+      "properties": {
+        "archipelago.site.code": "AU-08",
+        "archipelago.site.dataQuality": 92,
+        "archipelago.site.headcount": 2089,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 11,
+        "archipelago.site.volumeGb": 4992
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-be-01",
+      "name": "Gent plant",
+      "properties": {
+        "archipelago.site.code": "BE-01",
+        "archipelago.site.dataQuality": 76,
+        "archipelago.site.headcount": 2184,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 12,
+        "archipelago.site.volumeGb": 2600
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-be-02",
+      "name": "Liège warehouse",
+      "properties": {
+        "archipelago.site.code": "BE-02",
+        "archipelago.site.dataQuality": 66,
+        "archipelago.site.headcount": 145,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 530
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-be-03",
+      "name": "Charleroi plant",
+      "properties": {
+        "archipelago.site.code": "BE-03",
+        "archipelago.site.dataQuality": 93,
+        "archipelago.site.headcount": 244,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 11,
+        "archipelago.site.volumeGb": 3024
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-be-04",
+      "name": "Brugge office",
+      "properties": {
+        "archipelago.site.code": "BE-04",
+        "archipelago.site.dataQuality": 55,
+        "archipelago.site.headcount": 473,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 1,
+        "archipelago.site.volumeGb": 692
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-be-05",
+      "name": "Brugge office 2",
+      "properties": {
+        "archipelago.site.code": "BE-05",
+        "archipelago.site.dataQuality": 92,
+        "archipelago.site.headcount": 115,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 283
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-be-06",
+      "name": "Brugge warehouse",
+      "properties": {
+        "archipelago.site.code": "BE-06",
+        "archipelago.site.dataQuality": 72,
+        "archipelago.site.headcount": 51,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 1470
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-be-07",
+      "name": "Gent plant 2",
+      "properties": {
+        "archipelago.site.code": "BE-07",
+        "archipelago.site.dataQuality": 91,
+        "archipelago.site.headcount": 2188,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 12,
+        "archipelago.site.volumeGb": 5723
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-be-08",
+      "name": "Antwerpen warehouse",
+      "properties": {
+        "archipelago.site.code": "BE-08",
+        "archipelago.site.dataQuality": 64,
+        "archipelago.site.headcount": 265,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 6,
+        "archipelago.site.volumeGb": 770
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-be-09",
+      "name": "Charleroi plant 2",
+      "properties": {
+        "archipelago.site.code": "BE-09",
+        "archipelago.site.dataQuality": 86,
+        "archipelago.site.headcount": 1480,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 8,
+        "archipelago.site.volumeGb": 3898
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-br-01",
+      "name": "Campinas warehouse",
+      "properties": {
+        "archipelago.site.code": "BR-01",
+        "archipelago.site.dataQuality": 90,
+        "archipelago.site.headcount": 148,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 6,
+        "archipelago.site.volumeGb": 293
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-br-02",
+      "name": "Curitiba office",
+      "properties": {
+        "archipelago.site.code": "BR-02",
+        "archipelago.site.dataQuality": 91,
+        "archipelago.site.headcount": 90,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 4,
+        "archipelago.site.volumeGb": 96
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-br-03",
+      "name": "Manaus plant",
+      "properties": {
+        "archipelago.site.code": "BR-03",
+        "archipelago.site.dataQuality": 88,
+        "archipelago.site.headcount": 1687,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 12,
+        "archipelago.site.volumeGb": 4800
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-br-04",
+      "name": "Curitiba office 2",
+      "properties": {
+        "archipelago.site.code": "BR-04",
+        "archipelago.site.dataQuality": 78,
+        "archipelago.site.headcount": 149,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 696
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-br-05",
+      "name": "Curitiba plant",
+      "properties": {
+        "archipelago.site.code": "BR-05",
+        "archipelago.site.dataQuality": 86,
+        "archipelago.site.headcount": 1343,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 6,
+        "archipelago.site.volumeGb": 2970
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-ca-01",
+      "name": "Montréal plant",
+      "properties": {
+        "archipelago.site.code": "CA-01",
+        "archipelago.site.dataQuality": 75,
+        "archipelago.site.headcount": 2237,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 12,
+        "archipelago.site.volumeGb": 243
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-ca-02",
+      "name": "Vancouver plant",
+      "properties": {
+        "archipelago.site.code": "CA-02",
+        "archipelago.site.dataQuality": 60,
+        "archipelago.site.headcount": 1765,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 6,
+        "archipelago.site.volumeGb": 1561
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-ca-03",
+      "name": "Vancouver warehouse",
+      "properties": {
+        "archipelago.site.code": "CA-03",
+        "archipelago.site.dataQuality": 65,
+        "archipelago.site.headcount": 34,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 4,
+        "archipelago.site.volumeGb": 538
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-ca-04",
+      "name": "Winnipeg plant",
+      "properties": {
+        "archipelago.site.code": "CA-04",
+        "archipelago.site.dataQuality": 63,
+        "archipelago.site.headcount": 427,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 11,
+        "archipelago.site.volumeGb": 1998
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-ca-05",
+      "name": "Winnipeg plant 2",
+      "properties": {
+        "archipelago.site.code": "CA-05",
+        "archipelago.site.dataQuality": 81,
+        "archipelago.site.headcount": 1567,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 8,
+        "archipelago.site.volumeGb": 2203
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-ca-06",
+      "name": "Montréal warehouse",
+      "properties": {
+        "archipelago.site.code": "CA-06",
+        "archipelago.site.dataQuality": 77,
+        "archipelago.site.headcount": 160,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 4,
+        "archipelago.site.volumeGb": 1279
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-ca-07",
+      "name": "Vancouver office",
+      "properties": {
+        "archipelago.site.code": "CA-07",
+        "archipelago.site.dataQuality": 98,
+        "archipelago.site.headcount": 226,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 1,
+        "archipelago.site.volumeGb": 694
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-ca-08",
+      "name": "Calgary office",
+      "properties": {
+        "archipelago.site.code": "CA-08",
+        "archipelago.site.dataQuality": 65,
+        "archipelago.site.headcount": 380,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 3,
+        "archipelago.site.volumeGb": 34
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-ca-09",
+      "name": "Toronto plant",
+      "properties": {
+        "archipelago.site.code": "CA-09",
+        "archipelago.site.dataQuality": 87,
+        "archipelago.site.headcount": 2207,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 4,
+        "archipelago.site.volumeGb": 1326
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-ch-01",
+      "name": "Bern warehouse",
+      "properties": {
+        "archipelago.site.code": "CH-01",
+        "archipelago.site.dataQuality": 66,
+        "archipelago.site.headcount": 295,
+        "archipelago.site.residency": "country",
+        "archipelago.site.sourceSystems": 4,
+        "archipelago.site.volumeGb": 1240
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-ch-02",
+      "name": "Bern warehouse 2",
+      "properties": {
+        "archipelago.site.code": "CH-02",
+        "archipelago.site.dataQuality": 95,
+        "archipelago.site.headcount": 186,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 6,
+        "archipelago.site.volumeGb": 882
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-ch-03",
+      "name": "Basel plant",
+      "properties": {
+        "archipelago.site.code": "CH-03",
+        "archipelago.site.dataQuality": 69,
+        "archipelago.site.headcount": 1934,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 11,
+        "archipelago.site.volumeGb": 4248
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-ch-04",
+      "name": "Zürich office",
+      "properties": {
+        "archipelago.site.code": "CH-04",
+        "archipelago.site.dataQuality": 79,
+        "archipelago.site.headcount": 215,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 3,
+        "archipelago.site.volumeGb": 258
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-ch-05",
+      "name": "Basel plant 2",
+      "properties": {
+        "archipelago.site.code": "CH-05",
+        "archipelago.site.dataQuality": 80,
+        "archipelago.site.headcount": 1552,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 11,
+        "archipelago.site.volumeGb": 525
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-ch-06",
+      "name": "Lausanne plant",
+      "properties": {
+        "archipelago.site.code": "CH-06",
+        "archipelago.site.dataQuality": 86,
+        "archipelago.site.headcount": 262,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 12,
+        "archipelago.site.volumeGb": 4861
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-de-01",
+      "name": "Hamburg plant",
+      "properties": {
+        "archipelago.site.code": "DE-01",
+        "archipelago.site.dataQuality": 82,
+        "archipelago.site.headcount": 1793,
+        "archipelago.site.residency": "country",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 522
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-de-02",
+      "name": "Leipzig plant",
+      "properties": {
+        "archipelago.site.code": "DE-02",
+        "archipelago.site.dataQuality": 85,
+        "archipelago.site.headcount": 1536,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 7,
+        "archipelago.site.volumeGb": 2006
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-de-03",
+      "name": "Stuttgart plant",
+      "properties": {
+        "archipelago.site.code": "DE-03",
+        "archipelago.site.dataQuality": 71,
+        "archipelago.site.headcount": 1351,
+        "archipelago.site.residency": "country",
+        "archipelago.site.sourceSystems": 12,
+        "archipelago.site.volumeGb": 5325
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-de-04",
+      "name": "Köln warehouse",
+      "properties": {
+        "archipelago.site.code": "DE-04",
+        "archipelago.site.dataQuality": 91,
+        "archipelago.site.headcount": 133,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 4,
+        "archipelago.site.volumeGb": 812
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-de-05",
+      "name": "Dortmund plant",
+      "properties": {
+        "archipelago.site.code": "DE-05",
+        "archipelago.site.dataQuality": 66,
+        "archipelago.site.headcount": 2225,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 9,
+        "archipelago.site.volumeGb": 1503
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-de-06",
+      "name": "München office",
+      "properties": {
+        "archipelago.site.code": "DE-06",
+        "archipelago.site.dataQuality": 70,
+        "archipelago.site.headcount": 155,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 475
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-de-07",
+      "name": "Stuttgart plant 2",
+      "properties": {
+        "archipelago.site.code": "DE-07",
+        "archipelago.site.dataQuality": 79,
+        "archipelago.site.headcount": 1601,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 6,
+        "archipelago.site.volumeGb": 699
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-de-08",
+      "name": "München warehouse",
+      "properties": {
+        "archipelago.site.code": "DE-08",
+        "archipelago.site.dataQuality": 71,
+        "archipelago.site.headcount": 152,
+        "archipelago.site.residency": "country",
+        "archipelago.site.sourceSystems": 6,
+        "archipelago.site.volumeGb": 845
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-de-09",
+      "name": "Leipzig plant 2",
+      "properties": {
+        "archipelago.site.code": "DE-09",
+        "archipelago.site.dataQuality": 87,
+        "archipelago.site.headcount": 197,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 2840
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-de-10",
+      "name": "Dortmund office",
+      "properties": {
+        "archipelago.site.code": "DE-10",
+        "archipelago.site.dataQuality": 83,
+        "archipelago.site.headcount": 160,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 4,
+        "archipelago.site.volumeGb": 732
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-de-11",
+      "name": "Dortmund warehouse",
+      "properties": {
+        "archipelago.site.code": "DE-11",
+        "archipelago.site.dataQuality": 56,
+        "archipelago.site.headcount": 190,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 628
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-de-12",
+      "name": "Hamburg plant 2",
+      "properties": {
+        "archipelago.site.code": "DE-12",
+        "archipelago.site.dataQuality": 59,
+        "archipelago.site.headcount": 1142,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 9,
+        "archipelago.site.volumeGb": 2821
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-de-13",
+      "name": "Stuttgart office",
+      "properties": {
+        "archipelago.site.code": "DE-13",
+        "archipelago.site.dataQuality": 86,
+        "archipelago.site.headcount": 86,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 3,
+        "archipelago.site.volumeGb": 51
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-dk-01",
+      "name": "Aalborg plant",
+      "properties": {
+        "archipelago.site.code": "DK-01",
+        "archipelago.site.dataQuality": 68,
+        "archipelago.site.headcount": 950,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 11,
+        "archipelago.site.volumeGb": 2516
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-dk-02",
+      "name": "Odense office",
+      "properties": {
+        "archipelago.site.code": "DK-02",
+        "archipelago.site.dataQuality": 94,
+        "archipelago.site.headcount": 580,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 400
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-dk-03",
+      "name": "København plant",
+      "properties": {
+        "archipelago.site.code": "DK-03",
+        "archipelago.site.dataQuality": 69,
+        "archipelago.site.headcount": 989,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 4,
+        "archipelago.site.volumeGb": 4861
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-dk-04",
+      "name": "København warehouse",
+      "properties": {
+        "archipelago.site.code": "DK-04",
+        "archipelago.site.dataQuality": 76,
+        "archipelago.site.headcount": 60,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 196
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-dk-05",
+      "name": "København warehouse 2",
+      "properties": {
+        "archipelago.site.code": "DK-05",
+        "archipelago.site.dataQuality": 80,
+        "archipelago.site.headcount": 277,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 6,
+        "archipelago.site.volumeGb": 952
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-dk-06",
+      "name": "København office",
+      "properties": {
+        "archipelago.site.code": "DK-06",
+        "archipelago.site.dataQuality": 85,
+        "archipelago.site.headcount": 253,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 356
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-dk-07",
+      "name": "København warehouse 3",
+      "properties": {
+        "archipelago.site.code": "DK-07",
+        "archipelago.site.dataQuality": 98,
+        "archipelago.site.headcount": 69,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 6,
+        "archipelago.site.volumeGb": 257
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-es-01",
+      "name": "Barcelona plant",
+      "properties": {
+        "archipelago.site.code": "ES-01",
+        "archipelago.site.dataQuality": 80,
+        "archipelago.site.headcount": 2174,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 12,
+        "archipelago.site.volumeGb": 710
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-es-02",
+      "name": "Barcelona office",
+      "properties": {
+        "archipelago.site.code": "ES-02",
+        "archipelago.site.dataQuality": 61,
+        "archipelago.site.headcount": 592,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 486
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-es-03",
+      "name": "Zaragoza plant",
+      "properties": {
+        "archipelago.site.code": "ES-03",
+        "archipelago.site.dataQuality": 68,
+        "archipelago.site.headcount": 644,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 9,
+        "archipelago.site.volumeGb": 3181
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-es-04",
+      "name": "Sevilla office",
+      "properties": {
+        "archipelago.site.code": "ES-04",
+        "archipelago.site.dataQuality": 70,
+        "archipelago.site.headcount": 165,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 4,
+        "archipelago.site.volumeGb": 616
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-es-05",
+      "name": "Zaragoza plant 2",
+      "properties": {
+        "archipelago.site.code": "ES-05",
+        "archipelago.site.dataQuality": 60,
+        "archipelago.site.headcount": 1116,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 11,
+        "archipelago.site.volumeGb": 2092
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-fr-01",
+      "name": "Nantes office",
+      "properties": {
+        "archipelago.site.code": "FR-01",
+        "archipelago.site.dataQuality": 81,
+        "archipelago.site.headcount": 340,
+        "archipelago.site.residency": "country",
+        "archipelago.site.sourceSystems": 1,
+        "archipelago.site.volumeGb": 63
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-fr-02",
+      "name": "Toulouse plant",
+      "properties": {
+        "archipelago.site.code": "FR-02",
+        "archipelago.site.dataQuality": 67,
+        "archipelago.site.headcount": 1176,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 9,
+        "archipelago.site.volumeGb": 1562
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-fr-03",
+      "name": "Lyon office",
+      "properties": {
+        "archipelago.site.code": "FR-03",
+        "archipelago.site.dataQuality": 65,
+        "archipelago.site.headcount": 90,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 3,
+        "archipelago.site.volumeGb": 338
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-fr-04",
+      "name": "Lyon plant",
+      "properties": {
+        "archipelago.site.code": "FR-04",
+        "archipelago.site.dataQuality": 79,
+        "archipelago.site.headcount": 695,
+        "archipelago.site.residency": "country",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 5577
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-fr-05",
+      "name": "Strasbourg office",
+      "properties": {
+        "archipelago.site.code": "FR-05",
+        "archipelago.site.dataQuality": 87,
+        "archipelago.site.headcount": 44,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 478
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-fr-06",
+      "name": "Lille office",
+      "properties": {
+        "archipelago.site.code": "FR-06",
+        "archipelago.site.dataQuality": 79,
+        "archipelago.site.headcount": 355,
+        "archipelago.site.residency": "country",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 136
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-fr-07",
+      "name": "Strasbourg warehouse",
+      "properties": {
+        "archipelago.site.code": "FR-07",
+        "archipelago.site.dataQuality": 93,
+        "archipelago.site.headcount": 65,
+        "archipelago.site.residency": "country",
+        "archipelago.site.sourceSystems": 3,
+        "archipelago.site.volumeGb": 1061
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-fr-08",
+      "name": "Nantes warehouse",
+      "properties": {
+        "archipelago.site.code": "FR-08",
+        "archipelago.site.dataQuality": 56,
+        "archipelago.site.headcount": 63,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 3,
+        "archipelago.site.volumeGb": 228
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-fr-09",
+      "name": "Lyon plant 2",
+      "properties": {
+        "archipelago.site.code": "FR-09",
+        "archipelago.site.dataQuality": 69,
+        "archipelago.site.headcount": 1473,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 7,
+        "archipelago.site.volumeGb": 764
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-fr-10",
+      "name": "Strasbourg plant",
+      "properties": {
+        "archipelago.site.code": "FR-10",
+        "archipelago.site.dataQuality": 70,
+        "archipelago.site.headcount": 1918,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 4924
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-fr-11",
+      "name": "Strasbourg warehouse 2",
+      "properties": {
+        "archipelago.site.code": "FR-11",
+        "archipelago.site.dataQuality": 88,
+        "archipelago.site.headcount": 157,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 921
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-fr-12",
+      "name": "Bordeaux plant",
+      "properties": {
+        "archipelago.site.code": "FR-12",
+        "archipelago.site.dataQuality": 89,
+        "archipelago.site.headcount": 2030,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 10,
+        "archipelago.site.volumeGb": 593
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-fr-13",
+      "name": "Bordeaux plant 2",
+      "properties": {
+        "archipelago.site.code": "FR-13",
+        "archipelago.site.dataQuality": 90,
+        "archipelago.site.headcount": 1152,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 11,
+        "archipelago.site.volumeGb": 5008
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-gb-01",
+      "name": "Sheffield office",
+      "properties": {
+        "archipelago.site.code": "GB-01",
+        "archipelago.site.dataQuality": 88,
+        "archipelago.site.headcount": 380,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 3,
+        "archipelago.site.volumeGb": 782
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-gb-02",
+      "name": "Birmingham office",
+      "properties": {
+        "archipelago.site.code": "GB-02",
+        "archipelago.site.dataQuality": 76,
+        "archipelago.site.headcount": 199,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 397
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-gb-03",
+      "name": "Bristol plant",
+      "properties": {
+        "archipelago.site.code": "GB-03",
+        "archipelago.site.dataQuality": 88,
+        "archipelago.site.headcount": 611,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 7,
+        "archipelago.site.volumeGb": 3266
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-gb-04",
+      "name": "Sheffield plant",
+      "properties": {
+        "archipelago.site.code": "GB-04",
+        "archipelago.site.dataQuality": 76,
+        "archipelago.site.headcount": 543,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 9,
+        "archipelago.site.volumeGb": 901
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-gb-05",
+      "name": "Birmingham warehouse",
+      "properties": {
+        "archipelago.site.code": "GB-05",
+        "archipelago.site.dataQuality": 62,
+        "archipelago.site.headcount": 225,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 1133
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-gb-06",
+      "name": "Birmingham office 2",
+      "properties": {
+        "archipelago.site.code": "GB-06",
+        "archipelago.site.dataQuality": 98,
+        "archipelago.site.headcount": 202,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 528
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-gb-07",
+      "name": "Leeds office",
+      "properties": {
+        "archipelago.site.code": "GB-07",
+        "archipelago.site.dataQuality": 69,
+        "archipelago.site.headcount": 448,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 268
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-gb-08",
+      "name": "Leeds plant",
+      "properties": {
+        "archipelago.site.code": "GB-08",
+        "archipelago.site.dataQuality": 67,
+        "archipelago.site.headcount": 2291,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 4,
+        "archipelago.site.volumeGb": 2510
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-gb-09",
+      "name": "Bristol plant 2",
+      "properties": {
+        "archipelago.site.code": "GB-09",
+        "archipelago.site.dataQuality": 92,
+        "archipelago.site.headcount": 1526,
+        "archipelago.site.residency": "country",
+        "archipelago.site.sourceSystems": 12,
+        "archipelago.site.volumeGb": 3174
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-gb-10",
+      "name": "Glasgow plant",
+      "properties": {
+        "archipelago.site.code": "GB-10",
+        "archipelago.site.dataQuality": 86,
+        "archipelago.site.headcount": 898,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 8,
+        "archipelago.site.volumeGb": 1624
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-gb-11",
+      "name": "Sheffield warehouse",
+      "properties": {
+        "archipelago.site.code": "GB-11",
+        "archipelago.site.dataQuality": 62,
+        "archipelago.site.headcount": 193,
+        "archipelago.site.residency": "country",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 864
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-ie-01",
+      "name": "Waterford plant",
+      "properties": {
+        "archipelago.site.code": "IE-01",
+        "archipelago.site.dataQuality": 86,
+        "archipelago.site.headcount": 2073,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 8,
+        "archipelago.site.volumeGb": 2023
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-ie-02",
+      "name": "Waterford office",
+      "properties": {
+        "archipelago.site.code": "IE-02",
+        "archipelago.site.dataQuality": 96,
+        "archipelago.site.headcount": 142,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 662
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-ie-03",
+      "name": "Dublin office",
+      "properties": {
+        "archipelago.site.code": "IE-03",
+        "archipelago.site.dataQuality": 96,
+        "archipelago.site.headcount": 521,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 322
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-ie-04",
+      "name": "Galway office",
+      "properties": {
+        "archipelago.site.code": "IE-04",
+        "archipelago.site.dataQuality": 72,
+        "archipelago.site.headcount": 570,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 195
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-in-01",
+      "name": "Pune office",
+      "properties": {
+        "archipelago.site.code": "IN-01",
+        "archipelago.site.dataQuality": 87,
+        "archipelago.site.headcount": 435,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 4,
+        "archipelago.site.volumeGb": 546
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-in-02",
+      "name": "Bengaluru plant",
+      "properties": {
+        "archipelago.site.code": "IN-02",
+        "archipelago.site.dataQuality": 58,
+        "archipelago.site.headcount": 1269,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 10,
+        "archipelago.site.volumeGb": 3417
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-in-03",
+      "name": "Hyderabad warehouse",
+      "properties": {
+        "archipelago.site.code": "IN-03",
+        "archipelago.site.dataQuality": 98,
+        "archipelago.site.headcount": 65,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 3,
+        "archipelago.site.volumeGb": 677
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-in-04",
+      "name": "Chennai plant",
+      "properties": {
+        "archipelago.site.code": "IN-04",
+        "archipelago.site.dataQuality": 76,
+        "archipelago.site.headcount": 779,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 6,
+        "archipelago.site.volumeGb": 3819
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-in-05",
+      "name": "Hyderabad plant",
+      "properties": {
+        "archipelago.site.code": "IN-05",
+        "archipelago.site.dataQuality": 69,
+        "archipelago.site.headcount": 1504,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 11,
+        "archipelago.site.volumeGb": 3680
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-in-06",
+      "name": "Bengaluru office",
+      "properties": {
+        "archipelago.site.code": "IN-06",
+        "archipelago.site.dataQuality": 61,
+        "archipelago.site.headcount": 187,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 1,
+        "archipelago.site.volumeGb": 346
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-it-01",
+      "name": "Padova plant",
+      "properties": {
+        "archipelago.site.code": "IT-01",
+        "archipelago.site.dataQuality": 86,
+        "archipelago.site.headcount": 1761,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 8,
+        "archipelago.site.volumeGb": 2760
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-it-02",
+      "name": "Bologna office",
+      "properties": {
+        "archipelago.site.code": "IT-02",
+        "archipelago.site.dataQuality": 65,
+        "archipelago.site.headcount": 345,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 414
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-it-03",
+      "name": "Padova warehouse",
+      "properties": {
+        "archipelago.site.code": "IT-03",
+        "archipelago.site.dataQuality": 73,
+        "archipelago.site.headcount": 165,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 1450
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-it-04",
+      "name": "Padova plant 2",
+      "properties": {
+        "archipelago.site.code": "IT-04",
+        "archipelago.site.dataQuality": 60,
+        "archipelago.site.headcount": 394,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 8,
+        "archipelago.site.volumeGb": 3841
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-it-05",
+      "name": "Torino warehouse",
+      "properties": {
+        "archipelago.site.code": "IT-05",
+        "archipelago.site.dataQuality": 78,
+        "archipelago.site.headcount": 218,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 1379
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-it-06",
+      "name": "Torino plant",
+      "properties": {
+        "archipelago.site.code": "IT-06",
+        "archipelago.site.dataQuality": 97,
+        "archipelago.site.headcount": 2307,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 4,
+        "archipelago.site.volumeGb": 5895
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-it-07",
+      "name": "Torino warehouse 2",
+      "properties": {
+        "archipelago.site.code": "IT-07",
+        "archipelago.site.dataQuality": 56,
+        "archipelago.site.headcount": 151,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 3,
+        "archipelago.site.volumeGb": 830
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-it-08",
+      "name": "Milano office",
+      "properties": {
+        "archipelago.site.code": "IT-08",
+        "archipelago.site.dataQuality": 92,
+        "archipelago.site.headcount": 150,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 4,
+        "archipelago.site.volumeGb": 95
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-it-09",
+      "name": "Padova office",
+      "properties": {
+        "archipelago.site.code": "IT-09",
+        "archipelago.site.dataQuality": 59,
+        "archipelago.site.headcount": 510,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 3,
+        "archipelago.site.volumeGb": 408
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-it-10",
+      "name": "Verona warehouse",
+      "properties": {
+        "archipelago.site.code": "IT-10",
+        "archipelago.site.dataQuality": 96,
+        "archipelago.site.headcount": 203,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 1348
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-jp-01",
+      "name": "Fukuoka plant",
+      "properties": {
+        "archipelago.site.code": "JP-01",
+        "archipelago.site.dataQuality": 64,
+        "archipelago.site.headcount": 2059,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 10,
+        "archipelago.site.volumeGb": 4751
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-jp-02",
+      "name": "Fukuoka warehouse",
+      "properties": {
+        "archipelago.site.code": "JP-02",
+        "archipelago.site.dataQuality": 71,
+        "archipelago.site.headcount": 263,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 702
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-jp-03",
+      "name": "Yokohama office",
+      "properties": {
+        "archipelago.site.code": "JP-03",
+        "archipelago.site.dataQuality": 75,
+        "archipelago.site.headcount": 221,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 1,
+        "archipelago.site.volumeGb": 584
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-jp-04",
+      "name": "Osaka plant",
+      "properties": {
+        "archipelago.site.code": "JP-04",
+        "archipelago.site.dataQuality": 62,
+        "archipelago.site.headcount": 2035,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 8,
+        "archipelago.site.volumeGb": 2467
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-jp-05",
+      "name": "Yokohama plant",
+      "properties": {
+        "archipelago.site.code": "JP-05",
+        "archipelago.site.dataQuality": 84,
+        "archipelago.site.headcount": 1803,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 9,
+        "archipelago.site.volumeGb": 2560
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-jp-06",
+      "name": "Osaka plant 2",
+      "properties": {
+        "archipelago.site.code": "JP-06",
+        "archipelago.site.dataQuality": 83,
+        "archipelago.site.headcount": 1365,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 9,
+        "archipelago.site.volumeGb": 2044
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-mx-01",
+      "name": "Saltillo office",
+      "properties": {
+        "archipelago.site.code": "MX-01",
+        "archipelago.site.dataQuality": 76,
+        "archipelago.site.headcount": 307,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 41
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-mx-02",
+      "name": "Querétaro warehouse",
+      "properties": {
+        "archipelago.site.code": "MX-02",
+        "archipelago.site.dataQuality": 75,
+        "archipelago.site.headcount": 44,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 6,
+        "archipelago.site.volumeGb": 1462
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-mx-03",
+      "name": "Guadalajara warehouse",
+      "properties": {
+        "archipelago.site.code": "MX-03",
+        "archipelago.site.dataQuality": 92,
+        "archipelago.site.headcount": 68,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 3,
+        "archipelago.site.volumeGb": 1305
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-mx-04",
+      "name": "Monterrey office",
+      "properties": {
+        "archipelago.site.code": "MX-04",
+        "archipelago.site.dataQuality": 64,
+        "archipelago.site.headcount": 419,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 548
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-mx-05",
+      "name": "Saltillo plant",
+      "properties": {
+        "archipelago.site.code": "MX-05",
+        "archipelago.site.dataQuality": 84,
+        "archipelago.site.headcount": 1729,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 7,
+        "archipelago.site.volumeGb": 2059
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-mx-06",
+      "name": "Monterrey office 2",
+      "properties": {
+        "archipelago.site.code": "MX-06",
+        "archipelago.site.dataQuality": 65,
+        "archipelago.site.headcount": 212,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 3,
+        "archipelago.site.volumeGb": 293
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-pl-01",
+      "name": "Gdańsk plant",
+      "properties": {
+        "archipelago.site.code": "PL-01",
+        "archipelago.site.dataQuality": 94,
+        "archipelago.site.headcount": 1453,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 6,
+        "archipelago.site.volumeGb": 3609
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-pl-02",
+      "name": "Wrocław office",
+      "properties": {
+        "archipelago.site.code": "PL-02",
+        "archipelago.site.dataQuality": 58,
+        "archipelago.site.headcount": 135,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 438
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-pl-03",
+      "name": "Kraków plant",
+      "properties": {
+        "archipelago.site.code": "PL-03",
+        "archipelago.site.dataQuality": 90,
+        "archipelago.site.headcount": 2132,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 3680
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-pl-04",
+      "name": "Łódź plant",
+      "properties": {
+        "archipelago.site.code": "PL-04",
+        "archipelago.site.dataQuality": 76,
+        "archipelago.site.headcount": 1377,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 9,
+        "archipelago.site.volumeGb": 1247
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-pl-05",
+      "name": "Łódź plant 2",
+      "properties": {
+        "archipelago.site.code": "PL-05",
+        "archipelago.site.dataQuality": 69,
+        "archipelago.site.headcount": 2212,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 5300
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-pl-06",
+      "name": "Kraków office",
+      "properties": {
+        "archipelago.site.code": "PL-06",
+        "archipelago.site.dataQuality": 63,
+        "archipelago.site.headcount": 209,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 4,
+        "archipelago.site.volumeGb": 524
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-pl-07",
+      "name": "Wrocław office 2",
+      "properties": {
+        "archipelago.site.code": "PL-07",
+        "archipelago.site.dataQuality": 88,
+        "archipelago.site.headcount": 508,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 272
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-se-01",
+      "name": "Göteborg warehouse",
+      "properties": {
+        "archipelago.site.code": "SE-01",
+        "archipelago.site.dataQuality": 56,
+        "archipelago.site.headcount": 126,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 3,
+        "archipelago.site.volumeGb": 306
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-se-02",
+      "name": "Stockholm plant",
+      "properties": {
+        "archipelago.site.code": "SE-02",
+        "archipelago.site.dataQuality": 81,
+        "archipelago.site.headcount": 2310,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 1025
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-se-03",
+      "name": "Stockholm office",
+      "properties": {
+        "archipelago.site.code": "SE-03",
+        "archipelago.site.dataQuality": 74,
+        "archipelago.site.headcount": 323,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 1,
+        "archipelago.site.volumeGb": 753
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-se-04",
+      "name": "Stockholm plant 2",
+      "properties": {
+        "archipelago.site.code": "SE-04",
+        "archipelago.site.dataQuality": 79,
+        "archipelago.site.headcount": 831,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 7,
+        "archipelago.site.volumeGb": 1658
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-se-05",
+      "name": "Malmö plant",
+      "properties": {
+        "archipelago.site.code": "SE-05",
+        "archipelago.site.dataQuality": 97,
+        "archipelago.site.headcount": 442,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 11,
+        "archipelago.site.volumeGb": 4150
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-se-06",
+      "name": "Stockholm office 2",
+      "properties": {
+        "archipelago.site.code": "SE-06",
+        "archipelago.site.dataQuality": 92,
+        "archipelago.site.headcount": 467,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 2,
+        "archipelago.site.volumeGb": 387
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-sg-01",
+      "name": "Woodlands office",
+      "properties": {
+        "archipelago.site.code": "SG-01",
+        "archipelago.site.dataQuality": 96,
+        "archipelago.site.headcount": 419,
+        "archipelago.site.residency": "country",
+        "archipelago.site.sourceSystems": 3,
+        "archipelago.site.volumeGb": 740
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-sg-02",
+      "name": "Jurong office",
+      "properties": {
+        "archipelago.site.code": "SG-02",
+        "archipelago.site.dataQuality": 89,
+        "archipelago.site.headcount": 55,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 1,
+        "archipelago.site.volumeGb": 695
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-sg-03",
+      "name": "Tampines plant",
+      "properties": {
+        "archipelago.site.code": "SG-03",
+        "archipelago.site.dataQuality": 59,
+        "archipelago.site.headcount": 519,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 7,
+        "archipelago.site.volumeGb": 2162
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-sg-04",
+      "name": "Tuas warehouse",
+      "properties": {
+        "archipelago.site.code": "SG-04",
+        "archipelago.site.dataQuality": 95,
+        "archipelago.site.headcount": 222,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 4,
+        "archipelago.site.volumeGb": 1405
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-sg-05",
+      "name": "Tuas office",
+      "properties": {
+        "archipelago.site.code": "SG-05",
+        "archipelago.site.dataQuality": 93,
+        "archipelago.site.headcount": 258,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 1,
+        "archipelago.site.volumeGb": 594
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-sg-06",
+      "name": "Woodlands plant",
+      "properties": {
+        "archipelago.site.code": "SG-06",
+        "archipelago.site.dataQuality": 66,
+        "archipelago.site.headcount": 2271,
+        "archipelago.site.residency": "country",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 1384
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-sg-07",
+      "name": "Tuas warehouse 2",
+      "properties": {
+        "archipelago.site.code": "SG-07",
+        "archipelago.site.dataQuality": 79,
+        "archipelago.site.headcount": 147,
+        "archipelago.site.residency": "country",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 1159
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-sg-08",
+      "name": "Woodlands plant 2",
+      "properties": {
+        "archipelago.site.code": "SG-08",
+        "archipelago.site.dataQuality": 66,
+        "archipelago.site.headcount": 1431,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 11,
+        "archipelago.site.volumeGb": 1424
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-sg-09",
+      "name": "Tampines plant 2",
+      "properties": {
+        "archipelago.site.code": "SG-09",
+        "archipelago.site.dataQuality": 79,
+        "archipelago.site.headcount": 1656,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 12,
+        "archipelago.site.volumeGb": 4930
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-sg-10",
+      "name": "Woodlands office 2",
+      "properties": {
+        "archipelago.site.code": "SG-10",
+        "archipelago.site.dataQuality": 89,
+        "archipelago.site.headcount": 550,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 4,
+        "archipelago.site.volumeGb": 541
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-sg-11",
+      "name": "Woodlands office 3",
+      "properties": {
+        "archipelago.site.code": "SG-11",
+        "archipelago.site.dataQuality": 96,
+        "archipelago.site.headcount": 291,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 283
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-sg-12",
+      "name": "Woodlands office 4",
+      "properties": {
+        "archipelago.site.code": "SG-12",
+        "archipelago.site.dataQuality": 68,
+        "archipelago.site.headcount": 174,
+        "archipelago.site.residency": "country",
+        "archipelago.site.sourceSystems": 3,
+        "archipelago.site.volumeGb": 521
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-sg-13",
+      "name": "Tampines plant 3",
+      "properties": {
+        "archipelago.site.code": "SG-13",
+        "archipelago.site.dataQuality": 78,
+        "archipelago.site.headcount": 1199,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 2413
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-sg-14",
+      "name": "Tampines plant 4",
+      "properties": {
+        "archipelago.site.code": "SG-14",
+        "archipelago.site.dataQuality": 74,
+        "archipelago.site.headcount": 226,
+        "archipelago.site.residency": "country",
+        "archipelago.site.sourceSystems": 12,
+        "archipelago.site.volumeGb": 789
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-us-01",
+      "name": "Chicago office",
+      "properties": {
+        "archipelago.site.code": "US-01",
+        "archipelago.site.dataQuality": 64,
+        "archipelago.site.headcount": 455,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 5,
+        "archipelago.site.volumeGb": 266
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-us-02",
+      "name": "Denver plant",
+      "properties": {
+        "archipelago.site.code": "US-02",
+        "archipelago.site.dataQuality": 96,
+        "archipelago.site.headcount": 352,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 8,
+        "archipelago.site.volumeGb": 4039
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-us-03",
+      "name": "Charlotte office",
+      "properties": {
+        "archipelago.site.code": "US-03",
+        "archipelago.site.dataQuality": 55,
+        "archipelago.site.headcount": 462,
+        "archipelago.site.residency": "none",
+        "archipelago.site.sourceSystems": 3,
+        "archipelago.site.volumeGb": 519
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-us-04",
+      "name": "Chicago plant",
+      "properties": {
+        "archipelago.site.code": "US-04",
+        "archipelago.site.dataQuality": 70,
+        "archipelago.site.headcount": 2295,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 9,
+        "archipelago.site.volumeGb": 4142
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-us-05",
+      "name": "Atlanta plant",
+      "properties": {
+        "archipelago.site.code": "US-05",
+        "archipelago.site.dataQuality": 56,
+        "archipelago.site.headcount": 1791,
+        "archipelago.site.residency": "region",
+        "archipelago.site.sourceSystems": 10,
+        "archipelago.site.volumeGb": 5001
+      },
+      "type": "Location"
+    },
+    {
+      "id": "loc-site-us-06",
+      "name": "Denver plant 2",
+      "properties": {
+        "archipelago.site.code": "US-06",
+        "archipelago.site.dataQuality": 63,
+        "archipelago.site.headcount": 2058,
+        "archipelago.site.residency": "country",
+        "archipelago.site.sourceSystems": 7,
+        "archipelago.site.volumeGb": 3291
+      },
+      "type": "Location"
+    },
+    {
+      "id": "sys-platform-am",
+      "name": "Americas data platform",
+      "type": "SystemSoftware"
+    },
+    {
+      "id": "sys-platform-ap",
+      "name": "Asia Pacific data platform",
+      "type": "SystemSoftware"
+    },
+    {
+      "id": "sys-platform-ce",
+      "name": "Central Europe data platform",
+      "type": "SystemSoftware"
+    },
+    {
+      "id": "sys-platform-ne",
+      "name": "Northern Europe data platform",
+      "type": "SystemSoftware"
+    },
+    {
+      "id": "sys-platform-we",
+      "name": "Western Europe data platform",
+      "type": "SystemSoftware"
+    },
+    {
+      "documentation": "Moves each region’s site file share and plant quality database into the region’s central data lake, site by site, then retires them.",
+      "id": "wp-rollout-site-data",
+      "name": "Site data to the regional lakes",
+      "plan": {
+        "archetypes": [
+          {
+            "durations": {
+              "dressRehearsal": 7,
+              "freezeStart": 2,
+              "goNoGo": 3,
+              "hypercareEnd": 14,
+              "legacyDecommissioned": 30,
+              "legacyReadOnly": 14,
+              "mockLoad1": 14,
+              "mockLoad2": 14,
+              "reconciliationSignedOff": 2
+            },
+            "id": "office",
+            "label": "Office"
+          },
+          {
+            "durations": {
+              "dressRehearsal": 14,
+              "freezeStart": 3,
+              "goNoGo": 7,
+              "hypercareEnd": 28,
+              "legacyDecommissioned": 60,
+              "legacyReadOnly": 14,
+              "mockLoad1": 21,
+              "mockLoad2": 21,
+              "reconciliationSignedOff": 4
+            },
+            "id": "plant",
+            "label": "Plant"
+          },
+          {
+            "durations": {
+              "dressRehearsal": 7,
+              "freezeStart": 2,
+              "goNoGo": 3,
+              "hypercareEnd": 21,
+              "legacyDecommissioned": 45,
+              "legacyReadOnly": 14,
+              "mockLoad1": 14,
+              "mockLoad2": 14,
+              "reconciliationSignedOff": 3
+            },
+            "id": "warehouse",
+            "label": "Warehouse"
+          }
+        ],
+        "constraints": {
+          "blackouts": [
+            {
+              "end": "2027-04-02",
+              "id": "bo-q1-close-2027",
+              "label": "Q1 close",
+              "start": "2027-03-29"
+            },
+            {
+              "end": "2027-01-08",
+              "id": "bo-year-end-2026",
+              "label": "Year-end close",
+              "start": "2026-12-14"
+            }
+          ],
+          "defaultCapacity": 24
+        },
+        "kind": "rollout",
+        "milestones": [
+          {
+            "id": "mappingSignedOff",
+            "label": "Mapping signed off",
+            "startsPhase": "preparing"
+          },
+          {
+            "id": "mockLoad1",
+            "label": "Mock load 1",
+            "startsPhase": "preparing"
+          },
+          {
+            "id": "mockLoad2",
+            "label": "Mock load 2",
+            "startsPhase": "preparing"
+          },
+          {
+            "id": "dressRehearsal",
+            "label": "Dress rehearsal",
+            "startsPhase": "preparing"
+          },
+          {
+            "id": "goNoGo",
+            "label": "Go/no-go",
+            "startsPhase": "preparing"
+          },
+          {
+            "id": "freezeStart",
+            "label": "Freeze starts",
+            "startsPhase": "cutover"
+          },
+          {
+            "id": "reconciliationSignedOff",
+            "label": "Reconciliation signed off",
+            "startsPhase": "hypercare"
+          },
+          {
+            "id": "hypercareEnd",
+            "label": "Hypercare ends",
+            "startsPhase": "migrated"
+          },
+          {
+            "id": "legacyReadOnly",
+            "label": "Legacy read-only",
+            "startsPhase": "migrated"
+          },
+          {
+            "id": "legacyDecommissioned",
+            "label": "Legacy decommissioned",
+            "startsPhase": "done"
+          }
+        ],
+        "sites": [
+          {
+            "archetype": "office",
+            "location": "loc-site-at-01",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-24",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-at-02",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-06-21",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-at-03",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-at-04",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-at-05",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-at-06",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-01-19",
+                "precision": "day"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-at-07",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-at-08",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-at-09",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-24",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-au-01",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-au-02",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-au-03",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-au-04",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-au-05",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-au-06",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-au-07",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-au-08",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-be-01",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-be-02",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-be-03",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-be-04",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-be-05",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-be-06",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-be-07",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-be-08",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-be-09",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-br-01",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-br-02",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-br-03",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-br-04",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-br-05",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-ca-01",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-ca-02",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-ca-03",
+            "wave": "wp-wave-6"
+          },
+          {
+            "actuals": {
+              "mappingSignedOff": "2026-09-18",
+              "mockLoad1": "2026-10-07"
+            },
+            "archetype": "plant",
+            "location": "loc-site-ca-04",
+            "milestones": {
+              "freezeStart": {
+                "date": "2026-11-20",
+                "precision": "day"
+              }
+            },
+            "rag": "green",
+            "wave": "wp-wave-pilot"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-ca-05",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-ca-06",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-ca-07",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-ca-08",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-ca-09",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-ch-01",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-02-09",
+                "precision": "day"
+              }
+            },
+            "notes": "HR records fall under Swiss data protection law; legal review of the move is open.",
+            "rag": "amber",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-ch-02",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-03-01",
+                "precision": "day"
+              }
+            },
+            "rag": "green",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-ch-03",
+            "rag": "amber",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-ch-04",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-06-14",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-ch-05",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-01-29",
+                "precision": "day"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-ch-06",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-de-01",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-de-02",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-03-05",
+                "precision": "day"
+              }
+            },
+            "rag": "green",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-de-03",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-de-04",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-17",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-de-05",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-06-14",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-de-06",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-06-07",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-de-07",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-de-08",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-de-09",
+            "rag": "amber",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-de-10",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-01-21",
+                "precision": "day"
+              }
+            },
+            "rag": "green",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-de-11",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-de-12",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-03-31",
+                "precision": "day"
+              }
+            },
+            "notes": "Cutover set for 31 March at the site’s request, before the Q1 close was checked.",
+            "rag": "red",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-de-13",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-10",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-2"
+          },
+          {
+            "actuals": {
+              "mappingSignedOff": "2026-09-23",
+              "mockLoad1": "2026-10-16"
+            },
+            "archetype": "plant",
+            "location": "loc-site-dk-01",
+            "milestones": {
+              "freezeStart": {
+                "date": "2026-11-27",
+                "precision": "day"
+              }
+            },
+            "notes": "Mock load 1 found duplicate supplier records; they are cleansed before mock load 2.",
+            "rag": "green",
+            "wave": "wp-wave-pilot"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-dk-02",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-dk-03",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-dk-04",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-dk-05",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-dk-06",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-dk-07",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-es-01",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-es-02",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-es-03",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-es-04",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-es-05",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-fr-01",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-fr-02",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-fr-03",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-fr-04",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-fr-05",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-fr-06",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-fr-07",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-fr-08",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-fr-09",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-fr-10",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-fr-11",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-fr-12",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-fr-13",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-gb-01",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-gb-02",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-gb-03",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-gb-04",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-gb-05",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-gb-06",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-gb-07",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-gb-08",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-gb-09",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-gb-10",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-gb-11",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-ie-01",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-ie-02",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-ie-03",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-ie-04",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-in-01",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-in-02",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-in-03",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-in-04",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-in-05",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-in-06",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-it-01",
+            "wave": "wp-wave-3"
+          },
+          {
+            "actuals": {
+              "mappingSignedOff": "2026-10-23"
+            },
+            "archetype": "office",
+            "location": "loc-site-it-02",
+            "milestones": {
+              "freezeStart": {
+                "date": "2026-12-02",
+                "precision": "day"
+              }
+            },
+            "rag": "green",
+            "wave": "wp-wave-pilot"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-it-03",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-08-01",
+                "precision": "month"
+              }
+            },
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-it-04",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-it-05",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-it-06",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-it-07",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-it-08",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-it-09",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-it-10",
+            "wave": "wp-wave-3"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-jp-01",
+            "wave": "wp-wave-7"
+          },
+          {
+            "actuals": {
+              "mappingSignedOff": "2026-10-03",
+              "mockLoad1": "2026-10-20"
+            },
+            "archetype": "warehouse",
+            "location": "loc-site-jp-02",
+            "milestones": {
+              "freezeStart": {
+                "date": "2026-11-12",
+                "precision": "day"
+              }
+            },
+            "rag": "amber",
+            "wave": "wp-wave-pilot"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-jp-03",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-jp-04",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-jp-05",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-jp-06",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-mx-01",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-mx-02",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-mx-03",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-mx-04",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-mx-05",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-mx-06",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-pl-01",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-05-31",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-pl-02",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-04-14",
+                "precision": "day"
+              }
+            },
+            "rag": "amber",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-pl-03",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-03-08",
+                "precision": "day"
+              }
+            },
+            "rag": "green",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-pl-04",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-pl-05",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-03-16",
+                "precision": "day"
+              }
+            },
+            "rag": "green",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-pl-06",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-06-14",
+                "precision": "week"
+              }
+            },
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-pl-07",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-se-01",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-se-02",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-se-03",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-se-04",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-se-05",
+            "wave": "wp-wave-4"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-se-06",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-sg-01",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-sg-02",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-sg-03",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-sg-04",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-sg-05",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-sg-06",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-sg-07",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-sg-08",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-sg-09",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-sg-10",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-sg-11",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-sg-12",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-sg-13",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-sg-14",
+            "wave": "wp-wave-7"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-us-01",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-us-02",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-us-03",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-us-04",
+            "wave": "wp-wave-6"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-us-05",
+            "wave": "wp-wave-5"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-us-06"
+          }
+        ],
+        "template": [
+          {
+            "applicability": {
+              "element": "art-files-ce",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 0
+            },
+            "id": "tc-art-files-ce-replace",
+            "kind": "replace",
+            "subject": "art-files-ce",
+            "successor": "art-lake-ce"
+          },
+          {
+            "applicability": {
+              "element": "art-files-ce",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 90
+            },
+            "id": "tc-art-files-ce-retire",
+            "kind": "retire",
+            "subject": "art-files-ce"
+          },
+          {
+            "applicability": {
+              "element": "art-quality-ce",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 0
+            },
+            "id": "tc-art-quality-ce-replace",
+            "kind": "replace",
+            "subject": "art-quality-ce",
+            "successor": "art-lake-ce"
+          },
+          {
+            "applicability": {
+              "element": "art-quality-ce",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 90
+            },
+            "id": "tc-art-quality-ce-retire",
+            "kind": "retire",
+            "subject": "art-quality-ce"
+          },
+          {
+            "applicability": {
+              "element": "art-files-we",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 0
+            },
+            "id": "tc-art-files-we-replace",
+            "kind": "replace",
+            "subject": "art-files-we",
+            "successor": "art-lake-we"
+          },
+          {
+            "applicability": {
+              "element": "art-files-we",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 90
+            },
+            "id": "tc-art-files-we-retire",
+            "kind": "retire",
+            "subject": "art-files-we"
+          },
+          {
+            "applicability": {
+              "element": "art-quality-we",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 0
+            },
+            "id": "tc-art-quality-we-replace",
+            "kind": "replace",
+            "subject": "art-quality-we",
+            "successor": "art-lake-we"
+          },
+          {
+            "applicability": {
+              "element": "art-quality-we",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 90
+            },
+            "id": "tc-art-quality-we-retire",
+            "kind": "retire",
+            "subject": "art-quality-we"
+          },
+          {
+            "applicability": {
+              "element": "art-files-ne",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 0
+            },
+            "id": "tc-art-files-ne-replace",
+            "kind": "replace",
+            "subject": "art-files-ne",
+            "successor": "art-lake-ne"
+          },
+          {
+            "applicability": {
+              "element": "art-files-ne",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 90
+            },
+            "id": "tc-art-files-ne-retire",
+            "kind": "retire",
+            "subject": "art-files-ne"
+          },
+          {
+            "applicability": {
+              "element": "art-quality-ne",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 0
+            },
+            "id": "tc-art-quality-ne-replace",
+            "kind": "replace",
+            "subject": "art-quality-ne",
+            "successor": "art-lake-ne"
+          },
+          {
+            "applicability": {
+              "element": "art-quality-ne",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 90
+            },
+            "id": "tc-art-quality-ne-retire",
+            "kind": "retire",
+            "subject": "art-quality-ne"
+          },
+          {
+            "applicability": {
+              "element": "art-files-am",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 0
+            },
+            "id": "tc-art-files-am-replace",
+            "kind": "replace",
+            "subject": "art-files-am",
+            "successor": "art-lake-am"
+          },
+          {
+            "applicability": {
+              "element": "art-files-am",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 90
+            },
+            "id": "tc-art-files-am-retire",
+            "kind": "retire",
+            "subject": "art-files-am"
+          },
+          {
+            "applicability": {
+              "element": "art-quality-am",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 0
+            },
+            "id": "tc-art-quality-am-replace",
+            "kind": "replace",
+            "subject": "art-quality-am",
+            "successor": "art-lake-am"
+          },
+          {
+            "applicability": {
+              "element": "art-quality-am",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 90
+            },
+            "id": "tc-art-quality-am-retire",
+            "kind": "retire",
+            "subject": "art-quality-am"
+          },
+          {
+            "applicability": {
+              "element": "art-files-ap",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 0
+            },
+            "id": "tc-art-files-ap-replace",
+            "kind": "replace",
+            "subject": "art-files-ap",
+            "successor": "art-lake-ap"
+          },
+          {
+            "applicability": {
+              "element": "art-files-ap",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 90
+            },
+            "id": "tc-art-files-ap-retire",
+            "kind": "retire",
+            "subject": "art-files-ap"
+          },
+          {
+            "applicability": {
+              "element": "art-quality-ap",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 0
+            },
+            "id": "tc-art-quality-ap-replace",
+            "kind": "replace",
+            "subject": "art-quality-ap",
+            "successor": "art-lake-ap"
+          },
+          {
+            "applicability": {
+              "element": "art-quality-ap",
+              "kind": "aggregating"
+            },
+            "date": {
+              "anchor": "freezeStart",
+              "offsetDays": 90
+            },
+            "id": "tc-art-quality-ap-retire",
+            "kind": "retire",
+            "subject": "art-quality-ap"
+          }
+        ],
+        "templateVersion": 2
+      },
+      "properties": {
+        "owner": "Data Office"
+      },
+      "type": "WorkPackage"
+    },
+    {
+      "id": "wp-wave-1",
+      "name": "Wave 1",
+      "plan": {
+        "capacity": 16,
+        "kind": "wave",
+        "label": "W1",
+        "milestones": {
+          "freezeStart": {
+            "date": "2027-03-22",
+            "precision": "day"
+          }
+        },
+        "order": 1,
+        "rollout": "wp-rollout-site-data",
+        "templateVersion": 2,
+        "window": {
+          "end": {
+            "date": "2027-04-16",
+            "precision": "day"
+          },
+          "start": {
+            "date": "2027-01-18",
+            "precision": "day"
+          }
+        }
+      },
+      "type": "WorkPackage"
+    },
+    {
+      "id": "wp-wave-2",
+      "name": "Wave 2",
+      "plan": {
+        "capacity": 18,
+        "kind": "wave",
+        "label": "W2",
+        "milestones": {
+          "freezeStart": {
+            "date": "2027-05-10",
+            "precision": "week"
+          }
+        },
+        "order": 2,
+        "rollout": "wp-rollout-site-data",
+        "templateVersion": 2,
+        "window": {
+          "end": {
+            "date": "2027-06-28",
+            "precision": "week"
+          },
+          "start": {
+            "date": "2027-04-26",
+            "precision": "week"
+          }
+        }
+      },
+      "type": "WorkPackage"
+    },
+    {
+      "id": "wp-wave-3",
+      "name": "Wave 3",
+      "plan": {
+        "kind": "wave",
+        "label": "W3",
+        "milestones": {
+          "freezeStart": {
+            "date": "2027-08-01",
+            "precision": "month"
+          }
+        },
+        "order": 3,
+        "rollout": "wp-rollout-site-data",
+        "templateVersion": 2,
+        "window": {
+          "end": {
+            "date": "2027-09-01",
+            "precision": "month"
+          },
+          "start": {
+            "date": "2027-08-01",
+            "precision": "month"
+          }
+        }
+      },
+      "type": "WorkPackage"
+    },
+    {
+      "id": "wp-wave-4",
+      "name": "Wave 4",
+      "plan": {
+        "kind": "wave",
+        "label": "W4",
+        "milestones": {
+          "freezeStart": {
+            "date": "2027-10-01",
+            "precision": "quarter"
+          }
+        },
+        "order": 4,
+        "rollout": "wp-rollout-site-data",
+        "templateVersion": 2,
+        "window": {
+          "end": {
+            "date": "2027-10-01",
+            "precision": "quarter"
+          },
+          "start": {
+            "date": "2027-10-01",
+            "precision": "quarter"
+          }
+        }
+      },
+      "type": "WorkPackage"
+    },
+    {
+      "id": "wp-wave-5",
+      "name": "Wave 5",
+      "plan": {
+        "kind": "wave",
+        "label": "W5",
+        "milestones": {
+          "freezeStart": {
+            "date": "2028-01-01",
+            "precision": "quarter"
+          }
+        },
+        "order": 5,
+        "rollout": "wp-rollout-site-data",
+        "templateVersion": 2,
+        "window": {
+          "end": {
+            "date": "2028-01-01",
+            "precision": "quarter"
+          },
+          "start": {
+            "date": "2028-01-01",
+            "precision": "quarter"
+          }
+        }
+      },
+      "type": "WorkPackage"
+    },
+    {
+      "id": "wp-wave-6",
+      "name": "Wave 6",
+      "plan": {
+        "kind": "wave",
+        "label": "W6",
+        "milestones": {
+          "freezeStart": {
+            "date": "2028-04-01",
+            "precision": "quarter"
+          }
+        },
+        "order": 6,
+        "rollout": "wp-rollout-site-data",
+        "templateVersion": 2,
+        "window": {
+          "end": {
+            "date": "2028-04-01",
+            "precision": "quarter"
+          },
+          "start": {
+            "date": "2028-04-01",
+            "precision": "quarter"
+          }
+        }
+      },
+      "type": "WorkPackage"
+    },
+    {
+      "id": "wp-wave-7",
+      "name": "Wave 7",
+      "plan": {
+        "kind": "wave",
+        "label": "W7",
+        "milestones": {
+          "freezeStart": {
+            "date": "2028-07-01",
+            "precision": "quarter"
+          }
+        },
+        "order": 7,
+        "rollout": "wp-rollout-site-data",
+        "templateVersion": 2,
+        "window": {
+          "end": {
+            "date": "2028-07-01",
+            "precision": "quarter"
+          },
+          "start": {
+            "date": "2028-07-01",
+            "precision": "quarter"
+          }
+        }
+      },
+      "type": "WorkPackage"
+    },
+    {
+      "id": "wp-wave-pilot",
+      "name": "Pilot wave",
+      "plan": {
+        "capacity": 4,
+        "kind": "wave",
+        "label": "Pilot",
+        "milestones": {
+          "freezeStart": {
+            "date": "2026-11-13",
+            "precision": "day"
+          }
+        },
+        "order": 0,
+        "rollout": "wp-rollout-site-data",
+        "templateVersion": 1,
+        "window": {
+          "end": {
+            "date": "2026-12-11",
+            "precision": "day"
+          },
+          "start": {
+            "date": "2026-11-02",
+            "precision": "day"
+          }
+        }
+      },
+      "type": "WorkPackage"
+    }
+  ],
+  "folders": [],
+  "id": "ws-rollout-demo",
+  "name": "Kestrel Industries: site data migration",
+  "relationships": [
+    {
+      "id": "rel-art-files-am-do-documents",
+      "source": "art-files-am",
+      "target": "do-documents",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-files-am-do-hr",
+      "source": "art-files-am",
+      "target": "do-hr",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-files-ap-do-documents",
+      "source": "art-files-ap",
+      "target": "do-documents",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-files-ap-do-hr",
+      "source": "art-files-ap",
+      "target": "do-hr",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-files-ce-do-documents",
+      "source": "art-files-ce",
+      "target": "do-documents",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-files-ce-do-hr",
+      "source": "art-files-ce",
+      "target": "do-hr",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-files-ne-do-documents",
+      "source": "art-files-ne",
+      "target": "do-documents",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-files-ne-do-hr",
+      "source": "art-files-ne",
+      "target": "do-hr",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-files-we-do-documents",
+      "source": "art-files-we",
+      "target": "do-documents",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-files-we-do-hr",
+      "source": "art-files-we",
+      "target": "do-hr",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-lake-am-do-documents",
+      "source": "art-lake-am",
+      "target": "do-documents",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-lake-am-do-hr",
+      "source": "art-lake-am",
+      "target": "do-hr",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-lake-am-do-production",
+      "source": "art-lake-am",
+      "target": "do-production",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-lake-am-do-quality",
+      "source": "art-lake-am",
+      "target": "do-quality",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-lake-ap-do-documents",
+      "source": "art-lake-ap",
+      "target": "do-documents",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-lake-ap-do-hr",
+      "source": "art-lake-ap",
+      "target": "do-hr",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-lake-ap-do-production",
+      "source": "art-lake-ap",
+      "target": "do-production",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-lake-ap-do-quality",
+      "source": "art-lake-ap",
+      "target": "do-quality",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-lake-ce-do-documents",
+      "source": "art-lake-ce",
+      "target": "do-documents",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-lake-ce-do-hr",
+      "source": "art-lake-ce",
+      "target": "do-hr",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-lake-ce-do-production",
+      "source": "art-lake-ce",
+      "target": "do-production",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-lake-ce-do-quality",
+      "source": "art-lake-ce",
+      "target": "do-quality",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-lake-ne-do-documents",
+      "source": "art-lake-ne",
+      "target": "do-documents",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-lake-ne-do-hr",
+      "source": "art-lake-ne",
+      "target": "do-hr",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-lake-ne-do-production",
+      "source": "art-lake-ne",
+      "target": "do-production",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-lake-ne-do-quality",
+      "source": "art-lake-ne",
+      "target": "do-quality",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-lake-we-do-documents",
+      "source": "art-lake-we",
+      "target": "do-documents",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-lake-we-do-hr",
+      "source": "art-lake-we",
+      "target": "do-hr",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-lake-we-do-production",
+      "source": "art-lake-we",
+      "target": "do-production",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-lake-we-do-quality",
+      "source": "art-lake-we",
+      "target": "do-quality",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-quality-am-do-production",
+      "source": "art-quality-am",
+      "target": "do-production",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-quality-am-do-quality",
+      "source": "art-quality-am",
+      "target": "do-quality",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-quality-ap-do-production",
+      "source": "art-quality-ap",
+      "target": "do-production",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-quality-ap-do-quality",
+      "source": "art-quality-ap",
+      "target": "do-quality",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-quality-ce-do-production",
+      "source": "art-quality-ce",
+      "target": "do-production",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-quality-ce-do-quality",
+      "source": "art-quality-ce",
+      "target": "do-quality",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-quality-ne-do-production",
+      "source": "art-quality-ne",
+      "target": "do-production",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-quality-ne-do-quality",
+      "source": "art-quality-ne",
+      "target": "do-quality",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-quality-we-do-production",
+      "source": "art-quality-we",
+      "target": "do-production",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-art-quality-we-do-quality",
+      "source": "art-quality-we",
+      "target": "do-quality",
+      "type": "Realization"
+    },
+    {
+      "id": "rel-loc-country-at-loc-site-at-01",
+      "source": "loc-country-at",
+      "target": "loc-site-at-01",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-at-loc-site-at-02",
+      "source": "loc-country-at",
+      "target": "loc-site-at-02",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-at-loc-site-at-03",
+      "source": "loc-country-at",
+      "target": "loc-site-at-03",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-at-loc-site-at-04",
+      "source": "loc-country-at",
+      "target": "loc-site-at-04",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-at-loc-site-at-05",
+      "source": "loc-country-at",
+      "target": "loc-site-at-05",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-at-loc-site-at-06",
+      "source": "loc-country-at",
+      "target": "loc-site-at-06",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-at-loc-site-at-07",
+      "source": "loc-country-at",
+      "target": "loc-site-at-07",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-at-loc-site-at-08",
+      "source": "loc-country-at",
+      "target": "loc-site-at-08",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-at-loc-site-at-09",
+      "source": "loc-country-at",
+      "target": "loc-site-at-09",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-au-loc-site-au-01",
+      "source": "loc-country-au",
+      "target": "loc-site-au-01",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-au-loc-site-au-02",
+      "source": "loc-country-au",
+      "target": "loc-site-au-02",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-au-loc-site-au-03",
+      "source": "loc-country-au",
+      "target": "loc-site-au-03",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-au-loc-site-au-04",
+      "source": "loc-country-au",
+      "target": "loc-site-au-04",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-au-loc-site-au-05",
+      "source": "loc-country-au",
+      "target": "loc-site-au-05",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-au-loc-site-au-06",
+      "source": "loc-country-au",
+      "target": "loc-site-au-06",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-au-loc-site-au-07",
+      "source": "loc-country-au",
+      "target": "loc-site-au-07",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-au-loc-site-au-08",
+      "source": "loc-country-au",
+      "target": "loc-site-au-08",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-be-loc-site-be-01",
+      "source": "loc-country-be",
+      "target": "loc-site-be-01",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-be-loc-site-be-02",
+      "source": "loc-country-be",
+      "target": "loc-site-be-02",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-be-loc-site-be-03",
+      "source": "loc-country-be",
+      "target": "loc-site-be-03",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-be-loc-site-be-04",
+      "source": "loc-country-be",
+      "target": "loc-site-be-04",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-be-loc-site-be-05",
+      "source": "loc-country-be",
+      "target": "loc-site-be-05",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-be-loc-site-be-06",
+      "source": "loc-country-be",
+      "target": "loc-site-be-06",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-be-loc-site-be-07",
+      "source": "loc-country-be",
+      "target": "loc-site-be-07",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-be-loc-site-be-08",
+      "source": "loc-country-be",
+      "target": "loc-site-be-08",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-be-loc-site-be-09",
+      "source": "loc-country-be",
+      "target": "loc-site-be-09",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-br-loc-site-br-01",
+      "source": "loc-country-br",
+      "target": "loc-site-br-01",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-br-loc-site-br-02",
+      "source": "loc-country-br",
+      "target": "loc-site-br-02",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-br-loc-site-br-03",
+      "source": "loc-country-br",
+      "target": "loc-site-br-03",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-br-loc-site-br-04",
+      "source": "loc-country-br",
+      "target": "loc-site-br-04",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-br-loc-site-br-05",
+      "source": "loc-country-br",
+      "target": "loc-site-br-05",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-ca-loc-site-ca-01",
+      "source": "loc-country-ca",
+      "target": "loc-site-ca-01",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-ca-loc-site-ca-02",
+      "source": "loc-country-ca",
+      "target": "loc-site-ca-02",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-ca-loc-site-ca-03",
+      "source": "loc-country-ca",
+      "target": "loc-site-ca-03",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-ca-loc-site-ca-04",
+      "source": "loc-country-ca",
+      "target": "loc-site-ca-04",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-ca-loc-site-ca-05",
+      "source": "loc-country-ca",
+      "target": "loc-site-ca-05",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-ca-loc-site-ca-06",
+      "source": "loc-country-ca",
+      "target": "loc-site-ca-06",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-ca-loc-site-ca-07",
+      "source": "loc-country-ca",
+      "target": "loc-site-ca-07",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-ca-loc-site-ca-08",
+      "source": "loc-country-ca",
+      "target": "loc-site-ca-08",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-ca-loc-site-ca-09",
+      "source": "loc-country-ca",
+      "target": "loc-site-ca-09",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-ch-loc-site-ch-01",
+      "source": "loc-country-ch",
+      "target": "loc-site-ch-01",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-ch-loc-site-ch-02",
+      "source": "loc-country-ch",
+      "target": "loc-site-ch-02",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-ch-loc-site-ch-03",
+      "source": "loc-country-ch",
+      "target": "loc-site-ch-03",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-ch-loc-site-ch-04",
+      "source": "loc-country-ch",
+      "target": "loc-site-ch-04",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-ch-loc-site-ch-05",
+      "source": "loc-country-ch",
+      "target": "loc-site-ch-05",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-ch-loc-site-ch-06",
+      "source": "loc-country-ch",
+      "target": "loc-site-ch-06",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-de-loc-hub-fra",
+      "source": "loc-country-de",
+      "target": "loc-hub-fra",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-de-loc-site-de-01",
+      "source": "loc-country-de",
+      "target": "loc-site-de-01",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-de-loc-site-de-02",
+      "source": "loc-country-de",
+      "target": "loc-site-de-02",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-de-loc-site-de-03",
+      "source": "loc-country-de",
+      "target": "loc-site-de-03",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-de-loc-site-de-04",
+      "source": "loc-country-de",
+      "target": "loc-site-de-04",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-de-loc-site-de-05",
+      "source": "loc-country-de",
+      "target": "loc-site-de-05",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-de-loc-site-de-06",
+      "source": "loc-country-de",
+      "target": "loc-site-de-06",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-de-loc-site-de-07",
+      "source": "loc-country-de",
+      "target": "loc-site-de-07",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-de-loc-site-de-08",
+      "source": "loc-country-de",
+      "target": "loc-site-de-08",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-de-loc-site-de-09",
+      "source": "loc-country-de",
+      "target": "loc-site-de-09",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-de-loc-site-de-10",
+      "source": "loc-country-de",
+      "target": "loc-site-de-10",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-de-loc-site-de-11",
+      "source": "loc-country-de",
+      "target": "loc-site-de-11",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-de-loc-site-de-12",
+      "source": "loc-country-de",
+      "target": "loc-site-de-12",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-de-loc-site-de-13",
+      "source": "loc-country-de",
+      "target": "loc-site-de-13",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-dk-loc-site-dk-01",
+      "source": "loc-country-dk",
+      "target": "loc-site-dk-01",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-dk-loc-site-dk-02",
+      "source": "loc-country-dk",
+      "target": "loc-site-dk-02",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-dk-loc-site-dk-03",
+      "source": "loc-country-dk",
+      "target": "loc-site-dk-03",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-dk-loc-site-dk-04",
+      "source": "loc-country-dk",
+      "target": "loc-site-dk-04",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-dk-loc-site-dk-05",
+      "source": "loc-country-dk",
+      "target": "loc-site-dk-05",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-dk-loc-site-dk-06",
+      "source": "loc-country-dk",
+      "target": "loc-site-dk-06",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-dk-loc-site-dk-07",
+      "source": "loc-country-dk",
+      "target": "loc-site-dk-07",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-es-loc-site-es-01",
+      "source": "loc-country-es",
+      "target": "loc-site-es-01",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-es-loc-site-es-02",
+      "source": "loc-country-es",
+      "target": "loc-site-es-02",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-es-loc-site-es-03",
+      "source": "loc-country-es",
+      "target": "loc-site-es-03",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-es-loc-site-es-04",
+      "source": "loc-country-es",
+      "target": "loc-site-es-04",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-es-loc-site-es-05",
+      "source": "loc-country-es",
+      "target": "loc-site-es-05",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-fr-loc-hub-par",
+      "source": "loc-country-fr",
+      "target": "loc-hub-par",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-fr-loc-site-fr-01",
+      "source": "loc-country-fr",
+      "target": "loc-site-fr-01",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-fr-loc-site-fr-02",
+      "source": "loc-country-fr",
+      "target": "loc-site-fr-02",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-fr-loc-site-fr-03",
+      "source": "loc-country-fr",
+      "target": "loc-site-fr-03",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-fr-loc-site-fr-04",
+      "source": "loc-country-fr",
+      "target": "loc-site-fr-04",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-fr-loc-site-fr-05",
+      "source": "loc-country-fr",
+      "target": "loc-site-fr-05",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-fr-loc-site-fr-06",
+      "source": "loc-country-fr",
+      "target": "loc-site-fr-06",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-fr-loc-site-fr-07",
+      "source": "loc-country-fr",
+      "target": "loc-site-fr-07",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-fr-loc-site-fr-08",
+      "source": "loc-country-fr",
+      "target": "loc-site-fr-08",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-fr-loc-site-fr-09",
+      "source": "loc-country-fr",
+      "target": "loc-site-fr-09",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-fr-loc-site-fr-10",
+      "source": "loc-country-fr",
+      "target": "loc-site-fr-10",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-fr-loc-site-fr-11",
+      "source": "loc-country-fr",
+      "target": "loc-site-fr-11",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-fr-loc-site-fr-12",
+      "source": "loc-country-fr",
+      "target": "loc-site-fr-12",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-fr-loc-site-fr-13",
+      "source": "loc-country-fr",
+      "target": "loc-site-fr-13",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-gb-loc-hub-lon",
+      "source": "loc-country-gb",
+      "target": "loc-hub-lon",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-gb-loc-site-gb-01",
+      "source": "loc-country-gb",
+      "target": "loc-site-gb-01",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-gb-loc-site-gb-02",
+      "source": "loc-country-gb",
+      "target": "loc-site-gb-02",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-gb-loc-site-gb-03",
+      "source": "loc-country-gb",
+      "target": "loc-site-gb-03",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-gb-loc-site-gb-04",
+      "source": "loc-country-gb",
+      "target": "loc-site-gb-04",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-gb-loc-site-gb-05",
+      "source": "loc-country-gb",
+      "target": "loc-site-gb-05",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-gb-loc-site-gb-06",
+      "source": "loc-country-gb",
+      "target": "loc-site-gb-06",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-gb-loc-site-gb-07",
+      "source": "loc-country-gb",
+      "target": "loc-site-gb-07",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-gb-loc-site-gb-08",
+      "source": "loc-country-gb",
+      "target": "loc-site-gb-08",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-gb-loc-site-gb-09",
+      "source": "loc-country-gb",
+      "target": "loc-site-gb-09",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-gb-loc-site-gb-10",
+      "source": "loc-country-gb",
+      "target": "loc-site-gb-10",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-gb-loc-site-gb-11",
+      "source": "loc-country-gb",
+      "target": "loc-site-gb-11",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-ie-loc-site-ie-01",
+      "source": "loc-country-ie",
+      "target": "loc-site-ie-01",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-ie-loc-site-ie-02",
+      "source": "loc-country-ie",
+      "target": "loc-site-ie-02",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-ie-loc-site-ie-03",
+      "source": "loc-country-ie",
+      "target": "loc-site-ie-03",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-ie-loc-site-ie-04",
+      "source": "loc-country-ie",
+      "target": "loc-site-ie-04",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-in-loc-site-in-01",
+      "source": "loc-country-in",
+      "target": "loc-site-in-01",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-in-loc-site-in-02",
+      "source": "loc-country-in",
+      "target": "loc-site-in-02",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-in-loc-site-in-03",
+      "source": "loc-country-in",
+      "target": "loc-site-in-03",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-in-loc-site-in-04",
+      "source": "loc-country-in",
+      "target": "loc-site-in-04",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-in-loc-site-in-05",
+      "source": "loc-country-in",
+      "target": "loc-site-in-05",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-in-loc-site-in-06",
+      "source": "loc-country-in",
+      "target": "loc-site-in-06",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-it-loc-site-it-01",
+      "source": "loc-country-it",
+      "target": "loc-site-it-01",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-it-loc-site-it-02",
+      "source": "loc-country-it",
+      "target": "loc-site-it-02",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-it-loc-site-it-03",
+      "source": "loc-country-it",
+      "target": "loc-site-it-03",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-it-loc-site-it-04",
+      "source": "loc-country-it",
+      "target": "loc-site-it-04",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-it-loc-site-it-05",
+      "source": "loc-country-it",
+      "target": "loc-site-it-05",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-it-loc-site-it-06",
+      "source": "loc-country-it",
+      "target": "loc-site-it-06",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-it-loc-site-it-07",
+      "source": "loc-country-it",
+      "target": "loc-site-it-07",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-it-loc-site-it-08",
+      "source": "loc-country-it",
+      "target": "loc-site-it-08",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-it-loc-site-it-09",
+      "source": "loc-country-it",
+      "target": "loc-site-it-09",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-it-loc-site-it-10",
+      "source": "loc-country-it",
+      "target": "loc-site-it-10",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-jp-loc-site-jp-01",
+      "source": "loc-country-jp",
+      "target": "loc-site-jp-01",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-jp-loc-site-jp-02",
+      "source": "loc-country-jp",
+      "target": "loc-site-jp-02",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-jp-loc-site-jp-03",
+      "source": "loc-country-jp",
+      "target": "loc-site-jp-03",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-jp-loc-site-jp-04",
+      "source": "loc-country-jp",
+      "target": "loc-site-jp-04",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-jp-loc-site-jp-05",
+      "source": "loc-country-jp",
+      "target": "loc-site-jp-05",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-jp-loc-site-jp-06",
+      "source": "loc-country-jp",
+      "target": "loc-site-jp-06",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-mx-loc-site-mx-01",
+      "source": "loc-country-mx",
+      "target": "loc-site-mx-01",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-mx-loc-site-mx-02",
+      "source": "loc-country-mx",
+      "target": "loc-site-mx-02",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-mx-loc-site-mx-03",
+      "source": "loc-country-mx",
+      "target": "loc-site-mx-03",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-mx-loc-site-mx-04",
+      "source": "loc-country-mx",
+      "target": "loc-site-mx-04",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-mx-loc-site-mx-05",
+      "source": "loc-country-mx",
+      "target": "loc-site-mx-05",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-mx-loc-site-mx-06",
+      "source": "loc-country-mx",
+      "target": "loc-site-mx-06",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-pl-loc-site-pl-01",
+      "source": "loc-country-pl",
+      "target": "loc-site-pl-01",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-pl-loc-site-pl-02",
+      "source": "loc-country-pl",
+      "target": "loc-site-pl-02",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-pl-loc-site-pl-03",
+      "source": "loc-country-pl",
+      "target": "loc-site-pl-03",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-pl-loc-site-pl-04",
+      "source": "loc-country-pl",
+      "target": "loc-site-pl-04",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-pl-loc-site-pl-05",
+      "source": "loc-country-pl",
+      "target": "loc-site-pl-05",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-pl-loc-site-pl-06",
+      "source": "loc-country-pl",
+      "target": "loc-site-pl-06",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-pl-loc-site-pl-07",
+      "source": "loc-country-pl",
+      "target": "loc-site-pl-07",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-se-loc-site-se-01",
+      "source": "loc-country-se",
+      "target": "loc-site-se-01",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-se-loc-site-se-02",
+      "source": "loc-country-se",
+      "target": "loc-site-se-02",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-se-loc-site-se-03",
+      "source": "loc-country-se",
+      "target": "loc-site-se-03",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-se-loc-site-se-04",
+      "source": "loc-country-se",
+      "target": "loc-site-se-04",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-se-loc-site-se-05",
+      "source": "loc-country-se",
+      "target": "loc-site-se-05",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-se-loc-site-se-06",
+      "source": "loc-country-se",
+      "target": "loc-site-se-06",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-sg-loc-hub-sin",
+      "source": "loc-country-sg",
+      "target": "loc-hub-sin",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-sg-loc-site-sg-01",
+      "source": "loc-country-sg",
+      "target": "loc-site-sg-01",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-sg-loc-site-sg-02",
+      "source": "loc-country-sg",
+      "target": "loc-site-sg-02",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-sg-loc-site-sg-03",
+      "source": "loc-country-sg",
+      "target": "loc-site-sg-03",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-sg-loc-site-sg-04",
+      "source": "loc-country-sg",
+      "target": "loc-site-sg-04",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-sg-loc-site-sg-05",
+      "source": "loc-country-sg",
+      "target": "loc-site-sg-05",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-sg-loc-site-sg-06",
+      "source": "loc-country-sg",
+      "target": "loc-site-sg-06",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-sg-loc-site-sg-07",
+      "source": "loc-country-sg",
+      "target": "loc-site-sg-07",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-sg-loc-site-sg-08",
+      "source": "loc-country-sg",
+      "target": "loc-site-sg-08",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-sg-loc-site-sg-09",
+      "source": "loc-country-sg",
+      "target": "loc-site-sg-09",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-sg-loc-site-sg-10",
+      "source": "loc-country-sg",
+      "target": "loc-site-sg-10",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-sg-loc-site-sg-11",
+      "source": "loc-country-sg",
+      "target": "loc-site-sg-11",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-sg-loc-site-sg-12",
+      "source": "loc-country-sg",
+      "target": "loc-site-sg-12",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-sg-loc-site-sg-13",
+      "source": "loc-country-sg",
+      "target": "loc-site-sg-13",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-sg-loc-site-sg-14",
+      "source": "loc-country-sg",
+      "target": "loc-site-sg-14",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-us-loc-hub-ash",
+      "source": "loc-country-us",
+      "target": "loc-hub-ash",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-us-loc-site-us-01",
+      "source": "loc-country-us",
+      "target": "loc-site-us-01",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-us-loc-site-us-02",
+      "source": "loc-country-us",
+      "target": "loc-site-us-02",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-us-loc-site-us-03",
+      "source": "loc-country-us",
+      "target": "loc-site-us-03",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-us-loc-site-us-04",
+      "source": "loc-country-us",
+      "target": "loc-site-us-04",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-us-loc-site-us-05",
+      "source": "loc-country-us",
+      "target": "loc-site-us-05",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-country-us-loc-site-us-06",
+      "source": "loc-country-us",
+      "target": "loc-site-us-06",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-hub-ash-art-lake-am",
+      "source": "loc-hub-ash",
+      "target": "art-lake-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-hub-ash-sys-platform-am",
+      "source": "loc-hub-ash",
+      "target": "sys-platform-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-hub-fra-art-lake-ce",
+      "source": "loc-hub-fra",
+      "target": "art-lake-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-hub-fra-sys-platform-ce",
+      "source": "loc-hub-fra",
+      "target": "sys-platform-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-hub-lon-art-lake-ne",
+      "source": "loc-hub-lon",
+      "target": "art-lake-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-hub-lon-sys-platform-ne",
+      "source": "loc-hub-lon",
+      "target": "sys-platform-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-hub-par-art-lake-we",
+      "source": "loc-hub-par",
+      "target": "art-lake-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-hub-par-sys-platform-we",
+      "source": "loc-hub-par",
+      "target": "sys-platform-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-hub-sin-art-lake-ap",
+      "source": "loc-hub-sin",
+      "target": "art-lake-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-hub-sin-sys-platform-ap",
+      "source": "loc-hub-sin",
+      "target": "sys-platform-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-region-am-loc-country-br",
+      "source": "loc-region-am",
+      "target": "loc-country-br",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-region-am-loc-country-ca",
+      "source": "loc-region-am",
+      "target": "loc-country-ca",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-region-am-loc-country-mx",
+      "source": "loc-region-am",
+      "target": "loc-country-mx",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-region-am-loc-country-us",
+      "source": "loc-region-am",
+      "target": "loc-country-us",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-region-ap-loc-country-au",
+      "source": "loc-region-ap",
+      "target": "loc-country-au",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-region-ap-loc-country-in",
+      "source": "loc-region-ap",
+      "target": "loc-country-in",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-region-ap-loc-country-jp",
+      "source": "loc-region-ap",
+      "target": "loc-country-jp",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-region-ap-loc-country-sg",
+      "source": "loc-region-ap",
+      "target": "loc-country-sg",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-region-ce-loc-country-at",
+      "source": "loc-region-ce",
+      "target": "loc-country-at",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-region-ce-loc-country-ch",
+      "source": "loc-region-ce",
+      "target": "loc-country-ch",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-region-ce-loc-country-de",
+      "source": "loc-region-ce",
+      "target": "loc-country-de",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-region-ce-loc-country-pl",
+      "source": "loc-region-ce",
+      "target": "loc-country-pl",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-region-ne-loc-country-dk",
+      "source": "loc-region-ne",
+      "target": "loc-country-dk",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-region-ne-loc-country-gb",
+      "source": "loc-region-ne",
+      "target": "loc-country-gb",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-region-ne-loc-country-ie",
+      "source": "loc-region-ne",
+      "target": "loc-country-ie",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-region-ne-loc-country-se",
+      "source": "loc-region-ne",
+      "target": "loc-country-se",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-region-we-loc-country-be",
+      "source": "loc-region-we",
+      "target": "loc-country-be",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-region-we-loc-country-es",
+      "source": "loc-region-we",
+      "target": "loc-country-es",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-region-we-loc-country-fr",
+      "source": "loc-region-we",
+      "target": "loc-country-fr",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-region-we-loc-country-it",
+      "source": "loc-region-we",
+      "target": "loc-country-it",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-at-01-art-files-ce",
+      "source": "loc-site-at-01",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-at-02-art-files-ce",
+      "source": "loc-site-at-02",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-at-02-art-quality-ce",
+      "source": "loc-site-at-02",
+      "target": "art-quality-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-at-03-art-files-ce",
+      "source": "loc-site-at-03",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-at-04-art-files-ce",
+      "source": "loc-site-at-04",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-at-04-art-quality-ce",
+      "source": "loc-site-at-04",
+      "target": "art-quality-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-at-05-art-files-ce",
+      "source": "loc-site-at-05",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-at-05-art-quality-ce",
+      "source": "loc-site-at-05",
+      "target": "art-quality-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-at-06-art-files-ce",
+      "source": "loc-site-at-06",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-at-06-art-quality-ce",
+      "source": "loc-site-at-06",
+      "target": "art-quality-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-at-07-art-files-ce",
+      "source": "loc-site-at-07",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-at-08-art-files-ce",
+      "source": "loc-site-at-08",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-at-09-art-files-ce",
+      "source": "loc-site-at-09",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-au-01-art-files-ap",
+      "source": "loc-site-au-01",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-au-02-art-files-ap",
+      "source": "loc-site-au-02",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-au-03-art-files-ap",
+      "source": "loc-site-au-03",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-au-03-art-quality-ap",
+      "source": "loc-site-au-03",
+      "target": "art-quality-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-au-04-art-files-ap",
+      "source": "loc-site-au-04",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-au-05-art-files-ap",
+      "source": "loc-site-au-05",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-au-06-art-files-ap",
+      "source": "loc-site-au-06",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-au-06-art-quality-ap",
+      "source": "loc-site-au-06",
+      "target": "art-quality-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-au-07-art-files-ap",
+      "source": "loc-site-au-07",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-au-08-art-files-ap",
+      "source": "loc-site-au-08",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-au-08-art-quality-ap",
+      "source": "loc-site-au-08",
+      "target": "art-quality-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-be-01-art-files-we",
+      "source": "loc-site-be-01",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-be-01-art-quality-we",
+      "source": "loc-site-be-01",
+      "target": "art-quality-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-be-02-art-files-we",
+      "source": "loc-site-be-02",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-be-03-art-files-we",
+      "source": "loc-site-be-03",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-be-03-art-quality-we",
+      "source": "loc-site-be-03",
+      "target": "art-quality-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-be-04-art-files-we",
+      "source": "loc-site-be-04",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-be-05-art-files-we",
+      "source": "loc-site-be-05",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-be-06-art-files-we",
+      "source": "loc-site-be-06",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-be-07-art-files-we",
+      "source": "loc-site-be-07",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-be-07-art-quality-we",
+      "source": "loc-site-be-07",
+      "target": "art-quality-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-be-08-art-files-we",
+      "source": "loc-site-be-08",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-be-09-art-files-we",
+      "source": "loc-site-be-09",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-be-09-art-quality-we",
+      "source": "loc-site-be-09",
+      "target": "art-quality-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-br-01-art-files-am",
+      "source": "loc-site-br-01",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-br-02-art-files-am",
+      "source": "loc-site-br-02",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-br-03-art-files-am",
+      "source": "loc-site-br-03",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-br-03-art-quality-am",
+      "source": "loc-site-br-03",
+      "target": "art-quality-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-br-04-art-files-am",
+      "source": "loc-site-br-04",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-br-05-art-files-am",
+      "source": "loc-site-br-05",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-br-05-art-quality-am",
+      "source": "loc-site-br-05",
+      "target": "art-quality-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ca-01-art-files-am",
+      "source": "loc-site-ca-01",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ca-01-art-quality-am",
+      "source": "loc-site-ca-01",
+      "target": "art-quality-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ca-02-art-files-am",
+      "source": "loc-site-ca-02",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ca-02-art-quality-am",
+      "source": "loc-site-ca-02",
+      "target": "art-quality-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ca-03-art-files-am",
+      "source": "loc-site-ca-03",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ca-04-art-files-am",
+      "source": "loc-site-ca-04",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ca-04-art-quality-am",
+      "source": "loc-site-ca-04",
+      "target": "art-quality-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ca-05-art-files-am",
+      "source": "loc-site-ca-05",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ca-05-art-quality-am",
+      "source": "loc-site-ca-05",
+      "target": "art-quality-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ca-06-art-files-am",
+      "source": "loc-site-ca-06",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ca-07-art-files-am",
+      "source": "loc-site-ca-07",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ca-08-art-files-am",
+      "source": "loc-site-ca-08",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ca-09-art-files-am",
+      "source": "loc-site-ca-09",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ca-09-art-quality-am",
+      "source": "loc-site-ca-09",
+      "target": "art-quality-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ch-01-art-files-ce",
+      "source": "loc-site-ch-01",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ch-02-art-files-ce",
+      "source": "loc-site-ch-02",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ch-03-art-files-ce",
+      "source": "loc-site-ch-03",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ch-03-art-quality-ce",
+      "source": "loc-site-ch-03",
+      "target": "art-quality-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ch-04-art-files-ce",
+      "source": "loc-site-ch-04",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ch-05-art-files-ce",
+      "source": "loc-site-ch-05",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ch-05-art-quality-ce",
+      "source": "loc-site-ch-05",
+      "target": "art-quality-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ch-06-art-files-ce",
+      "source": "loc-site-ch-06",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ch-06-art-quality-ce",
+      "source": "loc-site-ch-06",
+      "target": "art-quality-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-de-01-art-files-ce",
+      "source": "loc-site-de-01",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-de-01-art-quality-ce",
+      "source": "loc-site-de-01",
+      "target": "art-quality-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-de-02-art-files-ce",
+      "source": "loc-site-de-02",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-de-02-art-quality-ce",
+      "source": "loc-site-de-02",
+      "target": "art-quality-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-de-03-art-files-ce",
+      "source": "loc-site-de-03",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-de-03-art-quality-ce",
+      "source": "loc-site-de-03",
+      "target": "art-quality-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-de-04-art-files-ce",
+      "source": "loc-site-de-04",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-de-05-art-files-ce",
+      "source": "loc-site-de-05",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-de-05-art-quality-ce",
+      "source": "loc-site-de-05",
+      "target": "art-quality-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-de-06-art-files-ce",
+      "source": "loc-site-de-06",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-de-07-art-files-ce",
+      "source": "loc-site-de-07",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-de-07-art-quality-ce",
+      "source": "loc-site-de-07",
+      "target": "art-quality-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-de-08-art-files-ce",
+      "source": "loc-site-de-08",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-de-09-art-files-ce",
+      "source": "loc-site-de-09",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-de-09-art-quality-ce",
+      "source": "loc-site-de-09",
+      "target": "art-quality-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-de-10-art-files-ce",
+      "source": "loc-site-de-10",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-de-11-art-files-ce",
+      "source": "loc-site-de-11",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-de-12-art-files-ce",
+      "source": "loc-site-de-12",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-de-12-art-quality-ce",
+      "source": "loc-site-de-12",
+      "target": "art-quality-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-de-13-art-files-ce",
+      "source": "loc-site-de-13",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-dk-01-art-files-ne",
+      "source": "loc-site-dk-01",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-dk-01-art-quality-ne",
+      "source": "loc-site-dk-01",
+      "target": "art-quality-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-dk-02-art-files-ne",
+      "source": "loc-site-dk-02",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-dk-03-art-files-ne",
+      "source": "loc-site-dk-03",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-dk-03-art-quality-ne",
+      "source": "loc-site-dk-03",
+      "target": "art-quality-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-dk-04-art-files-ne",
+      "source": "loc-site-dk-04",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-dk-05-art-files-ne",
+      "source": "loc-site-dk-05",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-dk-06-art-files-ne",
+      "source": "loc-site-dk-06",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-dk-07-art-files-ne",
+      "source": "loc-site-dk-07",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-es-01-art-files-we",
+      "source": "loc-site-es-01",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-es-01-art-quality-we",
+      "source": "loc-site-es-01",
+      "target": "art-quality-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-es-02-art-files-we",
+      "source": "loc-site-es-02",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-es-03-art-files-we",
+      "source": "loc-site-es-03",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-es-03-art-quality-we",
+      "source": "loc-site-es-03",
+      "target": "art-quality-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-es-04-art-files-we",
+      "source": "loc-site-es-04",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-es-05-art-files-we",
+      "source": "loc-site-es-05",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-es-05-art-quality-we",
+      "source": "loc-site-es-05",
+      "target": "art-quality-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-fr-01-art-files-we",
+      "source": "loc-site-fr-01",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-fr-02-art-files-we",
+      "source": "loc-site-fr-02",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-fr-02-art-quality-we",
+      "source": "loc-site-fr-02",
+      "target": "art-quality-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-fr-03-art-files-we",
+      "source": "loc-site-fr-03",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-fr-04-art-files-we",
+      "source": "loc-site-fr-04",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-fr-04-art-quality-we",
+      "source": "loc-site-fr-04",
+      "target": "art-quality-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-fr-05-art-files-we",
+      "source": "loc-site-fr-05",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-fr-06-art-files-we",
+      "source": "loc-site-fr-06",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-fr-07-art-files-we",
+      "source": "loc-site-fr-07",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-fr-08-art-files-we",
+      "source": "loc-site-fr-08",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-fr-09-art-files-we",
+      "source": "loc-site-fr-09",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-fr-09-art-quality-we",
+      "source": "loc-site-fr-09",
+      "target": "art-quality-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-fr-10-art-files-we",
+      "source": "loc-site-fr-10",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-fr-10-art-quality-we",
+      "source": "loc-site-fr-10",
+      "target": "art-quality-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-fr-11-art-files-we",
+      "source": "loc-site-fr-11",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-fr-12-art-files-we",
+      "source": "loc-site-fr-12",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-fr-12-art-quality-we",
+      "source": "loc-site-fr-12",
+      "target": "art-quality-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-fr-13-art-files-we",
+      "source": "loc-site-fr-13",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-fr-13-art-quality-we",
+      "source": "loc-site-fr-13",
+      "target": "art-quality-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-gb-01-art-files-ne",
+      "source": "loc-site-gb-01",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-gb-02-art-files-ne",
+      "source": "loc-site-gb-02",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-gb-03-art-files-ne",
+      "source": "loc-site-gb-03",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-gb-03-art-quality-ne",
+      "source": "loc-site-gb-03",
+      "target": "art-quality-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-gb-04-art-files-ne",
+      "source": "loc-site-gb-04",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-gb-04-art-quality-ne",
+      "source": "loc-site-gb-04",
+      "target": "art-quality-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-gb-05-art-files-ne",
+      "source": "loc-site-gb-05",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-gb-06-art-files-ne",
+      "source": "loc-site-gb-06",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-gb-07-art-files-ne",
+      "source": "loc-site-gb-07",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-gb-08-art-files-ne",
+      "source": "loc-site-gb-08",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-gb-08-art-quality-ne",
+      "source": "loc-site-gb-08",
+      "target": "art-quality-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-gb-09-art-files-ne",
+      "source": "loc-site-gb-09",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-gb-09-art-quality-ne",
+      "source": "loc-site-gb-09",
+      "target": "art-quality-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-gb-10-art-files-ne",
+      "source": "loc-site-gb-10",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-gb-10-art-quality-ne",
+      "source": "loc-site-gb-10",
+      "target": "art-quality-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-gb-11-art-files-ne",
+      "source": "loc-site-gb-11",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ie-01-art-files-ne",
+      "source": "loc-site-ie-01",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ie-01-art-quality-ne",
+      "source": "loc-site-ie-01",
+      "target": "art-quality-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ie-02-art-files-ne",
+      "source": "loc-site-ie-02",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ie-03-art-files-ne",
+      "source": "loc-site-ie-03",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-ie-04-art-files-ne",
+      "source": "loc-site-ie-04",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-in-01-art-files-ap",
+      "source": "loc-site-in-01",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-in-02-art-files-ap",
+      "source": "loc-site-in-02",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-in-02-art-quality-ap",
+      "source": "loc-site-in-02",
+      "target": "art-quality-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-in-03-art-files-ap",
+      "source": "loc-site-in-03",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-in-04-art-files-ap",
+      "source": "loc-site-in-04",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-in-04-art-quality-ap",
+      "source": "loc-site-in-04",
+      "target": "art-quality-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-in-05-art-files-ap",
+      "source": "loc-site-in-05",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-in-05-art-quality-ap",
+      "source": "loc-site-in-05",
+      "target": "art-quality-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-in-06-art-files-ap",
+      "source": "loc-site-in-06",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-it-01-art-files-we",
+      "source": "loc-site-it-01",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-it-01-art-quality-we",
+      "source": "loc-site-it-01",
+      "target": "art-quality-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-it-02-art-files-we",
+      "source": "loc-site-it-02",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-it-03-art-files-we",
+      "source": "loc-site-it-03",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-it-04-art-files-we",
+      "source": "loc-site-it-04",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-it-04-art-quality-we",
+      "source": "loc-site-it-04",
+      "target": "art-quality-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-it-05-art-files-we",
+      "source": "loc-site-it-05",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-it-06-art-files-we",
+      "source": "loc-site-it-06",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-it-06-art-quality-we",
+      "source": "loc-site-it-06",
+      "target": "art-quality-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-it-07-art-files-we",
+      "source": "loc-site-it-07",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-it-08-art-files-we",
+      "source": "loc-site-it-08",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-it-09-art-files-we",
+      "source": "loc-site-it-09",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-it-10-art-files-we",
+      "source": "loc-site-it-10",
+      "target": "art-files-we",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-jp-01-art-files-ap",
+      "source": "loc-site-jp-01",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-jp-01-art-quality-ap",
+      "source": "loc-site-jp-01",
+      "target": "art-quality-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-jp-02-art-files-ap",
+      "source": "loc-site-jp-02",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-jp-03-art-files-ap",
+      "source": "loc-site-jp-03",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-jp-04-art-files-ap",
+      "source": "loc-site-jp-04",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-jp-04-art-quality-ap",
+      "source": "loc-site-jp-04",
+      "target": "art-quality-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-jp-05-art-files-ap",
+      "source": "loc-site-jp-05",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-jp-05-art-quality-ap",
+      "source": "loc-site-jp-05",
+      "target": "art-quality-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-jp-06-art-files-ap",
+      "source": "loc-site-jp-06",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-jp-06-art-quality-ap",
+      "source": "loc-site-jp-06",
+      "target": "art-quality-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-mx-01-art-files-am",
+      "source": "loc-site-mx-01",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-mx-02-art-files-am",
+      "source": "loc-site-mx-02",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-mx-03-art-files-am",
+      "source": "loc-site-mx-03",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-mx-04-art-files-am",
+      "source": "loc-site-mx-04",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-mx-05-art-files-am",
+      "source": "loc-site-mx-05",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-mx-05-art-quality-am",
+      "source": "loc-site-mx-05",
+      "target": "art-quality-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-mx-06-art-files-am",
+      "source": "loc-site-mx-06",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-pl-01-art-files-ce",
+      "source": "loc-site-pl-01",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-pl-01-art-quality-ce",
+      "source": "loc-site-pl-01",
+      "target": "art-quality-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-pl-02-art-files-ce",
+      "source": "loc-site-pl-02",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-pl-03-art-files-ce",
+      "source": "loc-site-pl-03",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-pl-03-art-quality-ce",
+      "source": "loc-site-pl-03",
+      "target": "art-quality-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-pl-04-art-files-ce",
+      "source": "loc-site-pl-04",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-pl-04-art-quality-ce",
+      "source": "loc-site-pl-04",
+      "target": "art-quality-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-pl-05-art-files-ce",
+      "source": "loc-site-pl-05",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-pl-05-art-quality-ce",
+      "source": "loc-site-pl-05",
+      "target": "art-quality-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-pl-06-art-files-ce",
+      "source": "loc-site-pl-06",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-pl-07-art-files-ce",
+      "source": "loc-site-pl-07",
+      "target": "art-files-ce",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-se-01-art-files-ne",
+      "source": "loc-site-se-01",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-se-02-art-files-ne",
+      "source": "loc-site-se-02",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-se-02-art-quality-ne",
+      "source": "loc-site-se-02",
+      "target": "art-quality-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-se-03-art-files-ne",
+      "source": "loc-site-se-03",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-se-04-art-files-ne",
+      "source": "loc-site-se-04",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-se-04-art-quality-ne",
+      "source": "loc-site-se-04",
+      "target": "art-quality-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-se-05-art-files-ne",
+      "source": "loc-site-se-05",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-se-05-art-quality-ne",
+      "source": "loc-site-se-05",
+      "target": "art-quality-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-se-06-art-files-ne",
+      "source": "loc-site-se-06",
+      "target": "art-files-ne",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-sg-01-art-files-ap",
+      "source": "loc-site-sg-01",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-sg-02-art-files-ap",
+      "source": "loc-site-sg-02",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-sg-03-art-files-ap",
+      "source": "loc-site-sg-03",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-sg-03-art-quality-ap",
+      "source": "loc-site-sg-03",
+      "target": "art-quality-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-sg-04-art-files-ap",
+      "source": "loc-site-sg-04",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-sg-05-art-files-ap",
+      "source": "loc-site-sg-05",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-sg-06-art-files-ap",
+      "source": "loc-site-sg-06",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-sg-06-art-quality-ap",
+      "source": "loc-site-sg-06",
+      "target": "art-quality-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-sg-07-art-files-ap",
+      "source": "loc-site-sg-07",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-sg-08-art-files-ap",
+      "source": "loc-site-sg-08",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-sg-08-art-quality-ap",
+      "source": "loc-site-sg-08",
+      "target": "art-quality-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-sg-09-art-files-ap",
+      "source": "loc-site-sg-09",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-sg-09-art-quality-ap",
+      "source": "loc-site-sg-09",
+      "target": "art-quality-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-sg-10-art-files-ap",
+      "source": "loc-site-sg-10",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-sg-11-art-files-ap",
+      "source": "loc-site-sg-11",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-sg-12-art-files-ap",
+      "source": "loc-site-sg-12",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-sg-13-art-files-ap",
+      "source": "loc-site-sg-13",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-sg-13-art-quality-ap",
+      "source": "loc-site-sg-13",
+      "target": "art-quality-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-sg-14-art-files-ap",
+      "source": "loc-site-sg-14",
+      "target": "art-files-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-sg-14-art-quality-ap",
+      "source": "loc-site-sg-14",
+      "target": "art-quality-ap",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-us-01-art-files-am",
+      "source": "loc-site-us-01",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-us-02-art-files-am",
+      "source": "loc-site-us-02",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-us-02-art-quality-am",
+      "source": "loc-site-us-02",
+      "target": "art-quality-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-us-03-art-files-am",
+      "source": "loc-site-us-03",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-us-04-art-files-am",
+      "source": "loc-site-us-04",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-us-04-art-quality-am",
+      "source": "loc-site-us-04",
+      "target": "art-quality-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-us-05-art-files-am",
+      "source": "loc-site-us-05",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-us-05-art-quality-am",
+      "source": "loc-site-us-05",
+      "target": "art-quality-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-us-06-art-files-am",
+      "source": "loc-site-us-06",
+      "target": "art-files-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-loc-site-us-06-art-quality-am",
+      "source": "loc-site-us-06",
+      "target": "art-quality-am",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-sys-platform-am-art-lake-am",
+      "source": "sys-platform-am",
+      "target": "art-lake-am",
+      "type": "Assignment"
+    },
+    {
+      "id": "rel-sys-platform-ap-art-lake-ap",
+      "source": "sys-platform-ap",
+      "target": "art-lake-ap",
+      "type": "Assignment"
+    },
+    {
+      "id": "rel-sys-platform-ce-art-lake-ce",
+      "source": "sys-platform-ce",
+      "target": "art-lake-ce",
+      "type": "Assignment"
+    },
+    {
+      "id": "rel-sys-platform-ne-art-lake-ne",
+      "source": "sys-platform-ne",
+      "target": "art-lake-ne",
+      "type": "Assignment"
+    },
+    {
+      "id": "rel-sys-platform-we-art-lake-we",
+      "source": "sys-platform-we",
+      "target": "art-lake-we",
+      "type": "Assignment"
+    },
+    {
+      "id": "rel-wp-rollout-site-data-wp-wave-1",
+      "source": "wp-rollout-site-data",
+      "target": "wp-wave-1",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-wp-rollout-site-data-wp-wave-2",
+      "source": "wp-rollout-site-data",
+      "target": "wp-wave-2",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-wp-rollout-site-data-wp-wave-3",
+      "source": "wp-rollout-site-data",
+      "target": "wp-wave-3",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-wp-rollout-site-data-wp-wave-4",
+      "source": "wp-rollout-site-data",
+      "target": "wp-wave-4",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-wp-rollout-site-data-wp-wave-5",
+      "source": "wp-rollout-site-data",
+      "target": "wp-wave-5",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-wp-rollout-site-data-wp-wave-6",
+      "source": "wp-rollout-site-data",
+      "target": "wp-wave-6",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-wp-rollout-site-data-wp-wave-7",
+      "source": "wp-rollout-site-data",
+      "target": "wp-wave-7",
+      "type": "Aggregation"
+    },
+    {
+      "id": "rel-wp-rollout-site-data-wp-wave-pilot",
+      "source": "wp-rollout-site-data",
+      "target": "wp-wave-pilot",
+      "type": "Aggregation"
+    }
+  ],
+  "reports": [],
+  "schemaVersion": 6,
+  "tagGroups": [
+    {
+      "id": "tg-portfolio",
+      "multiSelect": true,
+      "name": "Portfolio",
+      "tags": [
+        {
+          "colourToken": "var(--app)",
+          "name": "Cloud target"
+        },
+        {
+          "colourToken": "var(--accent2)",
+          "name": "Core"
+        },
+        {
+          "colourToken": "var(--accent)",
+          "name": "Differentiating"
+        },
+        {
+          "colourToken": "var(--mot)",
+          "name": "GDPR"
+        },
+        {
+          "colourToken": "var(--pas)",
+          "name": "Supporting"
+        },
+        {
+          "colourToken": "var(--lc-eol)",
+          "name": "Vendor risk"
+        }
+      ]
+    }
+  ],
+  "views": []
+}

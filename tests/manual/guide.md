@@ -8,7 +8,7 @@
 
 - [ ] Build under test: `<commit SHA or Pages deployment>`
 - [ ] Test environment: `<local | preview | github-pages>`
-- [ ] For steps 5–6: the demo loaded (first-run screen → **Explore the demo**)
+- [ ] For steps 5–6: the demo loaded (first-run screen → **Explore the demo** → **Insurance landscape**)
 
 ## Steps
 

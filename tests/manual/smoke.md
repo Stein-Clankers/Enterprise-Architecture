@@ -15,7 +15,7 @@
    and the screen offers **three** actions: Start empty, Import a file, Explore the demo.
 2. Look at the type: headings and prose in Space Grotesk, no fallback system font — expected:
    the wordmark and body text look like the design, not like Helvetica.
-3. Click **Explore the demo** — expected: the inventory appears with **29 of 29 elements**.
+3. Click **Explore the demo** → **Insurance landscape** — expected: the inventory appears with **29 of 29 elements**.
 4. Find the sun/moon glyph at the top right and click it — expected: the whole app switches
    theme. Borders stay hairline, boxes stay square, nothing gains a shadow or a rounded
    corner, no text becomes unreadable against its background.

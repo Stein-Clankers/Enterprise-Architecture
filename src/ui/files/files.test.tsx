@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { emptyWorkspace } from '@/model'
-import { exportExchangeXml, loadDemoWorkspace, toCanonicalJson } from '@/io'
+import { exportExchangeXml, loadDemoWorkspace, ROLLOUT_DEMO_AS_OF, toCanonicalJson } from '@/io'
 import { ModelStoreProvider } from '@/store'
 import { pressOutside } from '@/test/dialogs'
 import { stubDownloads } from '@/test/downloads'
@@ -35,11 +35,57 @@ describe('first run', () => {
     expect(document.querySelectorAll('.first-run__action')).toHaveLength(3)
   })
 
-  it('loads the demo in one click', async () => {
+  it('offers both demos under "Explore the demo", and only once it is opened (#212)', async () => {
+    renderApp(emptyWorkspace('ws-empty', 'Empty'))
+    const user = userEvent.setup()
+    const explore = screen.getByRole('button', { name: /Explore the demo/ })
+    expect(explore).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getAllByRole('button')).toHaveLength(3)
+
+    await user.click(explore)
+    expect(explore).toHaveAttribute('aria-expanded', 'true')
+    const demos = screen.getByRole('group', { name: 'Demos' })
+    expect(explore).toHaveAttribute('aria-controls', demos.id)
+    expect(
+      within(demos)
+        .getAllByRole('button')
+        .map((button) => button.querySelector('.first-run__action-title')?.textContent),
+    ).toEqual(['Insurance landscape', 'Data-migration rollout'])
+    // Still three actions: the demos are the third one's choices.
+    expect(document.querySelectorAll('.first-run__action')).toHaveLength(3)
+
+    await user.click(explore)
+    expect(explore).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('group', { name: 'Demos' })).toBeNull()
+  })
+
+  it('loads the insurance demo onto the inventory', async () => {
     renderApp(emptyWorkspace('ws-empty', 'Empty'))
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: /Explore the demo/ }))
+    await user.click(screen.getByRole('button', { name: /Insurance landscape/ }))
     expect(screen.getByText('29 of 29 elements')).toBeInTheDocument()
+  })
+
+  it('takes the insurance demo to the inventory from whatever route the app opened on (#212)', async () => {
+    renderApp(emptyWorkspace('ws-empty', 'Empty'), { route: '/rollout/wp-rollout-site-data' })
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Explore the demo/ }))
+    await user.click(screen.getByRole('button', { name: /Insurance landscape/ }))
+    expect(screen.getByText('29 of 29 elements')).toBeInTheDocument()
+  })
+
+  it('loads the rollout demo onto its rollout’s home, unsaved (#212)', async () => {
+    renderApp(emptyWorkspace('ws-empty', 'Empty'))
+    const user = userEvent.setup()
+    await user.click(screen.getByRole('button', { name: /Explore the demo/ }))
+    await user.click(screen.getByRole('button', { name: /Data-migration rollout/ }))
+    expect(
+      screen.getByRole('heading', { name: 'Site data to the regional lakes' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText('160 sites · 8 waves · template v2')).toBeInTheDocument()
+    expect(screen.getByText(`Phase at ${ROLLOUT_DEMO_AS_OF}`)).toBeInTheDocument()
+    expect(screen.getByText('LOCAL · 1 UNSAVED')).toBeInTheDocument()
   })
 
   it('starts empty without inventing a workspace', async () => {

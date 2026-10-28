@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react'
-import type { ExportFormat, ImportResult, SaveOutcome } from '@/io'
+import type { DemoId, ExportFormat, ImportResult, SaveOutcome } from '@/io'
 import type { SharedModel } from './use-shared-model'
 
 export interface FileWorkspaceContextValue {
@@ -16,7 +16,8 @@ export interface FileWorkspaceContextValue {
   openFile: () => Promise<void>
   /** Never rejects on a file it cannot read: that is reported in `lastImport` (#52). */
   importFile: (file: File) => Promise<void>
-  loadDemo: () => void
+  /** Replace the workspace with a bundled demo, unsaved. */
+  loadDemo: (demo: DemoId) => void
   startImport: () => void
   cancelImport: () => void
   dismissNotice: () => void
