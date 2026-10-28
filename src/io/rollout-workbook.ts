@@ -19,7 +19,7 @@ import {
   type WavePlan,
 } from '@/model'
 import { problem, type ProblemSeverity } from './problems'
-import { setKey } from './records'
+import { getKey, setKey } from './records'
 import {
   booleanCell,
   cellAt,
@@ -174,7 +174,7 @@ export function exportRolloutWorkbook(
           planDateCell(p.window?.end),
           p.capacity === undefined ? EMPTY : numberCell(p.capacity),
           numberCell(p.templateVersion),
-          ...plan.milestones.map((milestone) => planDateCell(p.milestones?.[milestone.id])),
+          ...plan.milestones.map((milestone) => planDateCell(getKey(p.milestones, milestone.id))),
         ]
       }),
     ),
@@ -198,7 +198,7 @@ export function exportRolloutWorkbook(
         site.wave === undefined ? EMPTY : textCell(site.wave),
         site.archetype === undefined ? EMPTY : textCell(site.archetype),
         site.rag === undefined ? EMPTY : textCell(site.rag),
-        ...plan.milestones.map((milestone) => planDateCell(site.milestones?.[milestone.id])),
+        ...plan.milestones.map((milestone) => planDateCell(getKey(site.milestones, milestone.id))),
       ]),
     ),
   }

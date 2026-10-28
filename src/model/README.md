@@ -217,9 +217,15 @@ exceptions, dependencies and plan checks are #214.
   precision. Nothing resolved is stored: the screens resolve each time.
 - **The site phase is derived, never stored**, as a lifecycle phase is: the
   phase started by the last milestone reached, an actual day taking
-  precedence, a planned one reached on the first day of its period. A site
-  in no wave is Unplanned. Overdue is a flag: a planned period that has ended
-  with no actual day.
+  precedence, a planned one reached on the first day of its period, and a
+  spaced one on the exact day its chain reaches. A site in no wave is
+  Unplanned until its first actual day, and then follows its actual days.
+  Overdue is a flag: a planned period that has ended with no actual day, for
+  a site in a wave (ADR 0016, amended 2026-10-28).
+- **Every record kept by milestone id is read with `getKey`**
+  (`io/records.ts`): a user names the milestone, and "Constructor" is the id
+  `constructor`, which a plain object finds on `Object.prototype` (#229
+  review). The rollout test fixture has such a milestone.
 
 - **A rollout is a Work Package with `plan.kind === 'rollout'`.** Its plan
   holds the template version, the ordered milestone set, the ordered scope

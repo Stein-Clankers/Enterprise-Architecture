@@ -23,7 +23,7 @@ import {
   useModelSelector,
   useModelStore,
 } from '@/store'
-import { setKey } from '@/io'
+import { getKey, setKey } from '@/io'
 import { DialogOverlay } from '@/ui/common/DialogOverlay'
 import { useFocusTrap } from '@/ui/common/use-focus-trap'
 import { PlanDateField } from './PlanDateField'
@@ -186,7 +186,7 @@ export function WaveDialog({
     Object.fromEntries(
       milestones.map((milestone) => [
         milestone.id,
-        draftOf(plan?.milestones?.[milestone.id], 'month'),
+        draftOf(getKey(plan?.milestones, milestone.id), 'month'),
       ]),
     ),
   )
@@ -215,7 +215,7 @@ export function WaveDialog({
   const milestoneDates: Record<string, PlanDate> = { ...plan?.milestones }
   const unreadable: string[] = []
   for (const milestone of milestones) {
-    const value = draftValue(dates[milestone.id]!)
+    const value = draftValue(getKey(dates, milestone.id)!)
     if (value === undefined) unreadable.push(milestone.label)
     else if (value === null) delete milestoneDates[milestone.id]
     else setKey(milestoneDates, milestone.id, value)
@@ -330,7 +330,7 @@ export function WaveDialog({
               <PlanDateField
                 key={milestone.id}
                 label={milestone.label}
-                draft={dates[milestone.id]!}
+                draft={getKey(dates, milestone.id)!}
                 onChange={(draft) => setDates((was) => ({ ...was, [milestone.id]: draft }))}
               />
             ))}

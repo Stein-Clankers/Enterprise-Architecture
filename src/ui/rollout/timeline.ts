@@ -5,6 +5,7 @@ import {
   deriveSitePhase,
   formatPlanDate,
   overdueMilestones,
+  phaseInputs,
   type DateSource,
   type MilestonePhase,
   type PlanDate,
@@ -258,10 +259,9 @@ function siteRow(
   x: (ms: number) => number,
   at: number,
 ): TimelineSiteRow {
-  const inputs = site.milestones.map((resolved) => ({
-    ...resolved,
-    startsPhase: resolved.milestone.startsPhase,
-  }))
+  // The timeline has its own time point, so it derives the phase again, from
+  // the inputs the register's `siteStatus` derives it from.
+  const inputs = phaseInputs(site.milestones)
   const milestones = site.milestones.map((resolved) => resolved.milestone)
   const ticks: TimelineTick[] = []
   for (const resolved of site.milestones) {
@@ -351,6 +351,20 @@ export function legendFor(view: TimelineColourView, withPhases = false): LegendE
     entry('phase-planned', 'Planned', SITE_PHASE_TOKENS.planned),
     entry('phase-moving', 'Preparing, cutover, hypercare', SITE_PHASE_TOKENS.preparing),
     entry('phase-migrated', 'Migrated, done', SITE_PHASE_TOKENS.migrated),
+    // A tick is filled when the site sets its date, an outline when it
+    // inherits it (ADR 0013 point 5: the UI shows which it is).
+    {
+      key: 'tick-set',
+      label: 'Filled tick: set at the site',
+      stroke: 'var(--ink)',
+      fill: 'var(--ink)',
+    },
+    {
+      key: 'tick-inherited',
+      label: 'Outlined tick: inherited',
+      stroke: 'var(--ink)',
+      fill: 'var(--surface)',
+    },
   ]
 }
 

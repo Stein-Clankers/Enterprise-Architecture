@@ -1,14 +1,31 @@
 import { act, fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ROLLOUT_PRESETS, rolloutPlanOf, wavePlanOf, type Workspace } from '@/model'
+import {
+  ROLLOUT_PRESETS,
+  dayStart,
+  presetPlan,
+  rolloutPlanOf,
+  wavePlanOf,
+  type Workspace,
+} from '@/model'
 import { toCanonicalJson } from '@/io'
-import { ModelStore, updateWave } from '@/store'
+import {
+  ModelStore,
+  addSites,
+  assignSites,
+  createRollout,
+  createWave,
+  removeMilestone,
+  setArchetype,
+  updateWave,
+} from '@/store'
 import { renderApp, renderScreenAs } from '@/test/render'
 import { stubDownloads } from '@/test/downloads'
 import { ROLLOUT_ID, rolloutWorkspace, siteId, waveId } from '@/test/rollout-fixture'
 import { RolloutScreen } from './RolloutScreen'
-import { usageText } from './rollout-data'
+import { blockedText, rolloutData, usageText } from './rollout-data'
+import { layoutTimeline } from './timeline'
 import { overrideValue } from './plan-date-draft'
 
 /**
@@ -82,20 +99,43 @@ describe('choosing a preset when creating a rollout (#213)', () => {
   })
 })
 
+describe('the Standard archetype a preset seeds (#229 review)', () => {
+  it('says its durations are placeholders wherever a site’s archetype is shown', async () => {
+    const store = storeOf()
+    const rollout = createRollout(store, {
+      name: 'Network refresh',
+      ...presetPlan(ROLLOUT_PRESETS.generic),
+    })!
+    expect(addSites(store, rollout.id, [siteId(1)])).toBe(true)
+    expect(setArchetype(store, rollout.id, [siteId(1)], 'standard')).toBe(true)
+    renderScreenAs('writer', store, {
+      route: `/rollout/${rollout.id}`,
+      path: '/rollout/:id',
+      screen: <RolloutScreen />,
+    })
+    const label = 'Standard (placeholder durations)'
+    expect(row(siteId(1))).toHaveTextContent(label)
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Wave board' }))
+    const card = document.querySelector(`[data-location="${siteId(1)}"] .board-card__archetype`)
+    expect(card).toHaveTextContent(label)
+  })
+})
+
 describe('the milestone-set editor (#213)', () => {
   it('lists the set in order, with each phase, the rollout’s date and the sites using it', () => {
     home('milestones')
     const rows = [...document.querySelectorAll<HTMLElement>('[data-milestone]')]
     expect(rows.map((node) => node.dataset.milestone)).toEqual([
       'mappingSignedOff',
+      'constructor',
       'freezeStart',
       'reconciliationSignedOff',
       'hypercareEnd',
       'legacyDecommissioned',
     ])
-    expect(rows[1]).toHaveTextContent('Cutover')
-    expect(rows[4]).toHaveTextContent('2028-Q4')
-    expect(rows[4]).toHaveTextContent('Done')
+    expect(rows[2]).toHaveTextContent('Cutover')
+    expect(rows[5]).toHaveTextContent('2028-Q4')
+    expect(rows[5]).toHaveTextContent('Done')
   })
 
   it('adds a milestone in one command, and adds nothing while the phase is the empty choice', async () => {
@@ -119,6 +159,34 @@ describe('the milestone-set editor (#213)', () => {
     })
   })
 
+  it('adds a milestone labelled “Constructor”, whose id is a member of Object.prototype, and the register still renders', async () => {
+    // The #229 review's crash: `record['constructor']` on a site's dates found
+    // `Object`, and the register threw after the command was saved. The
+    // fixture already has such a milestone, so it goes first, by the command.
+    const store = storeOf()
+    expect(removeMilestone(store, ROLLOUT_ID, 'constructor')).toBe(true)
+    const h = home('milestones', 'writer', store)
+    await h.user.click(screen.getByRole('button', { name: '+ Milestone' }))
+    const dialog = screen.getByRole('dialog', { name: 'New milestone' })
+    await h.user.type(within(dialog).getByRole('textbox', { name: 'Label' }), 'Constructor')
+    await h.user.selectOptions(
+      within(dialog).getByRole('combobox', { name: 'Starts phase' }),
+      'Preparing',
+    )
+    await h.user.click(within(dialog).getByRole('button', { name: 'Add' }))
+    expect(plan(store).milestones.at(-1)?.id).toBe('constructor')
+    expect(document.querySelector('[data-milestone="constructor"]')).not.toBeNull()
+    await h.user.click(screen.getByRole('button', { name: 'Site register' }))
+    expect(screen.getByText(`${SITES} of ${SITES} sites`)).toBeInTheDocument()
+    expect(row(siteId(4)).querySelector('.register__phase')).not.toBeNull()
+    await h.user.click(screen.getByRole('button', { name: 'Dates of 004' }))
+    expect(
+      within(screen.getByRole('dialog', { name: 'Dates of 004' })).getByRole('combobox', {
+        name: 'Constructor precision',
+      }),
+    ).toHaveValue('')
+  })
+
   it('edits a label and the rollout’s date in one command', async () => {
     const h = home('milestones')
     const before = h.store.history.length
@@ -136,7 +204,7 @@ describe('the milestone-set editor (#213)', () => {
     })
     await h.user.click(within(dialog).getByRole('button', { name: 'Save' }))
     expect(h.store.history.length).toBe(before + 1)
-    expect(plan(h.store).milestones[1]).toEqual({
+    expect(plan(h.store).milestones[2]).toEqual({
       id: 'freezeStart',
       label: 'Freeze',
       startsPhase: 'cutover',
@@ -149,7 +217,7 @@ describe('the milestone-set editor (#213)', () => {
     const before = h.store.history.length
     const later = screen.getByRole('button', { name: 'Move Freeze starts later' })
     await h.user.click(later)
-    expect(plan(h.store).milestones[2]!.id).toBe('freezeStart')
+    expect(plan(h.store).milestones[3]!.id).toBe('freezeStart')
     expect(h.store.history.length).toBe(before + 1)
     expect(screen.getByRole('button', { name: 'Move Freeze starts later' })).toHaveFocus()
     // At the top, earlier is nothing to do, and says so.
@@ -175,6 +243,9 @@ describe('the milestone-set editor (#213)', () => {
       'reconciliationSignedOff',
     )
     expect(h.store.history.length).toBe(before.history + 1)
+    expect(h.store.history.at(-1)!.label).toBe(
+      'Deleted milestone “Reconciliation signed off” from “Local data to the central lake”, with its dates on 2 waves',
+    )
     expect(screen.getByRole('button', { name: '+ Milestone' })).toHaveFocus()
     act(() => void h.store.undo())
     expect(json(h.store)).toBe(before.json)
@@ -194,8 +265,10 @@ describe('the milestone-set editor (#213)', () => {
     await h.user.click(screen.getByRole('button', { name: 'Edit Freeze starts' }))
     await h.user.click(screen.getByRole('button', { name: 'Delete…' }))
     const ask = screen.getByRole('dialog', { name: 'Delete milestone' })
-    expect(ask).toHaveTextContent(
-      '“Freeze starts” cannot be deleted: the template change tc-replace-store is dated from it.',
+    // The whole sentence: what to do instead is something the app can do,
+    // or says where it is done (#229 review, finding 9).
+    expect(within(ask).getByText(/cannot be deleted/)).toHaveTextContent(
+      /^“Freeze starts” cannot be deleted: the template change tc-replace-store is dated from it\. The template can only be edited in the model’s file for now: date it from another milestone there, then delete this one\.$/,
     )
     expect(within(ask).queryByRole('button', { name: 'Delete milestone' })).toBeNull()
     expect(within(ask).getByRole('button', { name: 'Back' })).toHaveFocus()
@@ -215,7 +288,13 @@ describe('the milestone-set editor (#213)', () => {
     expect(screen.queryByRole('button', { name: /^Move / })).toBeNull()
     h.as('writer')
     expect(screen.queryByRole('dialog')).toBeNull()
-    expect(plan(h.store).milestones[1]!.label).toBe('Freeze starts')
+    expect(plan(h.store).milestones[2]!.label).toBe('Freeze starts')
+  })
+
+  it('words a refused delete for one anchored change and for several', () => {
+    expect(blockedText('Go', ['tc-a', 'tc-b'])).toBe(
+      '“Go” cannot be deleted: the template changes tc-a, tc-b are dated from it. The template can only be edited in the model’s file for now: date them from another milestone there, then delete this one.',
+    )
   })
 
   it('words what a delete takes with it, for each count and for none', () => {
@@ -304,6 +383,10 @@ describe('a site’s own dates, edited (#213)', () => {
     const h = home()
     const before = h.store.history.length
     await h.user.click(screen.getByRole('button', { name: 'Dates of 004' }))
+    // Site 4 sets no Constructor date, though `Object.prototype` has a
+    // `constructor`: its row is Inherit, with the day field shut (#229 review).
+    expect(screen.getByRole('combobox', { name: 'Constructor precision' })).toHaveValue('')
+    expect(screen.getByLabelText('Constructor day')).toBeDisabled()
     await h.user.click(screen.getByRole('button', { name: 'Save' }))
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(h.store.history.length).toBe(before)
@@ -356,10 +439,25 @@ describe('the wave dialog’s milestone dates (#213)', () => {
     expect(h.store.history.length).toBe(before + 1)
     expect(wavePlanOf(h.store.element(waveId(1)))?.milestones).toEqual({
       mappingSignedOff: { date: '2027-04-05', precision: 'day' },
+      constructor: { date: '2027-04-19', precision: 'day' },
       freezeStart: { date: '2027-05-17', precision: 'day' },
       reconciliationSignedOff: { date: '2027-05-24', precision: 'day' },
       legacyDecommissioned: { date: '2027-10-01', precision: 'quarter' },
     })
+  })
+
+  it('opens a wave that dates no Constructor with that field empty, and saves it unchanged', async () => {
+    // W2 dates only its freeze; a lookup that found `Object.prototype`'s
+    // `constructor` read a date that is not one, and refused the save.
+    const h = home('board')
+    const before = json(h.store)
+    await h.user.click(screen.getByRole('button', { name: 'Edit W2' }))
+    const dialog = screen.getByRole('dialog', { name: 'Edit wave' })
+    expect(within(dialog).getByLabelText('Constructor day')).toHaveValue('')
+    expect(within(dialog).getByLabelText('Freeze starts day')).toHaveValue('2027-07-01')
+    await h.user.click(within(dialog).getByRole('button', { name: 'Save' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(json(h.store)).toBe(before)
   })
 
   it('keeps a date for a milestone the set no longer has, which validate() reports', async () => {
@@ -453,9 +551,21 @@ describe('the wave timeline, expanded to its sites (#213)', () => {
 
   it('shows a spaced date as inherited, saying from which milestone', async () => {
     await timeline('W3')
-    // Site 10 is a Plant in W3: its mapping is 42 days before W3’s freeze, in Q3.
-    expect(tick(siteId(10), 'mappingSignedOff')?.querySelector('title')).toHaveTextContent(
-      'Mapping signed off · 2027-Q3 · inherited: 42 days before Freeze starts',
+    // Site 10 is a Plant in W3: its Constructor is 42 days before W3’s
+    // freeze (2027-Q4), so in Q3. Plant has no duration for `constructor`, so
+    // nothing spaces its mapping, though `Object.prototype` has a member of
+    // that name (#229 review).
+    expect(tick(siteId(10), 'constructor')?.querySelector('title')).toHaveTextContent(
+      'Constructor · 2027-Q3 · inherited: 42 days before Freeze starts',
+    )
+    expect(tick(siteId(10), 'freezeStart')).not.toBeNull()
+    expect(tick(siteId(10), 'mappingSignedOff')).toBeNull()
+    // Site 14, a Plant in W3 too, sets its mapping: Plant has no duration for
+    // `constructor`, so nothing spaces Constructor forward from it, and it is
+    // still spaced back from the freeze.
+    expect(tick(siteId(14), 'mappingSignedOff')).toHaveAttribute('data-source', 'site')
+    expect(tick(siteId(14), 'constructor')?.querySelector('title')).toHaveTextContent(
+      'Constructor · 2027-Q3 · inherited: 42 days before Freeze starts',
     )
   })
 
@@ -469,6 +579,40 @@ describe('the wave timeline, expanded to its sites (#213)', () => {
     expect(site()).toHaveTextContent('004 · Migrated · overdue')
     const legend = document.querySelector<HTMLElement>('.chrome__legend')!
     expect(within(legend).getByText('Migrated, done')).toBeInTheDocument()
+    // Filled is set, an outline inherited, and the legend says which is which.
+    const swatch = (text: string) =>
+      within(legend).getByText(text).querySelector<HTMLElement>('.chrome__swatch')!
+    expect(swatch('Filled tick: set at the site').style.background).toBe('var(--ink)')
+    expect(swatch('Outlined tick: inherited').style.background).toBe('var(--surface)')
+  })
+
+  it('derives a spaced date’s phase from its exact day, as the register does (ADR 0016, amended)', () => {
+    // The #229 review's example, on the timeline, which derives the phase again
+    // at its own time point: a wave that says only `readiness: 2027-Q3`.
+    const store = storeOf()
+    const rollout = createRollout(store, {
+      name: 'Network refresh',
+      ...presetPlan(ROLLOUT_PRESETS.generic),
+    })!
+    const wave = createWave(store, rollout.id, {
+      name: 'Wave 2',
+      label: 'W2',
+      window: { start: { date: '2027-07-01', precision: 'quarter' } },
+      milestones: { readiness: { date: '2027-07-01', precision: 'quarter' } },
+    })!
+    addSites(store, rollout.id, [siteId(1)])
+    assignSites(store, rollout.id, [siteId(1)], wave.id)
+    setArchetype(store, rollout.id, [siteId(1)], 'standard')
+    const phaseAt = (day: string) => {
+      const at = dayStart(day)
+      const data = rolloutData(store, rollout.id, at)!
+      const timeline = layoutTimeline(data.waves, { expanded: new Set([wave.id]), at })
+      return [timeline.sites[0]!.phase, data.sites[0]!.phase]
+    }
+    // Shown as 2027-Q3, but go/no-go is 29 July and cutover 5 August.
+    expect(phaseAt('2027-07-01')).toEqual(['preparing', 'preparing'])
+    expect(phaseAt('2027-08-05')).toEqual(['hypercare', 'hypercare'])
+    expect(phaseAt('2027-10-01')).toEqual(['migrated', 'migrated'])
   })
 
   it('exports the expanded sites with their ticks', async () => {

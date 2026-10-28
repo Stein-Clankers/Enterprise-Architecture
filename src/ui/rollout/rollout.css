@@ -295,8 +295,14 @@ button.register__name:hover {
   color: var(--ink2);
 }
 
-.milestones__move:disabled {
+/*
+ * At either end a move button stays focusable (so a step to the end does not
+ * drop focus) and says it does nothing with aria-disabled, never the disabled
+ * attribute, so this is the selector that greys it (#229 review).
+ */
+.milestones__move[aria-disabled='true'] {
   color: var(--bd2);
+  cursor: default;
 }
 
 .site-dates {

@@ -19,7 +19,7 @@ import { PlanDateField } from './PlanDateField'
 import { ModalForm } from './RolloutDialogs'
 import { useInitialFocus } from './use-initial-focus'
 import { draftOf, draftValue, type PlanDateDraft } from './plan-date-draft'
-import { SITE_PHASE_TOKENS, usageText, type RolloutData } from './rollout-data'
+import { SITE_PHASE_TOKENS, blockedText, usageText, type RolloutData } from './rollout-data'
 
 /**
  * The milestone-set editor (#213, proposal §4.2): the rollout's milestones in
@@ -221,7 +221,7 @@ export function MilestoneDialog({
       >
         <p className="dialog__help">
           {blocked
-            ? `“${milestone.label}” cannot be deleted: the template ${usage.anchoredChanges.length === 1 ? 'change' : 'changes'} ${usage.anchoredChanges.join(', ')} ${usage.anchoredChanges.length === 1 ? 'is' : 'are'} dated from it. Date ${usage.anchoredChanges.length === 1 ? 'it' : 'them'} from another milestone first.`
+            ? blockedText(milestone.label, usage.anchoredChanges)
             : `Delete “${milestone.label}”? ${usageText(usage)}`}
         </p>
         {refused && (

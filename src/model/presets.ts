@@ -12,7 +12,10 @@ import type { Archetype, Milestone } from './plan'
  *
  * A rollout made from a preset gets its milestones, and one archetype,
  * Standard, holding the durations: spacing is an archetype's (ADR 0016), so a
- * site takes these defaults once it is a Standard site.
+ * site takes these defaults once it is a Standard site. Its label says the
+ * durations are placeholders (`STANDARD_ARCHETYPE_LABEL`), so every screen
+ * that shows a site's archetype says so too, until an archetype editor lets
+ * a programme replace them (#229 review, ADR 0016 point 7).
  */
 
 export const ROLLOUT_PRESET_IDS = ['generic', 'dataMigration'] as const
@@ -83,6 +86,12 @@ export function isRolloutPresetId(value: unknown): value is RolloutPresetId {
 /** The archetype a preset's durations are stored in. */
 export const STANDARD_ARCHETYPE_ID = 'standard'
 
+/**
+ * Its label: the durations are ours, not a programme's, and a site whose
+ * dates are spaced by them shows "inherited" dates nobody planned.
+ */
+export const STANDARD_ARCHETYPE_LABEL = 'Standard (placeholder durations)'
+
 /** What a rollout made from `preset` starts with: fresh copies, so no edit reaches the preset. */
 export function presetPlan(preset: RolloutPreset): {
   milestones: Milestone[]
@@ -91,7 +100,11 @@ export function presetPlan(preset: RolloutPreset): {
   return {
     milestones: preset.milestones.map((milestone) => ({ ...milestone })),
     archetypes: [
-      { id: STANDARD_ARCHETYPE_ID, label: 'Standard', durations: { ...preset.durations } },
+      {
+        id: STANDARD_ARCHETYPE_ID,
+        label: STANDARD_ARCHETYPE_LABEL,
+        durations: { ...preset.durations },
+      },
     ],
   }
 }

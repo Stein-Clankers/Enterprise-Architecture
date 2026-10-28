@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   ROLLOUT_PRESETS,
+  dayStart,
   presetPlan,
   resolveSiteMilestones,
+  siteStatus,
   rolloutPlanOf,
   validate,
   wavePlanOf,
@@ -36,6 +38,7 @@ import {
   updateWave,
 } from './rollouts'
 import { planCascadeText } from './removal'
+import { describeCommand } from './commands'
 
 /** The 160-site fixture, in a store. */
 function store(): ModelStore {
@@ -203,6 +206,23 @@ describe('creating, renaming and deleting waves (#209)', () => {
 
     s.undo()
     expect(state(s).json).toBe(before.json)
+  })
+
+  it('a site whose wave is deleted after its freeze reads the phase of its actuals, never overdue (ADR 0016, amended)', () => {
+    // Site 1 is in the pilot, froze on 2 March 2027 by its actual date, and
+    // has no actual for reconciliation, which the pilot planned for 1 March.
+    const s = store()
+    const june = dayStart('2027-06-01')
+    const status = () => {
+      const site = plan(s).sites.find((candidate) => candidate.location === siteId(1))!
+      const wave = site.wave === undefined ? undefined : wavePlanOf(s.element(site.wave))
+      return siteStatus(plan(s), site, wave, june)
+    }
+    expect(status()).toMatchObject({ phase: 'migrated', overdue: true })
+    expect(deleteWave(s, waveId(0))).toBe(true)
+    // Unassigned, its dates kept (ADR 0015 point 6), and its actual freeze
+    // starts Cutover: not Unplanned, and nothing it had planned is overdue.
+    expect(status()).toMatchObject({ phase: 'cutover', overdue: false })
   })
 })
 
@@ -695,6 +715,18 @@ const freeze = (s: ModelStore, n: number) => {
   return resolveSiteMilestones(p, site, wave).find((r) => r.milestone.id === 'freezeStart')!
 }
 
+/** Reconciliation, used by a site's date and actual, two waves and an archetype. */
+function reconciliationInUse(): ModelStore {
+  const workspace = rolloutWorkspace(160)
+  const rollout = rolloutPlanOf(workspace.elements.find((e) => e.id === ROLLOUT_ID))!
+  rollout.archetypes.find((a) => a.id === 'plant')!.durations!.reconciliationSignedOff = 7
+  const site = rollout.sites.find((candidate) => candidate.location === siteId(1))!
+  site.actuals = { ...site.actuals, reconciliationSignedOff: '2027-03-04' }
+  const five = rollout.sites.find((candidate) => candidate.location === siteId(5))!
+  five.milestones = { reconciliationSignedOff: { date: '2027-05-01', precision: 'month' } }
+  return new ModelStore(workspace)
+}
+
 describe('milestone sets (#213)', () => {
   it('a rollout made from a preset starts with its milestones and a Standard archetype of its durations', () => {
     const s = store()
@@ -702,7 +734,7 @@ describe('milestone sets (#213)', () => {
     const rollout = createRollout(s, { name: 'Data', ...presetPlan(preset) })!
     expect(plan(s, rollout.id).milestones).toEqual(preset.milestones)
     expect(plan(s, rollout.id).archetypes).toEqual([
-      { id: 'standard', label: 'Standard', durations: preset.durations },
+      { id: 'standard', label: 'Standard (placeholder durations)', durations: preset.durations },
     ])
   })
 
@@ -746,14 +778,14 @@ describe('milestone sets (#213)', () => {
       }),
     ).toBe(true)
     expect(s.history.length).toBe(before.history + 1)
-    expect(plan(s).milestones[1]).toEqual({
+    expect(plan(s).milestones[2]).toEqual({
       id: 'freezeStart',
       label: 'Freeze',
       startsPhase: 'hypercare',
       date: q3,
     })
     expect(updateMilestone(s, ROLLOUT_ID, 'freezeStart', { date: null })).toBe(true)
-    expect(plan(s).milestones[1]).not.toHaveProperty('date')
+    expect(plan(s).milestones[2]).not.toHaveProperty('date')
     s.undo()
     s.undo()
     expect(state(s).json).toBe(before.json)
@@ -784,11 +816,11 @@ describe('milestone sets (#213)', () => {
     expect(
       plan(s)
         .milestones.map((m) => m.id)
-        .slice(0, 3),
-    ).toEqual(['mappingSignedOff', 'reconciliationSignedOff', 'freezeStart'])
+        .slice(0, 4),
+    ).toEqual(['mappingSignedOff', 'constructor', 'reconciliationSignedOff', 'freezeStart'])
     expect(s.history.length).toBe(before.history + 1)
     expect(moveMilestone(s, ROLLOUT_ID, 'freezeStart', -1)).toBe(true)
-    expect(plan(s).milestones.map((m) => m.id)[1]).toBe('freezeStart')
+    expect(plan(s).milestones.map((m) => m.id)[2]).toBe('freezeStart')
     const moved = state(s)
     expect(moveMilestone(s, ROLLOUT_ID, 'mappingSignedOff', -1)).toBe(true)
     expect(moveMilestone(s, ROLLOUT_ID, 'legacyDecommissioned', 1)).toBe(true)
@@ -816,18 +848,6 @@ describe('milestone sets (#213)', () => {
       anchoredChanges: [],
     })
   })
-
-  /** Reconciliation, used by a site's date and actual, two waves and an archetype. */
-  function reconciliationInUse(): ModelStore {
-    const workspace = rolloutWorkspace(160)
-    const rollout = rolloutPlanOf(workspace.elements.find((e) => e.id === ROLLOUT_ID))!
-    rollout.archetypes.find((a) => a.id === 'plant')!.durations!.reconciliationSignedOff = 7
-    const site = rollout.sites.find((candidate) => candidate.location === siteId(1))!
-    site.actuals = { ...site.actuals, reconciliationSignedOff: '2027-03-04' }
-    const five = rollout.sites.find((candidate) => candidate.location === siteId(5))!
-    five.milestones = { reconciliationSignedOff: { date: '2027-05-01', precision: 'month' } }
-    return new ModelStore(workspace)
-  }
 
   it('deletes a milestone with every date and duration for it, as one command one undo puts back', () => {
     const s = reconciliationInUse()
@@ -868,6 +888,122 @@ describe('milestone sets (#213)', () => {
       { id: 'cutover2', label: 'C', startsPhase: 'cutover' },
     ] as const
     expect(milestoneIdFor('Cutover', [...taken])).toBe('cutover3')
+  })
+
+  it('keeps the letters of any script in an id: “Übergabe” is übergabe', () => {
+    expect(milestoneIdFor('Übergabe', [])).toBe('übergabe')
+    expect(milestoneIdFor('Go-live Zürich 2', [])).toBe('goLiveZürich2')
+    expect(milestoneIdFor('Constructor', [])).toBe('constructor')
+  })
+})
+
+describe('the history names the milestone each command touched (#229 review)', () => {
+  const label = (s: ModelStore) => s.history.at(-1)!.label
+  const ROLLOUT = '“Local data to the central lake”'
+
+  it('adding, editing and moving a milestone', () => {
+    const s = store()
+    addMilestone(s, ROLLOUT_ID, { label: 'Go/no-go', startsPhase: 'preparing' })
+    expect(label(s)).toBe(`Added milestone “Go/no-go” to ${ROLLOUT}`)
+    updateMilestone(s, ROLLOUT_ID, 'freezeStart', { label: 'Freeze' })
+    expect(label(s)).toBe(`Updated milestone “Freeze” of ${ROLLOUT}`)
+    updateMilestone(s, ROLLOUT_ID, 'freezeStart', {
+      date: { date: '2027-07-01', precision: 'quarter' },
+    })
+    expect(label(s)).toBe(`Updated milestone “Freeze” of ${ROLLOUT}`)
+    moveMilestone(s, ROLLOUT_ID, 'freezeStart', 1)
+    expect(label(s)).toBe(
+      `Moved milestone “Freeze” after “Reconciliation signed off” in ${ROLLOUT}`,
+    )
+    // Moving the other one earlier is the same swap, and says the same.
+    moveMilestone(s, ROLLOUT_ID, 'freezeStart', -1)
+    expect(label(s)).toBe(
+      `Moved milestone “Reconciliation signed off” after “Freeze” in ${ROLLOUT}`,
+    )
+  })
+
+  it('deleting a milestone nothing else uses', () => {
+    const s = store()
+    removeMilestone(s, ROLLOUT_ID, 'legacyDecommissioned')
+    expect(label(s)).toBe(`Deleted milestone “Legacy decommissioned” from ${ROLLOUT}`)
+  })
+
+  it('deleting a milestone with its sites’, waves’ and archetypes’ dates, which is a batch', () => {
+    const s = reconciliationInUse()
+    removeMilestone(s, ROLLOUT_ID, 'reconciliationSignedOff')
+    expect(s.history.at(-1)!.command.kind).toBe('batch')
+    expect(label(s)).toBe(
+      `Deleted milestone “Reconciliation signed off” from ${ROLLOUT}, with its dates on 2 sites and 2 waves and its duration in 1 archetype`,
+    )
+  })
+
+  it('deleting a milestone only waves date, and one only an archetype spaces', () => {
+    const s = store()
+    removeMilestone(s, ROLLOUT_ID, 'reconciliationSignedOff')
+    expect(label(s)).toBe(
+      `Deleted milestone “Reconciliation signed off” from ${ROLLOUT}, with its dates on 2 waves`,
+    )
+    const t = store()
+    removeMilestone(t, ROLLOUT_ID, 'constructor')
+    expect(label(t)).toBe(
+      `Deleted milestone “Constructor” from ${ROLLOUT}, with its dates on 21 sites and 2 waves and its duration in 1 archetype`,
+    )
+  })
+
+  it('setting or clearing a site’s own dates', () => {
+    const s = store()
+    setSiteMilestones(s, ROLLOUT_ID, siteId(4), { freezeStart: null })
+    expect(label(s)).toBe(`Updated the “Freeze starts” date of 1 site in ${ROLLOUT}`)
+    setSiteMilestones(s, ROLLOUT_ID, siteId(4), {
+      constructor: { date: '2027-04-01', precision: 'month' },
+      hypercareEnd: { date: '2027-07-01', precision: 'quarter' },
+    })
+    expect(label(s)).toBe(
+      `Updated the “Constructor” and “Hypercare ends” dates of 1 site in ${ROLLOUT}`,
+    )
+  })
+
+  it('reads any other batch, and any other plan change, as before', () => {
+    const s = store()
+    updateWave(s, waveId(1), { capacity: 9 })
+    expect(label(s)).toBe('Updated plan of “Wave 1”')
+    assignSites(s, ROLLOUT_ID, [siteId(17)], waveId(1))
+    expect(label(s)).toBe(`Updated plan of ${ROLLOUT}`)
+    const rollout = s.element(ROLLOUT_ID)!
+    const wave = s.element(waveId(1))!
+    expect(
+      describeCommand({
+        kind: 'batch',
+        commands: [
+          { kind: 'update-element', before: rollout, after: { ...rollout, name: 'Renamed' } },
+          { kind: 'update-element', before: wave, after: wave },
+        ],
+      }),
+    ).toBe('2 changes')
+    // A milestone's deletion batched with anything but its waves' updates is
+    // not one this app makes, and is not named as one.
+    const removed = { ...rollout, plan: { ...plan(s), milestones: plan(s).milestones.slice(1) } }
+    expect(
+      describeCommand({
+        kind: 'batch',
+        commands: [
+          { kind: 'update-element', before: rollout, after: removed },
+          { kind: 'update-element', before: wave, after: wave },
+        ],
+      }),
+    ).toBe(
+      'Deleted milestone “Mapping signed off” from “Local data to the central lake”, with its dates on 29 sites and 1 wave',
+    )
+    const site = s.element(siteId(1))!
+    expect(
+      describeCommand({
+        kind: 'batch',
+        commands: [
+          { kind: 'update-element', before: rollout, after: removed },
+          { kind: 'update-element', before: site, after: { ...site, name: 'Renamed' } },
+        ],
+      }),
+    ).toBe('2 changes')
   })
 })
 

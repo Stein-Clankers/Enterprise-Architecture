@@ -300,3 +300,15 @@ export function usageText(usage: MilestoneUsage): string {
   const verb = parts.length === 1 && list.startsWith('1 ') ? 'has' : 'have'
   return `${list} ${verb} dates or durations for it, which are deleted with it. Undo brings them back.`
 }
+
+/**
+ * Why a milestone cannot be deleted, and what to do instead. The app has no
+ * template editor yet (#214 validates template references, #60 brings change
+ * sets), so the only place to re-anchor a template change is the model's
+ * file: the sentence says so, rather than asking for something the app
+ * cannot do (#229 review, finding 9; ADR 0016 point 8).
+ */
+export function blockedText(label: string, anchoredChanges: readonly string[]): string {
+  const one = anchoredChanges.length === 1
+  return `“${label}” cannot be deleted: the template ${one ? 'change' : 'changes'} ${anchoredChanges.join(', ')} ${one ? 'is' : 'are'} dated from it. The template can only be edited in the model’s file for now: date ${one ? 'it' : 'them'} from another milestone there, then delete this one.`
+}

@@ -1,9 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { addDays, dayStart, type PlanDate, type RolloutPlan, type WavePlan } from './plan'
+import {
+  addDays,
+  dayStart,
+  formatPlanDate,
+  type PlanDate,
+  type RolloutPlan,
+  type WavePlan,
+} from './plan'
 import { ROLLOUT_PRESETS, presetPlan } from './presets'
 import {
   deriveSitePhase,
   overdueMilestones,
+  phaseInputs,
   resolveSiteMilestones,
   siteStatus,
   switchMilestone,
@@ -107,10 +115,23 @@ describe('the derived site phase (#213)', () => {
     expect(deriveSitePhase(generic(dates, actuals), true, at(t))).toBe(phase)
   })
 
-  it('is Unplanned for a site in no wave, whatever its dates say', () => {
-    const inputs = generic(GENERIC_DATES, { readiness: '2027-02-01' })
+  // ADR 0016 point 4, amended 2026-10-28: a site in no wave is Unplanned only
+  // while it has reached no actual date; then its phase follows its actuals.
+  it('is Unplanned for a site in no wave with no actual date, whatever its planned dates say', () => {
+    const inputs = generic(GENERIC_DATES)
     expect(deriveSitePhase(inputs, false, at('2027-06-01'))).toBe('unplanned')
     expect(deriveSitePhase(inputs, true, at('2027-06-01'))).toBe('migrated')
+  })
+
+  it('follows the actual dates of a site in no wave, and only those', () => {
+    // An actual cutover: Hypercare from that day, Unplanned the day before.
+    const cutover = generic({}, { cutover: '2027-04-20' })
+    expect(deriveSitePhase(cutover, false, at('2027-04-19'))).toBe('unplanned')
+    expect(deriveSitePhase(cutover, false, at('2027-04-20'))).toBe('hypercare')
+    // Its planned dates are past, and do not count: only the actual readiness does.
+    const planned = generic(GENERIC_DATES, { readiness: '2027-02-01' })
+    expect(deriveSitePhase(planned, false, at('2027-06-01'))).toBe('preparing')
+    expect(deriveSitePhase(planned, true, at('2027-06-01'))).toBe('migrated')
   })
 
   it('reaches a quarter-precision milestone on the first day of its quarter', () => {
@@ -285,6 +306,80 @@ describe('resolving a site’s milestone dates (#213, ADR 0016)', () => {
       wave(),
     )
     expect(resolvedOf(resolved, 'hypercareEnd').planned).toEqual(day('2027-05-12'))
+  })
+
+  it('derives the phase of a spaced date from the chain’s exact day, and shows it at the anchor’s precision', () => {
+    // The #229 review's example: a wave that says only `readiness: 2027-Q3`,
+    // the generic preset, the Standard archetype. Every later milestone is
+    // shown as 2027-Q3 (legacy retired, 90 days after hypercare, as Q4); were
+    // each reached on its period's first day, the site would read Migrated on
+    // 1 July and Done on 1 October, before any cutover.
+    const plan = rollout()
+    const site = { location: 'l', archetype: 'standard' }
+    const q3 = wave({ readiness: { date: '2027-07-01', precision: 'quarter' } })
+    const shown = resolveSiteMilestones(plan, site, q3).map((entry) =>
+      formatPlanDate(entry.planned!),
+    )
+    expect(shown).toEqual(['2027-Q3', '2027-Q3', '2027-Q3', '2027-Q3', '2027-Q4'])
+    // Readiness is the wave's own date, so it is reached on the quarter's
+    // first day; go/no-go is 28 days on (29 July), cutover 7 more (5 August),
+    // hypercare end 28 more (2 September), legacy retired 90 more (1 December).
+    const phase = (t: string) => siteStatus(plan, site, q3, at(t)).phase
+    expect(phase('2027-06-30')).toBe('planned')
+    expect(phase('2027-07-01')).toBe('preparing')
+    expect(phase('2027-08-04')).toBe('preparing')
+    expect(phase('2027-08-05')).toBe('hypercare')
+    expect(phase('2027-09-02')).toBe('migrated')
+    expect(phase('2027-10-01')).toBe('migrated')
+    expect(phase('2027-12-01')).toBe('done')
+  })
+
+  it('flags a spaced date overdue only once the period it is shown at has ended', () => {
+    const plan = rollout()
+    const site = { location: 'l', archetype: 'standard' }
+    const q3 = wave({ readiness: { date: '2027-07-01', precision: 'quarter' } })
+    // Hypercare end's exact day is 2 September, but it is shown as 2027-Q3.
+    expect(siteStatus(plan, site, q3, at('2027-09-30')).overdue).toBe(false)
+    expect(siteStatus(plan, site, q3, at('2027-10-01')).overdue).toBe(true)
+  })
+
+  it('carries the spaced date’s exact day into the phase inputs, and nothing for a set one', () => {
+    const resolved = resolveSiteMilestones(
+      rollout(),
+      { location: 'l', archetype: 'standard' },
+      wave({ readiness: { date: '2027-07-01', precision: 'quarter' } }),
+    )
+    expect(phaseInputs(resolved).map((input) => input.spacedDay)).toEqual([
+      undefined,
+      '2027-07-29',
+      '2027-08-05',
+      '2027-09-02',
+      '2027-12-01',
+    ])
+  })
+
+  it('a site in no wave is never overdue, and follows its actual cutover (ADR 0016, amended)', () => {
+    const plan = rollout()
+    plan.milestones = plan.milestones.map((milestone) => ({
+      ...milestone,
+      date: day(GENERIC_DATES[milestone.id as keyof typeof GENERIC_DATES]),
+    }))
+    // Past rollout dates and no actual: Unplanned, not overdue. The same site
+    // in a wave is both Migrated and overdue, so it is the wave that decides.
+    expect(siteStatus(plan, { location: 'l' }, undefined, at('2027-06-01'))).toMatchObject({
+      phase: 'unplanned',
+      overdue: false,
+    })
+    expect(siteStatus(plan, { location: 'l' }, wave(), at('2027-06-01'))).toMatchObject({
+      phase: 'migrated',
+      overdue: true,
+    })
+    // An actual cutover: its phase follows it, and it is still not overdue.
+    const cutover = { location: 'l', actuals: { cutover: '2027-04-20' } }
+    expect(siteStatus(plan, cutover, undefined, at('2027-06-01'))).toMatchObject({
+      phase: 'hypercare',
+      overdue: false,
+    })
   })
 
   it('reads the site’s actual dates into the phase', () => {

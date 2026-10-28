@@ -1,4 +1,5 @@
 import type { Element, PlanDate, Relationship, SitePlan, Workspace } from '@/model'
+import { setKey } from '@/io/records'
 import { smallWorkspace } from './fixtures'
 
 export const ROLLOUT_ID = 'wp-rollout-data'
@@ -23,6 +24,17 @@ export function siteId(n: number): string {
  * sites, both archetypes, every kind of template change, both kinds of entry
  * date and every applicability rule. Deterministic, built from the site number
  * alone, so a round trip that changes one byte is a real change.
+ *
+ * **One milestone's id is `constructor`**, a member of `Object.prototype`:
+ * the id the app makes from the label "Constructor". Every record kept by
+ * milestone id (a site's dates and actuals, a wave's dates, an archetype's
+ * durations) holds it somewhere and lacks it somewhere else, so every screen,
+ * the workbook and both file formats meet a lookup that would find
+ * `Object.prototype`'s member on every run (#229 review, finding 1: such a
+ * milestone blanked the rollout screen). Office's durations have it and
+ * Plant's lack it, so a Plant site in W2 or W3, whose Constructor is spaced
+ * back from its wave's freeze, looks up a duration for `constructor` that it
+ * must not find before Mapping signed off.
  */
 export function rolloutWorkspace(siteCount = 160): Workspace {
   const base = smallWorkspace()
@@ -46,6 +58,8 @@ export function rolloutWorkspace(siteCount = 160): Workspace {
       templateVersion: 2,
       milestones: [
         { id: 'mappingSignedOff', label: 'Mapping signed off', startsPhase: 'preparing' },
+        // A member of Object.prototype, on purpose: see the docblock.
+        { id: 'constructor', label: 'Constructor', startsPhase: 'preparing' },
         { id: 'freezeStart', label: 'Freeze starts', startsPhase: 'cutover' },
         {
           id: 'reconciliationSignedOff',
@@ -126,7 +140,7 @@ export function rolloutWorkspace(siteCount = 160): Workspace {
       },
       archetypes: [
         { id: 'plant', label: 'Plant', durations: { freezeStart: 42, hypercareEnd: 28 } },
-        { id: 'office', label: 'Office' },
+        { id: 'office', label: 'Office', durations: { constructor: 14 } },
       ],
       sites,
     },
@@ -190,8 +204,14 @@ export function rolloutWorkspace(siteCount = 160): Workspace {
       milestones.mappingSignedOff = { date: '2027-03-01', precision: 'month' }
       milestones.hypercareEnd = { date: `2027-07-${pad((n % 28) + 1)}`, precision: 'day' }
     }
+    // `milestones.constructor = …` would type as Object's own member.
+    if (n % 8 === 0) setKey(milestones, 'constructor', { date: '2027-04-01', precision: 'month' })
+    // A Plant site in W3 that sets its mapping: Constructor follows it, so the
+    // forward spacing looks up Plant's duration for `constructor`, which it lacks.
+    if (n === 14) milestones.mappingSignedOff = { date: '2027-06-01', precision: 'month' }
     if (Object.keys(milestones).length) site.milestones = milestones
     if (n <= 2) site.actuals = { mappingSignedOff: '2027-02-12', freezeStart: `2027-03-0${n + 1}` }
+    if (n === 1) setKey(site.actuals!, 'constructor', '2027-02-15')
     if (n % 5 === 0) site.rag = n % 10 === 0 ? 'amber' : 'green'
     if (n === 7) site.rag = 'red'
     if (n % 11 === 0) {
@@ -223,6 +243,7 @@ function waveMilestones(w: number): { milestones?: Record<string, PlanDate> } {
       return {
         milestones: {
           mappingSignedOff: day('2027-01-11'),
+          constructor: day('2027-02-01'),
           freezeStart: day('2027-02-22'),
           reconciliationSignedOff: day('2027-03-01'),
           hypercareEnd: day('2027-03-29'),
@@ -232,6 +253,7 @@ function waveMilestones(w: number): { milestones?: Record<string, PlanDate> } {
       return {
         milestones: {
           mappingSignedOff: day('2027-04-05'),
+          constructor: day('2027-04-19'),
           freezeStart: day('2027-05-17'),
           reconciliationSignedOff: day('2027-05-24'),
           hypercareEnd: day('2027-06-21'),
