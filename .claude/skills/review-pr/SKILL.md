@@ -42,6 +42,12 @@ Where the diff touches them, verify the CLAUDE.md invariants:
 
   **A fixture that hard-codes the expected answer is not a test.** #28's trace panel reads cost from the wrong place entirely (an element property, against ADR 0001), and its assertion passes only because the bundled demo XML happens to carry that exact string. When an assertion's expected value also appears in the fixture, check which one is the source of truth.
 
+  **An attribute, a count or a `data-*` read is satisfied by an element nobody can see.** Assert `toBeVisible()` on the text the criterion is about, and check every fixed-track grid against its container's minimum width. #229's register gave its writer columns 716 px of fixed tracks, 9 gaps and padding inside `min-width: 860px`, which left Site and Region 0 px wide at 1280×720. Every journey passed, because none of them looked at a name (#233).
+
+  **A test of a fixed time point proves nothing while the real clock agrees with it.** Fake the clock, or pick a time point that today cannot reproduce. #228's journey asserted the pilot's phase "at 2026-10-23", and with `at` set to today it stayed green, because the phase would not differ until 2026-11-12.
+
+  **When a fix collapses two copies into one export, the test that held them equal can no longer fail; it goes with the copy.** #228's `expect(BUNDLED_ID).toBe(ROLLOUT_DEMO_ID)` compared one export with itself after the fix.
+
   **When a test's expected list repeats one value, ask what the consumer does with the equal values.** #229's own spacing test expected `Q1, Q1, Q1, Q1, Q2`, and nobody asked which phase four milestones in one quarter yield: since a date is reached on its period's first day, the site read Migrated before any cutover.
 
   **When a PR body ships a guard-removal table, re-run the rows whose guard has more than one predicate, and narrow rather than delete.** Deleting is what the author already did, and it proves only the weakest predicate. #228's table said `!touchesBlackout(d, addDays(d, freeze))` was caught, because deleting the call put a cutover *day* in a blackout. Narrowing it to `touchesBlackout(d, d)` left all 42 seeded-problem tests green on all seven seeds, so nothing pinned the freeze window.
