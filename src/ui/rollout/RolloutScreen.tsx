@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useModelSelector, useModelStoreContext } from '@/store'
-import type { Milestone } from '@/model'
+import { dayStart, isIsoDay, type Milestone } from '@/model'
 import { AddSitesDialog, WaveDialog } from './RolloutDialogs'
 import { MilestoneDialog, MilestoneSet } from './MilestoneSet'
 import { SiteDatesDialog } from './SiteDatesDialog'
@@ -20,7 +20,10 @@ import './rollout.css'
  * A rollout's home (#211, proposal §6 item 1) at `/rollout/:id`: its KPIs,
  * then the register, the board, the timeline and the milestone set as tabs.
  * The register derives each site's phase at today, taken once as the screen
- * mounts, so a phase does not change under the user between two renders.
+ * mounts, so a phase does not change under the user between two renders. A
+ * time point in the URL, `?at=2026-10-23`, takes its place, on every tab: the
+ * rollout demo opens at the day it is planned as of (#212). A value that is
+ * not a calendar day is ignored, and the screen stays at today.
  *
  * The route keys this screen on `id` (App.tsx), so going from one rollout to
  * another remounts it: no filter, selection, picked-up card or open dialog of
@@ -29,6 +32,9 @@ import './rollout.css'
  */
 
 export const TABS = ['register', 'board', 'timeline', 'milestones'] as const
+
+/** The search parameter holding the screen's time point, an ISO day. */
+export const TIME_POINT_PARAM = 'at'
 type Tab = (typeof TABS)[number]
 const TAB_LABELS: Record<Tab, string> = {
   register: 'Site register',
@@ -50,7 +56,10 @@ export function RolloutScreen() {
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const [today] = useState(() => Date.now())
-  const data = useModelSelector((store) => rolloutData(store, id, today), [id, today])
+  const atParam = params.get(TIME_POINT_PARAM)
+  const asOf = isIsoDay(atParam) ? atParam : undefined
+  const at = asOf === undefined ? today : dayStart(asOf)
+  const data = useModelSelector((store) => rolloutData(store, id, at), [id, at])
   const [dialog, setDialog] = useState<Dialog | null>(null)
   const addWaveRef = useRef<HTMLButtonElement>(null)
   const addMilestoneRef = useRef<HTMLButtonElement>(null)
@@ -167,6 +176,7 @@ export function RolloutScreen() {
             readOnly={readOnly}
             onOpen={openSite}
             onEditDates={(location) => setDialog({ kind: 'dates', location })}
+            {...(asOf ? { asOf } : {})}
           />
         )}
         {tab === 'board' && (
@@ -176,7 +186,7 @@ export function RolloutScreen() {
             onEditWave={(wave) => setDialog({ kind: 'wave', wave })}
           />
         )}
-        {tab === 'timeline' && <WaveTimeline data={data} />}
+        {tab === 'timeline' && <WaveTimeline data={data} {...(asOf ? { asOf } : {})} />}
         {tab === 'milestones' && (
           <MilestoneSet
             data={data}

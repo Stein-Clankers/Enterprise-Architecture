@@ -7,7 +7,7 @@
 
 - [ ] Build under test: `<commit SHA or Pages deployment>`
 - [ ] Test environment: `<local | preview | github-pages>`
-- [ ] Empty browser profile, then **Explore the demo**
+- [ ] Empty browser profile, then **Explore the demo** → **Insurance landscape**
 - [ ] Note the save-state indicator before you start — after loading the demo it reads
       **LOCAL · 1 UNSAVED**
 

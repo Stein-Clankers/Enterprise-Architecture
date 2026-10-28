@@ -21,7 +21,9 @@
 3. Read the note under the three actions — expected: it tells you how this browser saves.
    In Chrome/Edge it offers to write into a folder; in Firefox/Safari it says saves happen
    by downloading a file. Check it matches the browser you are actually in.
-4. Click **Explore the demo** — expected: the inventory appears within a second, showing
+4. Click **Explore the demo** — expected: two demos open beneath it, an insurance landscape
+   and a data-migration rollout, and the three actions stay three. Click **Insurance
+   landscape** — expected: the inventory appears within a second, showing
    **29 of 29 elements**, the left nav badge reads **29**, and the model-health block reads
    **29 elements · 47 relations**.
 5. Look at the save-state indicator in the header — expected: it reads **LOCAL · 1 UNSAVED**.

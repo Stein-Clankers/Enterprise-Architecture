@@ -24,6 +24,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSy
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { importArchimate } from '../src/io/archimate-native'
+import { fromCanonicalJson } from '../src/io/canonical-json'
 import { exportExchange, importExchangeXml } from '../src/io/exchange-format'
 import type { Workspace } from '../src/model'
 import { drawnWorkspace } from '../src/test/fixtures'
@@ -222,6 +223,26 @@ targets.push({ label: 'declared currency/date/time/number types, re-exported', p
   const againPath = join(work, 'rollout-round-tripped.xml')
   writeFileSync(againPath, exportExchange(imported(xml, 'rollout.xml')).xml)
   targets.push({ label: '160-site rollout, round-tripped', path: againPath })
+}
+
+// The generated rollout demo (#212), as "Explore the demo" loads it: its 160
+// site plans, waves and Location hierarchy written by us, and again after a
+// round trip.
+{
+  const demo = fromCanonicalJson(readFileSync('src/io/demo/rollout-demo.json', 'utf8'))
+  if (!demo.workspace) {
+    console.error(
+      '✗ src/io/demo/rollout-demo.json did not read, so nothing it covers was validated.',
+    )
+    process.exit(1)
+  }
+  const demoPath = join(work, 'rollout-demo.xml')
+  const { xml } = exportExchange(demo.workspace)
+  writeFileSync(demoPath, xml)
+  targets.push({ label: 'generated rollout demo, written by us', path: demoPath })
+  const againPath = join(work, 'rollout-demo-round-tripped.xml')
+  writeFileSync(againPath, exportExchange(imported(xml, 'rollout-demo.xml')).xml)
+  targets.push({ label: 'generated rollout demo, round-tripped', path: againPath })
 }
 
 // Directed associations and influence modifiers (#84), read from what Archi

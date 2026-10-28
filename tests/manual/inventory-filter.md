@@ -8,7 +8,7 @@
 
 - [ ] Build under test: `<commit SHA or Pages deployment>`
 - [ ] Test environment: `<local | preview | github-pages>`
-- [ ] Empty browser profile, then **Explore the demo** — every count below assumes the demo
+- [ ] Empty browser profile, then **Explore the demo** → **Insurance landscape** — every count below assumes the demo
       workspace (29 elements)
 
 ## Steps

@@ -232,12 +232,14 @@ export async function openApp(page: Page, path = ''): Promise<void> {
 
 /**
  * Seed the demo workspace **through the app's own import path**: the first-run
- * screen's "Explore the demo" parses the bundled exchange XML with the same
- * importer a user's file goes through. Nothing is injected into the store.
+ * screen's "Explore the demo", then its insurance landscape, parses the bundled
+ * exchange XML with the same importer a user's file goes through. Nothing is
+ * injected into the store.
  */
 export async function loadDemo(page: Page): Promise<void> {
   await openApp(page)
   await page.getByRole('button', { name: 'Explore the demo' }).click()
+  await page.getByRole('button', { name: /Insurance landscape/ }).click()
   await expect(page.getByRole('heading', { name: 'Inventory' })).toBeVisible()
   await expect(inventoryResult(page)).toContainText(`of ${DEMO.elements} elements`)
 }

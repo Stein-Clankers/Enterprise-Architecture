@@ -347,6 +347,7 @@ describe('creating an element', () => {
     renderApp(emptyWorkspace('ws-empty', 'Empty'))
     const user = userEvent.setup()
     await user.click(screen.getByRole('button', { name: /Explore the demo/ }))
+    await user.click(screen.getByRole('button', { name: /Insurance landscape/ }))
     await user.click(screen.getByRole('button', { name: '+ Element' }))
 
     await user.type(screen.getByLabelText(/Name/), 'Fraud Detection Service')
