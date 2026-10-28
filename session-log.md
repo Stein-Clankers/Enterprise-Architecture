@@ -1,5 +1,50 @@
 # Session Log
 
+## 2026-10-28 — #212 and #213 merged; ADR 0016 accepted and amended; #229 fix PR in progress
+
+- **#229 (#213), milestone sets, date inheritance and the derived site phase:** merged by the sponsor before its review finished.
+  - **ADR 0016** was accepted as written.
+  - **The post-merge review** found:
+    - **A crash, blocking:** a milestone labelled "Constructor" blanks the rollout screen, and the model is saved with it. The cause is a `record[id]` lookup that finds `Object.prototype` members.
+    - **Points 2 and 4 together:** a wave dated only to the quarter spaced every milestone into that quarter, so its sites read Migrated before any cutover.
+    - **Point 4:** a site in no wave read Unplanned even with an actual cutover.
+  - **The sponsor decided:**
+    - a spaced date's phase uses the chain's exact day, while overdue keeps the shown period;
+    - a site in no wave follows its actuals and is never overdue.
+
+    Both go into ADR 0016 as an amendment, in the fix PR.
+  - **The fix PR** is being written. It covers the prototype-key fix with a `constructor` milestone in the shared fixture, both amendments, and #233. Its title is "Fixes from the #229 review".
+- **#228 (#212), the generated 160-site demo:**
+  - **Contents:** 5 regions, 20 countries, 160 sites and 8 waves. Each wave is dated at its own precision: day, week, month or quarter.
+  - **Seeded problems:** four, for #214. A dependency-order problem waits for #214's dependencies.
+  - **The demo opens at its own as-of day** through `?at=`.
+  - **First review: request changes.** The freeze-window half of the blackout guard was untested.
+  - **Fixed;** the branch also adopted #213.
+  - **Re-review: ready.** The sponsor merged it, which closes #212 and #213.
+- **Harvested:**
+  - CLAUDE.md:
+    - a predicate over a span is two guards;
+    - a lookup by a key somebody else chose finds `Object.prototype`.
+  - Review skill:
+    - narrow a multi-predicate guard rather than delete it;
+    - a repeated expected value: ask what the consumer does with it;
+    - a post-merge review becomes a fix PR;
+    - assert visibility, not attributes, and check a fixed-track grid against its container;
+    - fake the clock for a fixed time point;
+    - a test of two collapsed copies goes with the copy.
+- **Filed:**
+  - #230: R3 template semantics. The demo retires each store twice and replaces the store, where §4.8 replaces the realization.
+  - #231: "Sites per region" lists countries.
+  - #232: first-run focus.
+  - #233: the register's 0 px columns for a writer, on `main` since #229.
+  - #234: #228's round-2 follow-ups.
+  - A line on #214 for the dependency-order problem the demo still lacks.
+- **Open:**
+  - review and merge the #229 fix PR;
+  - R2 continues with #214 (checks) and #215 (actuals);
+  - switch `rollout.spec.ts` and `rollout-workbook.spec.ts` and their fixtures to the demo;
+  - #208 and #210 still lack a LibreOffice-saved fixture.
+
 ## 2026-10-27 — #205 and #224 merged; #223 approved; rules harvested
 
 - **#205 (#52), the import dialog:** fixed and re-reviewed twice, then merged.
