@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { formatPlanDate } from '@/model'
+import { SITE_PHASE_LABELS, formatPlanDate } from '@/model'
 import { assignSites, unassignSites, useModelStore } from '@/store'
 import { LIST_WINDOW } from '@/ui/inventory/list-window'
 import { WaveHeading } from './WaveHeading'
 import {
   RAG_TOKENS,
+  SITE_PHASE_TOKENS,
+  sourceText,
   waveHeading,
   type RolloutData,
   type SiteRow,
@@ -15,19 +17,21 @@ import {
 /**
  * The site register (#211, proposal §6 item 2): the inventory table scoped to
  * the rollout's Locations, with the rollout's columns: wave, archetype,
- * cutover and RAG. It is the inventory's table, in its classes and its
+ * cutover, the derived phase today, and RAG. It is the inventory's table, in its classes and its
  * virtualisation above `LIST_WINDOW`, with a selection column in front.
  *
  * **Assigning the selection to a wave is one command**, however many sites
  * are selected: one undo puts every one of them back. A reader has no
  * selection column and no bulk bar, and becoming one clears the selection.
  *
- * Cutover is a site's own date for the milestone that starts the cutover
- * phase. Inherited dates are #213's, so a site that sets none shows `—`.
+ * Cutover is the site's resolved date for the milestone it switches over at
+ * (`switchMilestone`), and says whether the site sets it or inherits it
+ * (#213). The phase is derived at today, never stored; a writer's Dates
+ * button opens the site's own dates.
  */
 
-const COLUMNS_WRITER = '28px 72px minmax(0,1.6fr) 120px 110px 108px 72px minmax(0,1fr)'
-const COLUMNS_READER = '72px minmax(0,1.6fr) 120px 110px 108px 72px minmax(0,1fr)'
+const COLUMNS_WRITER = '28px 72px minmax(0,1.6fr) 100px 100px 150px 130px 72px minmax(0,1fr) 64px'
+const COLUMNS_READER = '72px minmax(0,1.6fr) 100px 100px 150px 130px 72px minmax(0,1fr)'
 
 /**
  * The selects' values. A wave's is its id behind a prefix, and the two
@@ -46,10 +50,12 @@ export function SiteRegister({
   data,
   readOnly,
   onOpen,
+  onEditDates,
 }: {
   data: RolloutData
   readOnly: boolean
   onOpen: (locationId: string) => void
+  onEditDates: (locationId: string) => void
 }) {
   const store = useModelStore()
   const [query, setQuery] = useState('')
@@ -129,8 +135,10 @@ export function SiteRegister({
       readOnly={readOnly}
       selected={selected.has(site.location)}
       wave={site.wave === undefined ? undefined : waves.get(site.wave)}
+      milestones={data.plan.milestones}
       onToggle={() => toggle(site.location)}
       onOpen={onOpen}
+      onEditDates={onEditDates}
     />
   )
 
@@ -233,8 +241,10 @@ export function SiteRegister({
           <span>Wave</span>
           <span>Archetype</span>
           <span>Cutover</span>
+          <span>Phase today</span>
           <span>RAG</span>
           <span>Region</span>
+          {!readOnly && <span />}
         </div>
         {shown.length === 0 ? (
           <p className="table__empty">
@@ -276,17 +286,22 @@ function RegisterRow({
   readOnly,
   selected,
   wave,
+  milestones,
   onToggle,
   onOpen,
+  onEditDates,
 }: {
   site: SiteRow
   columns: string
   readOnly: boolean
   selected: boolean
   wave: WaveColumn | undefined
+  milestones: RolloutData['plan']['milestones']
   onToggle: () => void
   onOpen: (locationId: string) => void
+  onEditDates: (locationId: string) => void
 }) {
+  const cutover = site.cutover?.planned ? site.cutover : undefined
   return (
     <div
       className={`table__row register__row${selected ? ' table__row--selected' : ''}`}
@@ -318,8 +333,26 @@ function RegisterRow({
         <span className="register__mono mono">—</span>
       )}
       <span className="table__secondary">{site.archetype ?? '—'}</span>
-      <span className="register__mono mono">
-        {site.cutover ? formatPlanDate(site.cutover) : '—'}
+      {cutover?.planned ? (
+        <span
+          className="register__date"
+          data-source={cutover.source}
+          title={`${cutover.milestone.label}: ${sourceText(cutover, wave ? waveHeading(wave).text : undefined, milestones)}`}
+        >
+          <span className="mono">{formatPlanDate(cutover.planned)}</span>
+          <PlanSource set={cutover.source === 'site'} />
+        </span>
+      ) : (
+        <span className="register__mono mono">—</span>
+      )}
+      <span className="register__phase" data-phase={site.phase}>
+        <span
+          className="register__phase-dot"
+          style={{ background: SITE_PHASE_TOKENS[site.phase] }}
+          aria-hidden="true"
+        />
+        {SITE_PHASE_LABELS[site.phase]}
+        {site.overdue && <span className="register__overdue mono">OVERDUE</span>}
       </span>
       <span className="register__rag mono">
         {site.rag ? (
@@ -336,6 +369,25 @@ function RegisterRow({
         )}
       </span>
       <span className="table__secondary">{site.region ?? '—'}</span>
+      {!readOnly && (
+        <button
+          type="button"
+          className="register__dates"
+          aria-label={`Dates of ${site.code ?? site.name}`}
+          onClick={() => onEditDates(site.location)}
+        >
+          Dates
+        </button>
+      )}
     </div>
+  )
+}
+
+/** Whether a date is the site's own or inherited: said in words, never by colour alone (#213). */
+export function PlanSource({ set }: { set: boolean }) {
+  return (
+    <span className={`plan-source${set ? ' plan-source--set' : ''}`}>
+      {set ? 'set' : 'inherited'}
+    </span>
   )
 }

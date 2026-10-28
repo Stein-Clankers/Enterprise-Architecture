@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { rolloutPlanOf, wavePlanOf, type Element, type View, type Workspace } from '@/model'
+import {
+  resolveSiteMilestones,
+  rolloutPlanOf,
+  wavePlanOf,
+  type Element,
+  type View,
+  type Workspace,
+} from '@/model'
 import { fixtureBytes } from '@/test/fixture-bytes'
 import { ROLLOUT_ID, rolloutWorkspace, siteId, waveId } from '@/test/rollout-fixture'
 import { ModelStore, ReadOnlyModelError } from '@/store/model-store'
@@ -230,12 +237,13 @@ function countsOf(dryRun: RolloutImportPlan) {
 // ── Export ───────────────────────────────────────────────────────────────────
 
 describe('the exported workbook (#210)', () => {
-  it('holds Sites, Waves, SitePlan and Template, technical keys in row 1 and labels in row 2', () => {
+  it('holds Sites, Waves, SitePlan, Milestones and Template, technical keys in row 1 and labels in row 2', () => {
     const workbook = exported()
     expect(workbook.sheets.map((sheet) => sheet.name)).toEqual([
       'Sites',
       'Waves',
       'SitePlan',
+      'Milestones',
       'Template',
     ])
     const keys = (name: string) =>
@@ -249,7 +257,13 @@ describe('the exported workbook (#210)', () => {
       'windowEnd',
       'capacity',
       'templateVersion',
+      'milestone.mappingSignedOff',
+      'milestone.freezeStart',
+      'milestone.reconciliationSignedOff',
+      'milestone.hypercareEnd',
+      'milestone.legacyDecommissioned',
     ])
+    expect(keys('Milestones')).toEqual(['id', 'label', 'startsPhase', 'date'])
     expect(keys('SitePlan')).toEqual([
       'location',
       'name',
@@ -262,7 +276,13 @@ describe('the exported workbook (#210)', () => {
       'milestone.hypercareEnd',
       'milestone.legacyDecommissioned',
     ])
-    expect(sheetOf(workbook, 'SitePlan').rows[1]![6]).toEqual(textCell('Freeze starts (planned)'))
+    // Each date column says whose date it is: a site's own, or one its sites inherit.
+    expect(sheetOf(workbook, 'SitePlan').rows[1]![6]).toEqual(
+      textCell('Freeze starts (set at the site; blank: inherit)'),
+    )
+    expect(sheetOf(workbook, 'Waves').rows[1]![8]).toEqual(
+      textCell('Freeze starts (its sites inherit this)'),
+    )
     expect(sheetOf(workbook, 'Sites').rows[1]![3]).toEqual(textCell('Code'))
   })
 
@@ -285,6 +305,11 @@ describe('the exported workbook (#210)', () => {
         textCell('2027-03'),
         numberCell(5),
         numberCell(1),
+        textCell('2027-01-11'),
+        textCell('2027-02-22'),
+        textCell('2027-03-01'),
+        textCell('2027-03-29'),
+        EMPTY,
       ],
       [
         textCell(waveId(1)),
@@ -294,7 +319,19 @@ describe('the exported workbook (#210)', () => {
         textCell('2027-06'),
         EMPTY,
         numberCell(2),
+        textCell('2027-04-05'),
+        textCell('2027-05-17'),
+        textCell('2027-05-24'),
+        textCell('2027-06-21'),
+        EMPTY,
       ],
+    ])
+    // The milestone set, read-only, with the rollout's own date for the last one.
+    expect(sheetOf(workbook, 'Milestones').rows.at(-1)).toEqual([
+      textCell('legacyDecommissioned'),
+      textCell('Legacy decommissioned'),
+      textCell('done'),
+      textCell('2028-Q4'),
     ])
     // Site 12: a wave, no archetype, no RAG, a month, a week and a day override.
     expect(sheetOf(workbook, 'SitePlan').rows[2 + 11]).toEqual([
@@ -1159,7 +1196,13 @@ describe('what an import reads, and what it leaves alone', () => {
     set(workbook, 'Waves', waveId(1), 'order', numberCell(7))
     set(workbook, 'Waves', waveId(1), 'windowStart', textCell('2027-W14'))
     set(workbook, 'Waves', waveId(1), 'templateVersion', numberCell(1))
+    // A milestone is read by its form, and a blank deletes the wave's date.
+    set(workbook, 'Waves', waveId(1), 'milestone.freezeStart', textCell('2027-W21'))
+    set(workbook, 'Waves', waveId(1), 'milestone.legacyDecommissioned', textCell('2027-Q4'))
+    set(workbook, 'Waves', waveId(1), 'milestone.hypercareEnd', EMPTY)
+    set(workbook, 'Waves', waveId(1), 'milestone.reconciliationSignedOff', EMPTY)
     const { dryRun, after } = commit(workspace(), workbook)
+    expect(dryRun.problems).toEqual([])
     expect(dryRun.tallies.waves).toEqual(tallied({ updated: 1, unchanged: 4 }))
     expect(wavePlan(after, waveId(1))).toEqual({
       kind: 'wave',
@@ -1171,6 +1214,11 @@ describe('what an import reads, and what it leaves alone', () => {
         end: { date: '2027-06-01', precision: 'month' },
       },
       templateVersion: 1,
+      milestones: {
+        mappingSignedOff: { date: '2027-04-05', precision: 'day' },
+        freezeStart: { date: '2027-05-24', precision: 'week' },
+        legacyDecommissioned: { date: '2027-10-01', precision: 'quarter' },
+      },
     })
   })
 
@@ -1434,5 +1482,101 @@ describe('the e2e journey’s fixture', () => {
     // Written by scripts/fixtures/build-rollout-workspace.ts: regenerate, never edit.
     const file = new TextDecoder().decode(fixtureBytes('rollout-workspace.json'))
     expect(file).toBe(toCanonicalJson(rolloutWorkspace(8)))
+  })
+})
+
+describe('milestone dates in the workbook (#213)', () => {
+  const cellOf = (workbook: Workbook<ReadCell>, name: string, id: string, key: string) => {
+    const sheet = sheetOf(workbook, name)
+    return sheet.rows[rowOf(sheet, id)]![columnOf(sheet, key)]
+  }
+
+  it('shows rolling elaboration: the next wave to the day, later waves to the quarter', async () => {
+    const workbook = await exportedFile()
+    expect(cellOf(workbook, 'Waves', waveId(1), 'milestone.freezeStart')).toEqual(
+      textCell('2027-05-17'),
+    )
+    expect(cellOf(workbook, 'Waves', waveId(2), 'milestone.freezeStart')).toEqual(
+      textCell('2027-Q3'),
+    )
+    expect(cellOf(workbook, 'Waves', waveId(3), 'milestone.freezeStart')).toEqual(
+      textCell('2027-Q4'),
+    )
+  })
+
+  it('a blank site cell clears its override, so the site inherits its wave’s date again', async () => {
+    const model = workspace()
+    const store = new ModelStore(model)
+    // Site 4 is in W1 and sets its own freeze, at week precision.
+    const site = siteId(4)
+    const status = () => {
+      const plan = rolloutPlanOf(store.element(ROLLOUT_ID))!
+      const own = plan.sites.find((candidate) => candidate.location === site)!
+      return resolveSiteMilestones(plan, own, wavePlanOf(store.element(own.wave!))).find(
+        (resolved) => resolved.milestone.id === 'freezeStart',
+      )
+    }
+    expect(status()).toMatchObject({
+      source: 'site',
+      planned: { date: '2027-05-10', precision: 'week' },
+    })
+    const workbook = await exportedFile(model)
+    set(workbook, 'SitePlan', site, 'milestone.freezeStart', EMPTY)
+    const dryRun = planRolloutImport(store.snapshot(), ROLLOUT_ID, workbook, counter(), FILE)
+    expect(dryRun.problems).toEqual([])
+    applyRolloutImport(store, dryRun)
+    expect(sitePlan(store.snapshot(), site)?.milestones?.freezeStart).toBeUndefined()
+    expect(status()).toMatchObject({
+      source: 'wave',
+      planned: { date: '2027-05-17', precision: 'day' },
+    })
+  })
+
+  it('carries each precision by its text form, out and back', async () => {
+    const workbook = await exportedFile()
+    const forms = ['2027-Q3', '2027-08', '2027-W33', '2027-08-18'] as const
+    const ids = ['mappingSignedOff', 'freezeStart', 'reconciliationSignedOff', 'hypercareEnd']
+    forms.forEach((form, index) =>
+      set(workbook, 'SitePlan', siteId(1), `milestone.${ids[index]}`, textCell(form)),
+    )
+    const { dryRun, after } = commit(workspace(), workbook)
+    expect(dryRun.problems).toEqual([])
+    expect(sitePlan(after, siteId(1))?.milestones).toEqual({
+      mappingSignedOff: { date: '2027-07-01', precision: 'quarter' },
+      freezeStart: { date: '2027-08-01', precision: 'month' },
+      reconciliationSignedOff: { date: '2027-08-16', precision: 'week' },
+      hypercareEnd: { date: '2027-08-18', precision: 'day' },
+    })
+    const again = await exportedFile(after)
+    forms.forEach((form, index) =>
+      expect(cellOf(again, 'SitePlan', siteId(1), `milestone.${ids[index]}`)).toEqual(
+        textCell(form),
+      ),
+    )
+  })
+
+  it('does not read the Milestones sheet, and says so when it was edited', async () => {
+    const workbook = await exportedFile()
+    set(workbook, 'Milestones', 'freezeStart', 'label', textCell('Freeze'))
+    const { dryRun, before, after } = commit(workspace(), workbook)
+    expect(dryRun.problems).toEqual([
+      expect.objectContaining({
+        code: 'rollout-workbook.milestones-read-only',
+        sheet: 'Milestones',
+      }),
+    ])
+    expect(toCanonicalJson(after)).toBe(toCanonicalJson(before))
+  })
+
+  it('reports a Waves date column for no milestone of the rollout, and reads none of it', async () => {
+    const workbook = await exportedFile()
+    const sheet = sheetOf(workbook, 'Waves')
+    sheet.rows[0]!.push(textCell('milestone.goLive'))
+    sheet.rows[rowOf(sheet, waveId(1))]!.push(textCell('2027-05-03'))
+    const { dryRun, after } = commit(workspace(), workbook)
+    expect(dryRun.problems.map((problem) => problem.code)).toEqual([
+      'rollout-workbook.column-unknown',
+    ])
+    expect(wavePlan(after, waveId(1)).milestones).not.toHaveProperty('goLive')
   })
 })

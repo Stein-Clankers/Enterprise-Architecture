@@ -47,7 +47,11 @@ import { listed } from './exchange-xml'
 /** The plan profile in canonical shape. */
 export function canonicalPlan(plan: PlanProfile): Record<string, unknown> {
   if (plan.kind === 'wave') {
-    return prune({ ...plan, window: plan.window && prune({ ...plan.window }) })
+    return prune({
+      ...plan,
+      window: plan.window && prune({ ...plan.window }),
+      milestones: plan.milestones && prune({ ...plan.milestones }),
+    })
   }
   return prune({
     kind: plan.kind,
@@ -152,9 +156,13 @@ function readWavePlan(raw: Record<string, unknown>): PlanRead<WavePlan> {
     if (isPositiveInteger(raw.capacity)) plan.capacity = raw.capacity
     else dropped.push(`capacity ${JSON.stringify(raw.capacity)}`)
   }
+  if (raw.milestones !== undefined) {
+    const milestones = readRecord(raw.milestones, isPlanDate, 'milestones', dropped)
+    if (milestones) plan.milestones = milestones
+  }
   unknownKeys(
     raw,
-    ['kind', 'rollout', 'label', 'order', 'window', 'capacity', 'templateVersion'],
+    ['kind', 'rollout', 'label', 'order', 'window', 'capacity', 'templateVersion', 'milestones'],
     '',
     dropped,
   )

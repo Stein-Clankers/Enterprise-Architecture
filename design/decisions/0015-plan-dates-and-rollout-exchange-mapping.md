@@ -11,6 +11,8 @@ tags: [transformation, rollout, exchange-format, archimate]
 
 Amends ADR 0013 points 5 and 10.
 
+Point 3 is extended by [ADR 0016](0016-milestone-dates-and-site-phase.md): a wave's milestone dates travel under the same `archipelago.plan.milestone.<id>` key family.
+
 ## Context
 
 #209 put ADR 0013's rollouts, waves and site plans into the model and both file formats (PR #217). The PR made two file-format commitments that ADR 0013 leaves open. Each would need a migration to change later:

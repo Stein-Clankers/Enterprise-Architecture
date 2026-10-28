@@ -369,6 +369,13 @@
           "type": "integer",
           "minimum": 1,
           "description": "The template version the wave is locked to."
+        },
+        "milestones": {
+          "type": "object",
+          "description": "The dates the wave's sites inherit when they set none of their own, by milestone id.",
+          "additionalProperties": {
+            "$ref": "#/$defs/planDate"
+          }
         }
       }
     },
@@ -397,6 +404,10 @@
             "migrated",
             "done"
           ]
+        },
+        "date": {
+          "$ref": "#/$defs/planDate",
+          "description": "The rollout's own date for the milestone, which a site inherits when neither it nor its wave sets one."
         }
       }
     },

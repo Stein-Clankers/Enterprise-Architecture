@@ -3,7 +3,8 @@ import { test, expect, importWithNothingToReport, startEmpty } from './support'
 import type { Page } from '@playwright/test'
 
 /**
- * Journey — a 160-site rollout's register and wave board (#211).
+ * Journey — a 160-site rollout's register and wave board (#211), and its
+ * sites' phases and milestone dates (#213).
  *
  * The model is `src/io/fixtures/rollout-160.json`, written by
  * `scripts/fixtures/build-rollout-fixture.ts` from the unit tests' generator
@@ -161,4 +162,66 @@ test('a wave with no label is headed by its name, in the interface face', async 
   await expect(heading('wp-wave-1')).toHaveCSS('font-family', /JetBrains Mono/)
   await expect(heading('wp-wave-0')).not.toHaveCSS('font-family', /JetBrains Mono/)
   await expect(heading('wp-wave-0')).toHaveCSS('font-family', /Space Grotesk/)
+})
+
+/**
+ * #213: the derived site phase, coloured on the lifecycle ramp (ADR 0013
+ * point 9). The page's clock is fixed at 20 May 2027, so the fixture's sites
+ * stand in four phases: 001 Migrated (the pilot ended hypercare on 29 March),
+ * 004 Cutover (it froze on 10 May, W1 reconciles on 24 May), 005 Planned (W2
+ * freezes in Q3) and 017 Unplanned (no wave). Each swatch is read off the
+ * page against the others, which must all differ.
+ */
+test('colours each site’s phase on the lifecycle ramp, each against the others', async ({
+  page,
+}) => {
+  await page.clock.setFixedTime(new Date('2027-05-20T12:00:00Z'))
+  await openRollout(page)
+  const phase = (site: string) =>
+    page.locator(`.register__row[data-location="${site}"] .register__phase`)
+  const expected = {
+    'loc-site-001': ['migrated', '--lc-act'],
+    'loc-site-004': ['cutover', '--lc-in'],
+    'loc-site-005': ['planned', '--lc-plan'],
+    'loc-site-017': ['unplanned', '--ink2'],
+  } as const
+  const colours = new Set<string>()
+  for (const [site, [name, token]] of Object.entries(expected)) {
+    await expect(phase(site)).toHaveAttribute('data-phase', name)
+    const colour = await tokenColour(page, token)
+    await expect(phase(site).locator('.register__phase-dot')).toHaveCSS('background-color', colour)
+    colours.add(colour)
+  }
+  expect(colours.size).toBe(4)
+  await expect(phase('loc-site-004')).toContainText('OVERDUE')
+  await expect(phase('loc-site-005')).not.toContainText('OVERDUE')
+})
+
+test('the timeline expands a wave to its sites: W1 to the day, W2 to the quarter', async ({
+  page,
+}) => {
+  await openRollout(page)
+  await page.getByRole('button', { name: 'Timeline' }).click()
+  const expand = page.getByRole('group', { name: 'Show sites of' })
+  await expand.getByRole('button', { name: 'W1', exact: true }).click()
+  await expand.getByRole('button', { name: 'W2', exact: true }).click()
+
+  const tick = (site: string, milestone: string) =>
+    page.locator(`[data-site="${site}"] rect[data-milestone="${milestone}"]`)
+  const next = tick('loc-site-004', 'mappingSignedOff')
+  const later = tick('loc-site-005', 'freezeStart')
+  await expect(next).toHaveAttribute('data-precision', 'day')
+  await expect(later).toHaveAttribute('data-precision', 'quarter')
+  // The precision is what the picture shows: a quarter is a block, a day a sliver.
+  const width = async (locator: typeof next) => (await locator.boundingBox())!.width
+  expect(await width(later)).toBeGreaterThan(150)
+  expect(await width(next)).toBeLessThan(6)
+
+  // A set tick is filled in its phase's colour, an inherited one is an outline.
+  const within = await tokenColour(page, '--lc-in')
+  const own = tick('loc-site-004', 'freezeStart')
+  await expect(own).toHaveAttribute('data-source', 'site')
+  await expect(own).toHaveCSS('fill', within)
+  await expect(next).toHaveCSS('stroke', within)
+  await expect(next).not.toHaveCSS('fill', within)
 })

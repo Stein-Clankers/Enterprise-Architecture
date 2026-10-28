@@ -596,7 +596,9 @@ describe('a site whose wave the rollout does not have (#223)', () => {
     })
     const row = card(siteId(5))
     expect(row).toHaveTextContent(`Deleted Location · ${siteId(5)}`)
-    expect(within(row).queryByRole('button')).toBeNull()
+    // Its dates can still be edited; its name opens nothing.
+    expect(within(row).getByRole('button', { name: 'Dates of Deleted Location' })).toBeVisible()
+    expect(within(row).getAllByRole('button')).toHaveLength(1)
   })
 })
 

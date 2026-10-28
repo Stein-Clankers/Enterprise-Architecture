@@ -123,6 +123,26 @@ describe('the plan guards (#209)', () => {
     expect(isChangeEntry({ ...base, kind: 'rename' })).toBe(false)
   })
 
+  it('accept a rollout’s own milestone date and a wave’s, and refuse one that is no plan date (#213)', () => {
+    const milestone = { id: 'cutover', label: 'Cutover', startsPhase: 'cutover' }
+    expect(isMilestone({ ...milestone, date: { date: '2027-04-01', precision: 'quarter' } })).toBe(
+      true,
+    )
+    expect(isMilestone({ ...milestone, date: { date: '2027-04-02', precision: 'quarter' } })).toBe(
+      false,
+    )
+    expect(isMilestone({ ...milestone, date: { date: '2027-04-01', precision: '' } })).toBe(false)
+    const wave = { kind: 'wave', rollout: 'r', label: 'W1', order: 1, templateVersion: 1 }
+    expect(
+      isWavePlan({ ...wave, milestones: { cutover: { date: '2027-05-10', precision: 'week' } } }),
+    ).toBe(true)
+    expect(
+      isWavePlan({ ...wave, milestones: { cutover: { date: '2027-05-12', precision: 'week' } } }),
+    ).toBe(false)
+    expect(isWavePlan({ ...wave, milestones: { cutover: '2027-05-10' } })).toBe(false)
+    expect(isWavePlan({ ...wave, milestones: [] })).toBe(false)
+  })
+
   it('refuse an anchored date that is not a whole number of days', () => {
     expect(isAnchoredDate({ anchor: 'cutover', offsetDays: 30 })).toBe(true)
     expect(isAnchoredDate({ anchor: 'cutover', offsetDays: 1.5 })).toBe(false)

@@ -2,12 +2,13 @@ import {
   PLAN_ELEMENT_TYPE,
   archetypeIdOf,
   byLocation,
-  formatPlanDate,
   isIsoDay,
+  isMilestonePhase,
+  isPlanDate,
   isPlanDatePrecision,
   isRolloutPlan,
+  periodOf,
   isWindowInOrder,
-  parsePlanDate,
   isWavePlan,
   rolloutPlanOf,
   waveIdOf,
@@ -24,6 +25,8 @@ import {
   type WavePlan,
   type WaveWindow,
 } from '@/model'
+import { setKey } from '@/io/records'
+import type { Command } from './commands'
 import { newId } from './ids'
 import { ReadOnlyModelError, type ModelStore } from './model-store'
 
@@ -49,7 +52,7 @@ import { ReadOnlyModelError, type ModelStore } from './model-store'
  * there was nothing to change, which records no command.
  */
 
-/** What a new rollout starts with. Presets (#213) will fill these. */
+/** What a new rollout starts with: `presetPlan` fills the milestones and an archetype (#213). */
 export interface RolloutInput {
   name: string
   milestones?: Milestone[]
@@ -107,6 +110,8 @@ export interface WaveInput {
   order?: number
   window?: WaveWindow
   capacity?: number
+  /** The dates its sites inherit, by milestone id of the rollout. */
+  milestones?: Record<string, PlanDate>
 }
 
 /**
@@ -132,6 +137,10 @@ export function createWave(
   }
   if (input.window !== undefined) plan.window = input.window
   if (input.capacity !== undefined) plan.capacity = input.capacity
+  if (input.milestones !== undefined && Object.keys(input.milestones).length) {
+    if (!knowsMilestones(rollout, input.milestones)) return undefined
+    plan.milestones = { ...input.milestones }
+  }
   if (!isWavePlan(plan)) return undefined
   const wave: Element = {
     id: newId('el'),
@@ -186,6 +195,8 @@ export interface WaveChanges {
   label?: string
   window?: WaveWindow
   capacity?: number | null
+  /** The dates its sites inherit, replacing the wave's; `{}` clears them. */
+  milestones?: Record<string, PlanDate>
 }
 
 /**
@@ -212,6 +223,12 @@ export function updateWave(store: ModelStore, waveId: string, changes: WaveChang
   }
   if (changes.capacity === null) delete next.capacity
   else if (changes.capacity !== undefined) next.capacity = changes.capacity
+  if (changes.milestones !== undefined) {
+    const rollout = rolloutPlanOf(store.element(plan.rollout))
+    if (!rollout || !knowsMilestones(rollout, changes.milestones, plan.milestones)) return false
+    if (Object.keys(changes.milestones).length) next.milestones = { ...changes.milestones }
+    else delete next.milestones
+  }
   if (!isWavePlan(next)) return false
   if (
     next.window?.start &&
@@ -240,9 +257,7 @@ export function updateWave(store: ModelStore, waveId: string, changes: WaveChang
  */
 export function snapPlanDate(day: unknown, precision: unknown): PlanDate | undefined {
   if (!isIsoDay(day) || !isPlanDatePrecision(precision)) return undefined
-  // `formatPlanDate` names the period any day falls in, and `parsePlanDate`
-  // spells that period by its first day: the one pair ADR 0015 allows.
-  return parsePlanDate(formatPlanDate({ date: day, precision }))
+  return periodOf(day, precision)
 }
 
 /**
@@ -331,7 +346,295 @@ export function setArchetype(
   }))
 }
 
+// ── Milestone sets (#213) ────────────────────────────────────────────────────
+
+/** What the milestone dialog changes. `date: null` clears the rollout's own date. */
+export interface MilestoneChanges {
+  label?: string
+  startsPhase?: unknown
+  date?: PlanDate | null
+}
+
+/**
+ * Add a milestone at the end of the rollout's set, as one command. Its id is
+ * made from its label (`Go/no-go` is `goNoGo`) and is never changed after:
+ * the workbook's columns and the exchange format's keys are named by it. The
+ * phase comes from a form, so it goes through its guard: an empty `<select>`
+ * value adds nothing. Returns the new id, or `undefined` when refused.
+ */
+export function addMilestone(
+  store: ModelStore,
+  rolloutId: string,
+  input: { label: string; startsPhase: unknown; date?: PlanDate },
+): string | undefined {
+  assertWriter(store, 'add-milestone')
+  const rollout = store.element(rolloutId)
+  const plan = rolloutPlanOf(rollout)
+  if (!rollout || !plan || typeof input.label !== 'string' || !input.label.trim()) return undefined
+  if (!isMilestonePhase(input.startsPhase)) return undefined
+  const milestone: Milestone = {
+    id: milestoneIdFor(input.label, plan.milestones),
+    label: input.label.trim(),
+    startsPhase: input.startsPhase,
+  }
+  if (input.date !== undefined) milestone.date = input.date
+  const next: RolloutPlan = { ...plan, milestones: [...plan.milestones, milestone] }
+  if (!isRolloutPlan(next)) return undefined
+  store.dispatch({ kind: 'update-element', before: rollout, after: { ...rollout, plan: next } })
+  return milestone.id
+}
+
+/** Edit a milestone's label, phase and rollout date as one command. */
+export function updateMilestone(
+  store: ModelStore,
+  rolloutId: string,
+  milestoneId: string,
+  changes: MilestoneChanges,
+): boolean {
+  assertWriter(store, 'update-milestone')
+  const rollout = store.element(rolloutId)
+  const plan = rolloutPlanOf(rollout)
+  const index = plan?.milestones.findIndex((milestone) => milestone.id === milestoneId) ?? -1
+  if (!rollout || !plan || index < 0) return false
+  const before = plan.milestones[index]!
+  const milestone: Milestone = { ...before }
+  if (changes.label !== undefined) {
+    if (typeof changes.label !== 'string' || !changes.label.trim()) return false
+    milestone.label = changes.label.trim()
+  }
+  if (changes.startsPhase !== undefined) {
+    if (!isMilestonePhase(changes.startsPhase)) return false
+    milestone.startsPhase = changes.startsPhase
+  }
+  if (changes.date === null) delete milestone.date
+  else if (changes.date !== undefined) {
+    if (!isPlanDate(changes.date)) return false
+    milestone.date = changes.date
+  }
+  const milestones = [...plan.milestones]
+  milestones[index] = milestone
+  const next: RolloutPlan = { ...plan, milestones }
+  if (!isRolloutPlan(next)) return false
+  const same =
+    milestone.label === before.label &&
+    milestone.startsPhase === before.startsPhase &&
+    milestone.date?.date === before.date?.date &&
+    milestone.date?.precision === before.date?.precision
+  if (!same) {
+    store.dispatch({ kind: 'update-element', before: rollout, after: { ...rollout, plan: next } })
+  }
+  return true
+}
+
+/**
+ * Move a milestone one place earlier (`-1`) or later (`1`) in the set, as one
+ * command. The order is what the phase is derived walking, so it is the
+ * author's to choose. At either end there is nowhere to go: `true`, nothing done.
+ */
+export function moveMilestone(
+  store: ModelStore,
+  rolloutId: string,
+  milestoneId: string,
+  by: -1 | 1,
+): boolean {
+  assertWriter(store, 'move-milestone')
+  const rollout = store.element(rolloutId)
+  const plan = rolloutPlanOf(rollout)
+  const index = plan?.milestones.findIndex((milestone) => milestone.id === milestoneId) ?? -1
+  if (!rollout || !plan || index < 0 || (by !== -1 && by !== 1)) return false
+  const target = index + by
+  if (target < 0 || target >= plan.milestones.length) return true
+  const milestones = [...plan.milestones]
+  milestones[index] = plan.milestones[target]!
+  milestones[target] = plan.milestones[index]!
+  store.dispatch({
+    kind: 'update-element',
+    before: rollout,
+    after: { ...rollout, plan: { ...plan, milestones } },
+  })
+  return true
+}
+
+/** What still uses a milestone: what deleting it would take with it, or refuse over. */
+export interface MilestoneUsage {
+  /** Sites with a planned or an actual date for it. */
+  sites: number
+  /** Waves of the rollout with a date for it. */
+  waves: number
+  /** Archetypes with a duration for it. */
+  archetypes: number
+  /** Template changes anchored on it, by id: these block the delete. */
+  anchoredChanges: string[]
+}
+
+export function milestoneUsage(
+  store: ModelStore,
+  rolloutId: string,
+  milestoneId: string,
+): MilestoneUsage {
+  const plan = rolloutPlanOf(store.element(rolloutId))
+  const uses = (record: Record<string, unknown> | undefined) =>
+    record !== undefined && Object.hasOwn(record, milestoneId)
+  return {
+    sites: plan?.sites.filter((site) => uses(site.milestones) || uses(site.actuals)).length ?? 0,
+    waves: wavesOf(store.elements(), rolloutId).filter((wave) => uses(wavePlanOf(wave)?.milestones))
+      .length,
+    archetypes: plan?.archetypes.filter((archetype) => uses(archetype.durations)).length ?? 0,
+    anchoredChanges:
+      plan?.template
+        .filter((change) => 'anchor' in change.date && change.date.anchor === milestoneId)
+        .map((change) => change.id) ?? [],
+  }
+}
+
+/**
+ * Delete a milestone, with every date and duration given for it, as one
+ * command that one undo puts back: the sites' planned and actual dates, the
+ * waves' dates and the archetypes' durations. The dialog asks first when
+ * anything uses it (`milestoneUsage`).
+ *
+ * **Refused while a template change is anchored on it** (`false`, nothing
+ * done): the change's date would name a milestone that is gone, and the
+ * template is re-anchored on purpose, not by a side effect of this.
+ */
+export function removeMilestone(
+  store: ModelStore,
+  rolloutId: string,
+  milestoneId: string,
+): boolean {
+  assertWriter(store, 'remove-milestone')
+  const rollout = store.element(rolloutId)
+  const plan = rolloutPlanOf(rollout)
+  if (!rollout || !plan || !plan.milestones.some((milestone) => milestone.id === milestoneId)) {
+    return false
+  }
+  if (milestoneUsage(store, rolloutId, milestoneId).anchoredChanges.length) return false
+  const next: RolloutPlan = {
+    ...plan,
+    milestones: plan.milestones.filter((milestone) => milestone.id !== milestoneId),
+    archetypes: plan.archetypes.map((archetype) =>
+      withRecord(archetype, 'durations', withoutKey(archetype.durations, milestoneId)),
+    ),
+    sites: plan.sites.map((site) =>
+      withRecord(
+        withRecord(site, 'milestones', withoutKey(site.milestones, milestoneId)),
+        'actuals',
+        withoutKey(site.actuals, milestoneId),
+      ),
+    ),
+  }
+  const commands: Command[] = [
+    { kind: 'update-element', before: rollout, after: { ...rollout, plan: next } },
+  ]
+  for (const wave of wavesOf(store.elements(), rolloutId)) {
+    const wavePlan = wavePlanOf(wave)!
+    if (!wavePlan.milestones || !Object.hasOwn(wavePlan.milestones, milestoneId)) continue
+    const after = withRecord(wavePlan, 'milestones', withoutKey(wavePlan.milestones, milestoneId))
+    commands.push({ kind: 'update-element', before: wave, after: { ...wave, plan: after } })
+  }
+  store.dispatch(commands.length === 1 ? commands[0]! : { kind: 'batch', commands })
+  return true
+}
+
+/**
+ * Set or clear one site's own milestone dates, as one command. `null` clears
+ * an override, so the site inherits that milestone again (ADR 0016); any
+ * other value must be a plan date (`isPlanDate`), for a milestone of the
+ * rollout. One value that fails refuses the whole change with `false`: a form
+ * that turned an empty precision into `{ precision: '' }` stores nothing, and
+ * the value the schema rejects is never written (CLAUDE.md, type guards).
+ */
+export function setSiteMilestones(
+  store: ModelStore,
+  rolloutId: string,
+  locationId: string,
+  dates: Record<string, unknown>,
+): boolean {
+  assertWriter(store, 'set-site-milestones')
+  const plan = rolloutPlanOf(store.element(rolloutId))
+  if (!plan || !plan.sites.some((site) => site.location === locationId)) return false
+  const known = new Set(plan.milestones.map((milestone) => milestone.id))
+  const changes: [string, PlanDate | null][] = []
+  for (const [id, value] of Object.entries(dates)) {
+    if (!known.has(id)) return false
+    if (value === null) changes.push([id, null])
+    else if (isPlanDate(value)) changes.push([id, value])
+    else return false
+  }
+  return updateSites(store, rolloutId, [locationId], false, (site) => {
+    const milestones: Record<string, PlanDate> = { ...site.milestones }
+    for (const [id, value] of changes) {
+      if (value === null) delete milestones[id]
+      else setKey(milestones, id, value)
+    }
+    return withRecord(site, 'milestones', Object.keys(milestones).length ? milestones : undefined)
+  })
+}
+
+/**
+ * A milestone id from its label: its words in camel case, `goNoGo` for
+ * "Go/no-go", made unique in the set with a number. A label with no letter or
+ * digit gives `milestone`.
+ */
+export function milestoneIdFor(label: string, milestones: readonly Milestone[]): string {
+  const words = label.match(/[A-Za-z0-9]+/g) ?? []
+  const base =
+    words
+      .map((word, index) =>
+        index === 0 ? word.toLowerCase() : word[0]!.toUpperCase() + word.slice(1).toLowerCase(),
+      )
+      .join('') || 'milestone'
+  const taken = new Set(milestones.map((milestone) => milestone.id))
+  if (!taken.has(base)) return base
+  let n = 2
+  while (taken.has(`${base}${n}`)) n++
+  return `${base}${n}`
+}
+
 // ── Internals ────────────────────────────────────────────────────────────────
+
+/**
+ * Is every key of `dates` a milestone of `plan`? A new date for no milestone
+ * is refused. One the wave already holds, unchanged, is kept: validate()
+ * reports it, and an edit of the wave's other dates must not drop it unseen.
+ */
+function knowsMilestones(
+  plan: RolloutPlan,
+  dates: Record<string, PlanDate>,
+  held: Record<string, PlanDate> = {},
+): boolean {
+  const known = new Set(plan.milestones.map((milestone) => milestone.id))
+  return Object.entries(dates).every(
+    ([id, date]) =>
+      known.has(id) ||
+      (Object.hasOwn(held, id) &&
+        held[id]!.date === date.date &&
+        held[id]!.precision === date.precision),
+  )
+}
+
+/** `record` without `key`, or `undefined` when nothing is left. */
+function withoutKey<T>(
+  record: Record<string, T> | undefined,
+  key: string,
+): Record<string, T> | undefined {
+  if (!record) return undefined
+  const out = { ...record }
+  delete out[key]
+  return Object.keys(out).length ? out : undefined
+}
+
+/** `object` with `key` set to `value`, or without `key` when `value` is undefined. */
+function withRecord<T extends object, K extends keyof T>(
+  object: T,
+  key: K,
+  value: T[K] | undefined,
+): T {
+  const out = { ...object }
+  if (value === undefined) delete out[key]
+  else out[key] = value
+  return out
+}
 
 function assertWriter(store: ModelStore, what: string): void {
   if (!store.writable) throw new ReadOnlyModelError(what)

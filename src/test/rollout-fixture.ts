@@ -53,7 +53,13 @@ export function rolloutWorkspace(siteCount = 160): Workspace {
           startsPhase: 'hypercare',
         },
         { id: 'hypercareEnd', label: 'Hypercare ends', startsPhase: 'migrated' },
-        { id: 'legacyDecommissioned', label: 'Legacy decommissioned', startsPhase: 'done' },
+        {
+          id: 'legacyDecommissioned',
+          label: 'Legacy decommissioned',
+          startsPhase: 'done',
+          // The rollout's own date, which a site inherits when its wave sets none (#213).
+          date: { date: '2028-10-01', precision: 'quarter' },
+        },
       ],
       template: [
         {
@@ -147,6 +153,7 @@ export function rolloutWorkspace(siteCount = 160): Workspace {
             : { start, end: { date: `${year}-${pad(month + 2)}-01`, precision: 'month' } },
         ...(w === 0 ? { capacity: 5 } : {}),
         templateVersion: w === 0 ? 1 : 2,
+        ...waveMilestones(w),
       },
     })
     relationships.push({
@@ -199,6 +206,43 @@ export function rolloutWorkspace(siteCount = 160): Workspace {
     name: 'Data migration rollout',
     elements,
     relationships,
+  }
+}
+
+/**
+ * The dates a wave's sites inherit (#213), as rolling-wave planning has them:
+ * the pilot and the next wave, W1, are planned to the day; the later waves
+ * only to the quarter of their freeze; W4 sets none, so its sites have only
+ * the rollout's own date and what their archetype spaces from it.
+ */
+function waveMilestones(w: number): { milestones?: Record<string, PlanDate> } {
+  const day = (date: string): PlanDate => ({ date, precision: 'day' })
+  const quarter = (date: string): PlanDate => ({ date, precision: 'quarter' })
+  switch (w) {
+    case 0:
+      return {
+        milestones: {
+          mappingSignedOff: day('2027-01-11'),
+          freezeStart: day('2027-02-22'),
+          reconciliationSignedOff: day('2027-03-01'),
+          hypercareEnd: day('2027-03-29'),
+        },
+      }
+    case 1:
+      return {
+        milestones: {
+          mappingSignedOff: day('2027-04-05'),
+          freezeStart: day('2027-05-17'),
+          reconciliationSignedOff: day('2027-05-24'),
+          hypercareEnd: day('2027-06-21'),
+        },
+      }
+    case 2:
+      return { milestones: { freezeStart: quarter('2027-07-01') } }
+    case 3:
+      return { milestones: { freezeStart: quarter('2027-10-01') } }
+    default:
+      return {}
   }
 }
 

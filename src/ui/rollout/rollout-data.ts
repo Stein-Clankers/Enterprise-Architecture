@@ -1,24 +1,28 @@
 import {
+  formatPlanDate,
   rolloutPlanOf,
+  siteStatus,
+  switchMilestone,
   wavePlanOf,
   wavesOf,
   type Element,
   type Milestone,
-  type PlanDate,
+  type ResolvedMilestone,
   type RolloutPlan,
+  type SitePhase,
   type SitePlan,
   type SiteRag,
   type WavePlan,
 } from '@/model'
-import type { ModelStore } from '@/store'
+import type { MilestoneUsage, ModelStore } from '@/store'
 
 /**
  * What the rollout screens show, derived from the model in one pass (#211).
  *
- * Nothing here is stored: counts, capacity and over-capacity are worked out
- * from the rollout's site plans and its waves each time the model changes.
- * Site phases and inherited dates are #213's, so a cutover here is a site's
- * own override or nothing.
+ * Nothing here is stored: counts, capacity and over-capacity, each site's
+ * resolved milestone dates and its phase (#213) are worked out from the
+ * rollout's site plans and its waves each time the model changes, at the time
+ * point the caller gives.
  */
 
 /**
@@ -42,8 +46,14 @@ export interface SiteRow {
    */
   danglingWave: string | undefined
   archetype: string | undefined
-  /** The site's own cutover date, when it sets one (inheritance is #213). */
-  cutover: PlanDate | undefined
+  /** Every milestone of the set, with the date the site resolves and where it came from (#213). */
+  milestones: ResolvedMilestone[]
+  /** The milestone the site switches over at (`switchMilestone`), resolved. */
+  cutover: ResolvedMilestone | undefined
+  /** The derived phase at the time point; never stored. */
+  phase: SitePhase
+  /** A planned date whose period has passed with no actual date. */
+  overdue: boolean
   rag: SiteRag | undefined
   /** The Location that aggregates this one, by name. */
   region: string | undefined
@@ -68,8 +78,10 @@ export interface RolloutData {
   sites: SiteRow[]
   /** Sites per region, most first; sites with no region last. */
   regions: { name: string; count: number }[]
-  /** The milestone that starts the cutover phase, if the rollout has one. */
+  /** The milestone a site switches over at, if the rollout has one (`switchMilestone`). */
   cutoverMilestone: Milestone | undefined
+  /** The time point phases are derived at, in UTC ms. */
+  at: number
 }
 
 export const NO_REGION = 'No region'
@@ -84,12 +96,31 @@ export const RAG_TOKENS: Record<SiteRag, string> = {
   red: 'var(--lc-eol)',
 }
 
-export function rolloutData(store: ModelStore, rolloutId: string): RolloutData | undefined {
+/**
+ * A site's phase on the lifecycle ramp (ADR 0013 point 9, under D7). Unplanned
+ * is neutral ink: `--ink2`, because `--ink3` is the colour of `--lc-plan` in
+ * the light theme, and the two must differ.
+ */
+export const SITE_PHASE_TOKENS: Record<SitePhase, string> = {
+  unplanned: 'var(--ink2)',
+  planned: 'var(--lc-plan)',
+  preparing: 'var(--lc-in)',
+  cutover: 'var(--lc-in)',
+  hypercare: 'var(--lc-in)',
+  migrated: 'var(--lc-act)',
+  done: 'var(--lc-act)',
+}
+
+export function rolloutData(
+  store: ModelStore,
+  rolloutId: string,
+  at: number,
+): RolloutData | undefined {
   const rollout = store.element(rolloutId)
   const plan = rolloutPlanOf(rollout)
   if (!rollout || !plan) return undefined
 
-  const cutoverMilestone = plan.milestones.find((milestone) => milestone.startsPhase === 'cutover')
+  const cutoverMilestone = switchMilestone(plan.milestones)
   const archetypes = new Map(plan.archetypes.map((archetype) => [archetype.id, archetype.label]))
   const waveElements = wavesOf(store.elements(), rolloutId)
   const waveIds = new Set(waveElements.map((wave) => wave.id))
@@ -97,6 +128,13 @@ export function rolloutData(store: ModelStore, rolloutId: string): RolloutData |
   const sites: SiteRow[] = plan.sites.map((site) => {
     const element = store.element(site.location)
     const code = element?.properties[SITE_CODE_KEY]
+    const wave = assignedWave(site, waveIds)
+    const status = siteStatus(
+      plan,
+      site,
+      wave === undefined ? undefined : wavePlanOf(store.element(wave)),
+      at,
+    )
     return {
       location: site.location,
       element,
@@ -105,7 +143,10 @@ export function rolloutData(store: ModelStore, rolloutId: string): RolloutData |
       wave: assignedWave(site, waveIds),
       danglingWave: assignedWave(site, waveIds) === undefined ? site.wave : undefined,
       archetype: site.archetype === undefined ? undefined : archetypes.get(site.archetype),
-      cutover: cutoverMilestone ? site.milestones?.[cutoverMilestone.id] : undefined,
+      milestones: status.milestones,
+      cutover: status.milestones.find((resolved) => resolved.milestone === cutoverMilestone),
+      phase: status.phase,
+      overdue: status.overdue,
       rag: site.rag,
       region: element ? regionOf(store, element.id) : undefined,
     }
@@ -148,7 +189,42 @@ export function rolloutData(store: ModelStore, rolloutId: string): RolloutData |
     sites,
     regions,
     cutoverMilestone,
+    at,
   }
+}
+
+/**
+ * Where a resolved date came from, in words: the long form a date's title
+ * gives, beside the short `set` or `inherited` every date shows (#213).
+ */
+export function sourceText(
+  resolved: ResolvedMilestone,
+  waveLabel: string | undefined,
+  milestones: readonly Milestone[],
+): string {
+  switch (resolved.source) {
+    case 'site':
+      return 'set at the site'
+    case 'wave':
+      return `inherited from wave ${waveLabel ?? ''}`.trimEnd()
+    case 'rollout':
+      return 'inherited from the rollout'
+    case 'spaced': {
+      const from = resolved.spacedFrom!
+      const label =
+        milestones.find((milestone) => milestone.id === from.milestone)?.label ?? from.milestone
+      const days = Math.abs(from.days)
+      return `inherited: ${days} day${days === 1 ? '' : 's'} ${from.days < 0 ? 'before' : 'after'} ${label}`
+    }
+    default:
+      return 'not planned'
+  }
+}
+
+/** A resolved date as it is shown: its period, and `set` or `inherited`. */
+export function dateText(resolved: ResolvedMilestone | undefined): string {
+  if (!resolved?.planned) return '—'
+  return `${formatPlanDate(resolved.planned)} · ${resolved.source === 'site' ? 'set' : 'inherited'}`
 }
 
 /**
@@ -209,4 +285,18 @@ export function rolloutsOf(store: ModelStore): Element[] {
   return rollouts.sort(
     (a, b) => a.name.localeCompare(b.name, 'en') || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
   )
+}
+
+/** What deleting a milestone takes with it, in words, from `milestoneUsage`. */
+export function usageText(usage: MilestoneUsage): string {
+  const parts = [
+    usage.sites && `${usage.sites} site${usage.sites === 1 ? '' : 's'}`,
+    usage.waves && `${usage.waves} wave${usage.waves === 1 ? '' : 's'}`,
+    usage.archetypes && `${usage.archetypes} archetype${usage.archetypes === 1 ? '' : 's'}`,
+  ].filter((part): part is string => Boolean(part))
+  if (!parts.length) return 'Nothing has a date or a duration for it.'
+  const list =
+    parts.length === 1 ? parts[0]! : `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`
+  const verb = parts.length === 1 && list.startsWith('1 ') ? 'has' : 'have'
+  return `${list} ${verb} dates or durations for it, which are deleted with it. Undo brings them back.`
 }
