@@ -1,4 +1,6 @@
-import { Link } from 'react-router-dom'
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ROLLOUT_DEMO_ROLLOUT_ID } from '@/io'
 import { supportsDirectoryAccess } from '@/io/shared-folder'
 import { useFileWorkspace } from './context'
 import './files.css'
@@ -10,6 +12,11 @@ import './files.css'
  * Three is the point. An empty repository is the moment a tool either earns a
  * few more minutes or gets closed, and the answer to "what now?" has to fit on
  * one screen without a tour.
+ *
+ * "Explore the demo" is one of the three, and it offers two demos (#212): it
+ * opens them as a disclosure beneath it rather than adding a fourth action.
+ * The rollout demo opens on its rollout's home, which is what it is there to
+ * show.
  */
 
 export interface FirstRunProps {
@@ -18,6 +25,8 @@ export interface FirstRunProps {
 
 export function FirstRun({ onStartEmpty }: FirstRunProps) {
   const { startImport, loadDemo, canPickFiles } = useFileWorkspace()
+  const navigate = useNavigate()
+  const [choosingDemo, setChoosingDemo] = useState(false)
 
   return (
     <div className="first-run">
@@ -48,13 +57,42 @@ export function FirstRun({ onStartEmpty }: FirstRunProps) {
           <button
             type="button"
             className="first-run__action first-run__action--primary"
-            onClick={loadDemo}
+            aria-expanded={choosingDemo}
+            aria-controls="first-run-demos"
+            onClick={() => setChoosingDemo((open) => !open)}
           >
             <span className="first-run__action-title">Explore the demo</span>
             <span className="first-run__action-help">
-              An insurance landscape with 29 elements, assessed and dated, to look around in.
+              Two models to look around in: an insurance landscape, or a data-migration rollout
+              across 160 sites.
             </span>
           </button>
+
+          {choosingDemo && (
+            <div id="first-run-demos" className="first-run__demos" role="group" aria-label="Demos">
+              <button
+                type="button"
+                className="first-run__demo"
+                onClick={() => loadDemo('archisurance')}
+              >
+                <span className="first-run__action-title">Insurance landscape</span>
+                <span className="first-run__action-help">29 elements, assessed and dated.</span>
+              </button>
+              <button
+                type="button"
+                className="first-run__demo"
+                onClick={() => {
+                  navigate(`/rollout/${ROLLOUT_DEMO_ROLLOUT_ID}`)
+                  loadDemo('rollout')
+                }}
+              >
+                <span className="first-run__action-title">Data-migration rollout</span>
+                <span className="first-run__action-help">
+                  160 sites in 8 waves, with a few planning problems left in on purpose.
+                </span>
+              </button>
+            </div>
+          )}
         </div>
 
         <p className="first-run__note">

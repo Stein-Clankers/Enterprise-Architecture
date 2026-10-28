@@ -513,6 +513,27 @@ bundled in an MIT repository. Lifecycle dates and portfolio assessments are
 illustrative — they exist so the reports have colour, and they describe no real
 organisation.
 
+### The rollout demo (#212)
+
+"Explore the demo" opens two choices: the insurance landscape above, and a
+generated 160-site data-migration rollout. `demo/rollout-demo.json` is canonical
+JSON, read by the same reader a user's `.json` goes through. It is **generated,
+never edited**: `npm run demo:generate` runs `scripts/demo/generate-rollout-demo.ts`,
+which writes `rolloutDemoWorkspace(ROLLOUT_DEMO_SEED)` from `demo/rollout-demo.ts`
+through `toCanonicalJson`. The same seed writes the same bytes, and
+`demo/rollout-demo.test.ts` fails when the checked-in file is not what the generator
+writes.
+
+The model is a fictional manufacturer: 5 regions, 20 countries and 160 sites as a
+Location hierarchy, each site's fields in `archipelago.site.*` properties, a site
+file share at every site and a plant quality database at every plant (Artifacts
+realizing Data Objects), and one data lake per region at its hub. The rollout's
+template replaces each local store with its region's lake at cutover and retires it
+90 days later. Eight waves, a pilot first, take every site but one, dated to the day
+near and to the quarter far. It carries problems on purpose, for #214's plan checks:
+one site in no wave, one wave over capacity, one cutover inside a blackout and one
+residency violation. The test proves each is there exactly once, for several seeds.
+
 ## Archi's model file (#13)
 
 `archimate-native.ts` reads a `.archimate` straight into the model rather than

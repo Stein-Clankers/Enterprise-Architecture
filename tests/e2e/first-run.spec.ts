@@ -23,9 +23,10 @@ test('a cold browser offers exactly three actions', async ({ page }) => {
   await expect(page.getByText('runs entirely in this browser')).toBeVisible()
 })
 
-test('exploring the demo fills the inventory', async ({ page }) => {
+test('exploring the insurance demo fills the inventory', async ({ page }) => {
   await openApp(page)
   await page.getByRole('button', { name: 'Explore the demo' }).click()
+  await page.getByRole('button', { name: /Insurance landscape/ }).click()
 
   await expect(page.getByRole('heading', { name: 'Inventory' })).toBeVisible()
   expect(await inventoryCounts(page)).toEqual({ shown: DEMO.elements, total: DEMO.elements })

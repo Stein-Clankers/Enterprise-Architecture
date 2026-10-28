@@ -9,7 +9,8 @@ import {
 } from 'react'
 import {
   importFailure,
-  loadDemoWorkspace,
+  loadBundledDemo,
+  type DemoId,
   openWorkspaceFile,
   readWorkspaceFile,
   saveWorkspaceToFile,
@@ -114,13 +115,16 @@ export function FileWorkspaceProvider({ children }: { children: ReactNode }) {
     [applyImport],
   )
 
-  const loadDemo = useCallback(() => {
-    void closeShared()
-    store.replaceWorkspace(loadDemoWorkspace(), { markClean: false })
-    handleRef.current = undefined
-    setFileName(undefined)
-    setImporting(false)
-  }, [store, closeShared])
+  const loadDemo = useCallback(
+    (demo: DemoId) => {
+      void closeShared()
+      store.replaceWorkspace(loadBundledDemo(demo), { markClean: false })
+      handleRef.current = undefined
+      setFileName(undefined)
+      setImporting(false)
+    },
+    [store, closeShared],
+  )
 
   // ⌘S / Ctrl+S saves, as it does in every other tool that owns a file. Not
   // under a modal (#158), and the browser's own Save Page stays suppressed

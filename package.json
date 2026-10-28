@@ -20,7 +20,8 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"tests/**/*.{ts,md}\" playwright.config.ts",
     "typecheck": "tsc -b --noEmit",
     "schema": "vite-node scripts/generate-json-schema.ts",
-    "validate:xsd": "vite-node scripts/validate-exchange-xsd.ts"
+    "validate:xsd": "vite-node scripts/validate-exchange-xsd.ts",
+    "demo:generate": "vite-node scripts/demo/generate-rollout-demo.ts"
   },
   "dependencies": {
     "@tanstack/react-virtual": "^3.14.9",

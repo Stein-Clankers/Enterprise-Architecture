@@ -1,7 +1,10 @@
 import type { Workspace } from '@/model'
 import { newId } from '@/store/ids'
+import { fromCanonicalJson } from './canonical-json'
 import { importExchangeXml } from './exchange-format'
+import type { ImportResult } from './problems'
 import demoXml from './demo/archisurance.xml?raw'
+import rolloutDemoJson from './demo/rollout-demo.json?raw'
 
 /**
  * The bundled demo workspace — "Explore the demo" on the first-run screen (#11).
@@ -36,7 +39,39 @@ export const DEMO_WORKSPACE_XML = demoXml
  * workspace, so the worst case is a spare entry in the switcher.
  */
 export function loadDemoWorkspace(): Workspace {
-  const result = importExchangeXml(DEMO_WORKSPACE_XML, 'archisurance.xml')
+  return freshCopy(importExchangeXml(DEMO_WORKSPACE_XML, 'archisurance.xml'))
+}
+
+/**
+ * The generated 160-site data-migration rollout (#212), as canonical JSON:
+ * `npm run demo:generate` writes it from a seed, and `rollout-demo.test.ts`
+ * fails when the file and the generator differ.
+ */
+export const ROLLOUT_DEMO_JSON = rolloutDemoJson
+
+/**
+ * The rollout the rollout demo opens on. The generator's own constant is not
+ * imported, which would bundle the generator; a test holds the two equal.
+ */
+export const ROLLOUT_DEMO_ROLLOUT_ID = 'wp-rollout-site-data'
+
+/**
+ * Parse the bundled rollout demo through the canonical reader a user's
+ * `.json` goes through, with a fresh workspace id for the same reason as
+ * `loadDemoWorkspace`.
+ */
+export function loadRolloutDemoWorkspace(): Workspace {
+  return freshCopy(fromCanonicalJson(ROLLOUT_DEMO_JSON, 'rollout-demo.json'))
+}
+
+/** The demos "Explore the demo" offers. */
+export type DemoId = 'archisurance' | 'rollout'
+
+export function loadBundledDemo(demo: DemoId): Workspace {
+  return demo === 'rollout' ? loadRolloutDemoWorkspace() : loadDemoWorkspace()
+}
+
+function freshCopy(result: ImportResult): Workspace {
   if (!result.workspace) {
     const reasons = result.problems.map((p) => p.message).join('; ')
     throw new Error(`The bundled demo workspace failed to load: ${reasons}`)
