@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useModelSelector, useModelStoreContext } from '@/store'
+import type { Milestone } from '@/model'
 import { AddSitesDialog, WaveDialog } from './RolloutDialogs'
+import { MilestoneDialog, MilestoneSet } from './MilestoneSet'
+import { SiteDatesDialog } from './SiteDatesDialog'
 import { SiteRegister } from './SiteRegister'
 import { WaveBoard } from './WaveBoard'
 import { WaveTimeline } from './WaveTimeline'
@@ -15,7 +18,9 @@ import './rollout.css'
 
 /**
  * A rollout's home (#211, proposal §6 item 1) at `/rollout/:id`: its KPIs,
- * then the register, the board and the timeline as tabs.
+ * then the register, the board, the timeline and the milestone set as tabs.
+ * The register derives each site's phase at today, taken once as the screen
+ * mounts, so a phase does not change under the user between two renders.
  *
  * The route keys this screen on `id` (App.tsx), so going from one rollout to
  * another remounts it: no filter, selection, picked-up card or open dialog of
@@ -23,15 +28,20 @@ import './rollout.css'
  * The tab is in the URL, so a tab is a link.
  */
 
-export const TABS = ['register', 'board', 'timeline'] as const
+export const TABS = ['register', 'board', 'timeline', 'milestones'] as const
 type Tab = (typeof TABS)[number]
 const TAB_LABELS: Record<Tab, string> = {
   register: 'Site register',
   board: 'Wave board',
   timeline: 'Timeline',
+  milestones: 'Milestones',
 }
 
-type Dialog = { kind: 'wave'; wave?: WaveColumn } | { kind: 'sites' }
+type Dialog =
+  | { kind: 'wave'; wave?: WaveColumn }
+  | { kind: 'sites' }
+  | { kind: 'milestone'; milestone?: Milestone }
+  | { kind: 'dates'; location: string }
 
 export function RolloutScreen() {
   const { id = '' } = useParams()
@@ -39,10 +49,13 @@ export function RolloutScreen() {
   const readOnly = role === 'reader'
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
-  const data = useModelSelector((store) => rolloutData(store, id), [id])
+  const [today] = useState(() => Date.now())
+  const data = useModelSelector((store) => rolloutData(store, id, today), [id, today])
   const [dialog, setDialog] = useState<Dialog | null>(null)
   const addWaveRef = useRef<HTMLButtonElement>(null)
+  const addMilestoneRef = useRef<HTMLButtonElement>(null)
   const [refocusAddWave, setRefocusAddWave] = useState(false)
+  const [refocusAddMilestone, setRefocusAddMilestone] = useState(false)
 
   // A dialog asked as a writer ends when the tab becomes a reader, and does
   // not reopen when it can write again: its Save would be refused (#198).
@@ -57,6 +70,13 @@ export function RolloutScreen() {
     addWaveRef.current?.focus()
     setRefocusAddWave(false)
   }, [refocusAddWave])
+
+  // Deleting a milestone unmounts its row's Edit button: focus goes to + Milestone.
+  useEffect(() => {
+    if (!refocusAddMilestone) return
+    addMilestoneRef.current?.focus()
+    setRefocusAddMilestone(false)
+  }, [refocusAddMilestone])
 
   const tab = TABS.find((candidate) => candidate === params.get('tab')) ?? 'register'
 
@@ -141,7 +161,14 @@ export function RolloutScreen() {
       </nav>
 
       <div className="rollout__body">
-        {tab === 'register' && <SiteRegister data={data} readOnly={readOnly} onOpen={openSite} />}
+        {tab === 'register' && (
+          <SiteRegister
+            data={data}
+            readOnly={readOnly}
+            onOpen={openSite}
+            onEditDates={(location) => setDialog({ kind: 'dates', location })}
+          />
+        )}
         {tab === 'board' && (
           <WaveBoard
             data={data}
@@ -150,6 +177,16 @@ export function RolloutScreen() {
           />
         )}
         {tab === 'timeline' && <WaveTimeline data={data} />}
+        {tab === 'milestones' && (
+          <MilestoneSet
+            data={data}
+            readOnly={readOnly}
+            addRef={addMilestoneRef}
+            onEdit={(milestone) =>
+              setDialog({ kind: 'milestone', ...(milestone ? { milestone } : {}) })
+            }
+          />
+        )}
       </div>
 
       {dialog?.kind === 'wave' && (
@@ -157,6 +194,7 @@ export function RolloutScreen() {
           rolloutId={data.rollout.id}
           {...(dialog.wave ? { wave: dialog.wave } : {})}
           defaultCapacity={data.plan.constraints?.defaultCapacity}
+          milestones={data.plan.milestones}
           onClose={() => setDialog(null)}
           onDeleted={() => {
             setDialog(null)
@@ -166,6 +204,20 @@ export function RolloutScreen() {
       )}
       {dialog?.kind === 'sites' && (
         <AddSitesDialog rolloutId={data.rollout.id} onClose={() => setDialog(null)} />
+      )}
+      {dialog?.kind === 'milestone' && (
+        <MilestoneDialog
+          rolloutId={data.rollout.id}
+          {...(dialog.milestone ? { milestone: dialog.milestone } : {})}
+          onClose={() => setDialog(null)}
+          onDeleted={() => {
+            setDialog(null)
+            setRefocusAddMilestone(true)
+          }}
+        />
+      )}
+      {dialog?.kind === 'dates' && (
+        <SiteDatesDialog data={data} location={dialog.location} onClose={() => setDialog(null)} />
       )}
     </div>
   )

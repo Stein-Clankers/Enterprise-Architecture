@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import {
+  ROLLOUT_PRESETS,
+  ROLLOUT_PRESET_IDS,
   isPositiveInteger,
+  isRolloutPresetId,
   isWindowInOrder,
+  presetPlan,
   rolloutPlanOf,
   type Element,
+  type Milestone,
+  type PlanDate,
+  type RolloutPresetId,
   type WaveWindow,
 } from '@/model'
 import {
@@ -16,21 +23,23 @@ import {
   useModelSelector,
   useModelStore,
 } from '@/store'
+import { setKey } from '@/io'
 import { DialogOverlay } from '@/ui/common/DialogOverlay'
 import { useFocusTrap } from '@/ui/common/use-focus-trap'
 import { PlanDateField } from './PlanDateField'
+import { useInitialFocus } from './use-initial-focus'
 import { draftOf, draftValue, type PlanDateDraft } from './plan-date-draft'
 import { SITE_CODE_KEY, type WaveColumn } from './rollout-data'
 
 /**
- * The rollout screens' dialogs (#211): a new rollout, a new or edited wave,
- * and sites to add. Each saves with one command, and none commits on blur:
+ * The rollout screens' dialogs (#211): a new rollout, from a preset (#213), a
+ * new or edited wave with the dates its sites inherit, and sites to add. Each saves with one command, and none commits on blur:
  * nothing is written until Save, so a reader switch that closes one loses
  * only what was typed, never writes it (CLAUDE.md, reader rules). The screen
  * that opens a dialog closes it when the tab becomes a reader.
  */
 
-function ModalForm({
+export function ModalForm({
   label,
   onCancel,
   onSubmit,
@@ -73,15 +82,6 @@ function ModalForm({
   )
 }
 
-/** Focus a dialog's first field as it opens, after the trap has recorded the opener. */
-function useInitialFocus<T extends HTMLElement>() {
-  const ref = useRef<T>(null)
-  useEffect(() => {
-    ref.current?.focus()
-  }, [])
-  return ref
-}
-
 // ── New rollout ──────────────────────────────────────────────────────────────
 
 export function NewRolloutDialog({
@@ -93,6 +93,7 @@ export function NewRolloutDialog({
 }) {
   const store = useModelStore()
   const [name, setName] = useState('')
+  const [preset, setPreset] = useState<RolloutPresetId>('generic')
   const nameRef = useInitialFocus<HTMLInputElement>()
   return (
     <ModalForm
@@ -100,7 +101,10 @@ export function NewRolloutDialog({
       onCancel={onCancel}
       onSubmit={() => {
         if (!name.trim()) return
-        const rollout = createRollout(store, { name: name.trim() })
+        const rollout = createRollout(store, {
+          name: name.trim(),
+          ...presetPlan(ROLLOUT_PRESETS[preset]),
+        })
         if (rollout) onCreated(rollout)
       }}
     >
@@ -114,6 +118,25 @@ export function NewRolloutDialog({
           placeholder="ERP rollout to every plant"
         />
       </label>
+      <label className="dialog__field">
+        <span className="dialog__label">Milestones from</span>
+        <select
+          className="dialog__control"
+          value={preset}
+          onChange={(event) => {
+            if (isRolloutPresetId(event.target.value)) setPreset(event.target.value)
+          }}
+        >
+          {ROLLOUT_PRESET_IDS.map((id) => (
+            <option key={id} value={id}>
+              {ROLLOUT_PRESETS[id].label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="dialog__help">
+        {`${ROLLOUT_PRESETS[preset].description} The set can be changed afterwards, on the rollout’s Milestones tab.`}
+      </p>
       <div className="dialog__actions">
         <button type="button" className="button" onClick={onCancel}>
           Cancel
@@ -137,6 +160,7 @@ export function WaveDialog({
   rolloutId,
   wave,
   defaultCapacity,
+  milestones,
   onClose,
   onDeleted,
 }: {
@@ -144,6 +168,8 @@ export function WaveDialog({
   /** The wave to edit; absent for a new one. */
   wave?: WaveColumn
   defaultCapacity: number | undefined
+  /** The rollout's milestone set: the wave dates each one for its sites. */
+  milestones: readonly Milestone[]
   onClose: () => void
   onDeleted: () => void
 }) {
@@ -156,6 +182,14 @@ export function WaveDialog({
   )
   const [start, setStart] = useState<PlanDateDraft>(draftOf(plan?.window?.start, 'month'))
   const [end, setEnd] = useState<PlanDateDraft>(draftOf(plan?.window?.end, 'month'))
+  const [dates, setDates] = useState<Record<string, PlanDateDraft>>(() =>
+    Object.fromEntries(
+      milestones.map((milestone) => [
+        milestone.id,
+        draftOf(plan?.milestones?.[milestone.id], 'month'),
+      ]),
+    ),
+  )
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [refused, setRefused] = useState(false)
   const nameRef = useInitialFocus<HTMLInputElement>()
@@ -174,6 +208,20 @@ export function WaveDialog({
   if (endValue === undefined) problems.push('The end is not a calendar day.')
   if (startValue && endValue && !isWindowInOrder(startValue, endValue)) {
     problems.push('The end is before the start.')
+  }
+  // The wave's milestone dates: what it holds, with each date of the set as
+  // the form has it. A date for a milestone the set no longer has is kept as
+  // it is, for validate() to report, never dropped by a save.
+  const milestoneDates: Record<string, PlanDate> = { ...plan?.milestones }
+  const unreadable: string[] = []
+  for (const milestone of milestones) {
+    const value = draftValue(dates[milestone.id]!)
+    if (value === undefined) unreadable.push(milestone.label)
+    else if (value === null) delete milestoneDates[milestone.id]
+    else setKey(milestoneDates, milestone.id, value)
+  }
+  if (unreadable.length) {
+    problems.push(`Not a calendar day: ${unreadable.join(', ')}.`)
   }
 
   // Confirming swaps the buttons that hold focus, so focus goes to the new
@@ -198,6 +246,7 @@ export function WaveDialog({
           label: label.trim(),
           window,
           capacity: capacityValue,
+          milestones: milestoneDates,
         })
       : Boolean(
           createWave(store, rolloutId, {
@@ -205,6 +254,7 @@ export function WaveDialog({
             label: label.trim(),
             ...(startValue || endValue ? { window } : {}),
             ...(capacityValue !== null ? { capacity: capacityValue } : {}),
+            ...(Object.keys(milestoneDates).length ? { milestones: milestoneDates } : {}),
           }),
         )
     if (done) onClose()
@@ -270,6 +320,22 @@ export function WaveDialog({
         </label>
         <PlanDateField label="Window start" draft={start} onChange={setStart} />
         <PlanDateField label="Window end" draft={end} onChange={setEnd} />
+        {milestones.length > 0 && (
+          <div className="wave-form__milestones" role="group" aria-label="Dates its sites inherit">
+            <p className="wave-form__milestones-help">
+              Dates its sites inherit. A site that sets its own keeps it; leave a day empty for the
+              rollout’s date.
+            </p>
+            {milestones.map((milestone) => (
+              <PlanDateField
+                key={milestone.id}
+                label={milestone.label}
+                draft={dates[milestone.id]!}
+                onChange={(draft) => setDates((was) => ({ ...was, [milestone.id]: draft }))}
+              />
+            ))}
+          </div>
+        )}
       </div>
       {problems.length > 0 && (
         <p className="dialog__problem" role="alert">

@@ -142,6 +142,7 @@ describe('exporting', () => {
       'Sites',
       'Waves',
       'SitePlan',
+      'Milestones',
       'Template',
     ])
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()

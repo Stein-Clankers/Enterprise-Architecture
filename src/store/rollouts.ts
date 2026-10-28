@@ -25,6 +25,7 @@ import {
   type WavePlan,
   type WaveWindow,
 } from '@/model'
+import { setKey } from '@/io/records'
 import type { Command } from './commands'
 import { newId } from './ids'
 import { ReadOnlyModelError, type ModelStore } from './model-store'
@@ -224,7 +225,7 @@ export function updateWave(store: ModelStore, waveId: string, changes: WaveChang
   else if (changes.capacity !== undefined) next.capacity = changes.capacity
   if (changes.milestones !== undefined) {
     const rollout = rolloutPlanOf(store.element(plan.rollout))
-    if (!rollout || !knowsMilestones(rollout, changes.milestones)) return false
+    if (!rollout || !knowsMilestones(rollout, changes.milestones, plan.milestones)) return false
     if (Object.keys(changes.milestones).length) next.milestones = { ...changes.milestones }
     else delete next.milestones
   }
@@ -565,7 +566,7 @@ export function setSiteMilestones(
     const milestones: Record<string, PlanDate> = { ...site.milestones }
     for (const [id, value] of changes) {
       if (value === null) delete milestones[id]
-      else milestones[id] = value
+      else setKey(milestones, id, value)
     }
     return withRecord(site, 'milestones', Object.keys(milestones).length ? milestones : undefined)
   })
@@ -593,10 +594,24 @@ export function milestoneIdFor(label: string, milestones: readonly Milestone[]):
 
 // ── Internals ────────────────────────────────────────────────────────────────
 
-/** Is every key of `dates` a milestone of `plan`? A wave's date for no milestone is refused. */
-function knowsMilestones(plan: RolloutPlan, dates: Record<string, unknown>): boolean {
+/**
+ * Is every key of `dates` a milestone of `plan`? A new date for no milestone
+ * is refused. One the wave already holds, unchanged, is kept: validate()
+ * reports it, and an edit of the wave's other dates must not drop it unseen.
+ */
+function knowsMilestones(
+  plan: RolloutPlan,
+  dates: Record<string, PlanDate>,
+  held: Record<string, PlanDate> = {},
+): boolean {
   const known = new Set(plan.milestones.map((milestone) => milestone.id))
-  return Object.keys(dates).every((id) => known.has(id))
+  return Object.entries(dates).every(
+    ([id, date]) =>
+      known.has(id) ||
+      (Object.hasOwn(held, id) &&
+        held[id]!.date === date.date &&
+        held[id]!.precision === date.precision),
+  )
 }
 
 /** `record` without `key`, or `undefined` when nothing is left. */
