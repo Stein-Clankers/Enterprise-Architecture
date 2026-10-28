@@ -161,9 +161,15 @@
   gap: 8px;
 }
 
+/*
+ * Wide enough for the writer's fixed columns (`register-columns.ts`: 716px,
+ * nine 12px gaps, 40px padding: 864px) and room for Site and Region, the two
+ * flexible ones. At 860px both were 0px wide (#233); `register-columns.test.ts`
+ * holds the sum.
+ */
 .register .table__header,
 .register .table__scroll {
-  min-width: 860px;
+  min-width: 1120px;
 }
 
 .register__row {

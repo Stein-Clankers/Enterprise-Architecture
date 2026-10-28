@@ -96,6 +96,14 @@ test('the demo opens at its as-of day, with the pilot under way', async ({ page 
   const phase = (site: string) =>
     page.locator(`.register__row[data-location="${site}"] .register__phase`)
   for (const site of PILOT) await expect(phase(site)).toHaveAttribute('data-phase', 'preparing')
+
+  // #233: at 1280×720 the Site column was 0px wide for a writer. A pilot
+  // site's name is visible, and opens its fact sheet.
+  expect(page.viewportSize()).toEqual({ width: 1280, height: 720 })
+  const name = page.locator(`.register__row[data-location="${PILOT[0]}"] .register__name`)
+  await expect(name).toBeVisible()
+  await name.click()
+  await expect(page).toHaveURL(new RegExp(`/element/${PILOT[0]}$`))
 })
 
 test('the next wave is planned to the day and later waves to the quarter (#213)', async ({
