@@ -4,25 +4,36 @@ import Ajv2020 from 'ajv/dist/2020'
 import addFormats from 'ajv-formats'
 import { describe, expect, it } from 'vitest'
 import {
+  ROLLOUT_PRESETS,
+  dayAfterPeriod,
+  dayStart,
+  resolveSiteMilestones,
   rolloutPlanOf,
+  siteStatus,
   validate,
   wavePlanOf,
   wavesOf,
   type Element,
+  type PlanDate,
+  type ResolvedMilestone,
   type RolloutPlan,
+  type SitePlan,
+  type WavePlan,
   type Workspace,
 } from '@/model'
 import { ModelStore } from '@/store'
 import { rolloutData } from '@/ui/rollout/rollout-data'
 import { fromCanonicalJson, toCanonicalJson } from '../canonical-json'
 import {
+  ROLLOUT_DEMO_AS_OF as BUNDLED_AS_OF,
+  ROLLOUT_DEMO_ID as BUNDLED_ID,
   ROLLOUT_DEMO_JSON,
-  ROLLOUT_DEMO_ROLLOUT_ID,
   loadBundledDemo,
   loadRolloutDemoWorkspace,
 } from '../demo'
 import { exportExchange, importExchangeXml } from '../exchange-format'
 import {
+  ROLLOUT_DEMO_AS_OF,
   ROLLOUT_DEMO_ID,
   ROLLOUT_DEMO_SEED,
   ROLLOUT_DEMO_SITES,
@@ -42,12 +53,20 @@ const SCHEMA = join(process.cwd(), 'design', 'archipelago-workspace.schema.json'
 
 /**
  * Seeds besides the checked-in one: the seeded problems are placed by rule,
- * not by luck. Two are here for a guard each, found by removing it and
- * scanning: without it, seed 38 would leave the Swiss residency site in no
- * wave, which hides its violation, and seed 67 would make it the blackout site
- * too, two problems on one site.
+ * not by luck. Four are here for a guard each, found by narrowing it and
+ * scanning seeds:
+ * - 4: `cutoverDay` checks the whole freeze, cutover to reconciliation,
+ *   against the blackouts; checking only the cutover day, or one day short,
+ *   lets a second freeze run into the Q1 close;
+ * - 27: a wave's own cutover day is kept clear for the longest freeze of its
+ *   sites, who inherit it; kept clear for none, sites inherit a freeze into
+ *   the Q1 close;
+ * - 38: the site in no wave is not the Swiss residency site, which would hide
+ *   its violation;
+ * - 67: the blackout site is not the residency site either, which would put
+ *   two problems on one site.
  */
-const SEEDS = [ROLLOUT_DEMO_SEED, 1, 7, 38, 67, 2026, 31_337]
+const SEEDS = [ROLLOUT_DEMO_SEED, 1, 4, 7, 27, 38, 67, 2026, 31_337]
 
 const demo = rolloutDemoWorkspace()
 const elements = new Map(demo.elements.map((element) => [element.id, element]))
@@ -64,8 +83,32 @@ function parentsOf(workspace: Workspace, id: string): Element[] {
     .filter((element) => element.type === 'Location')
 }
 
-function isIn(day: string, blackout: { start: string; end: string }): boolean {
-  return blackout.start <= day && day <= blackout.end
+/** The wave plan of the wave a site plan names, if any. */
+function waveOf(workspace: Workspace, site: SitePlan): WavePlan | undefined {
+  return wavePlanOf(workspace.elements.find((element) => element.id === site.wave))
+}
+
+/** A site's milestones as the app resolves them: its own, its wave's, or spaced (ADR 0016). */
+function resolved(workspace: Workspace, site: SitePlan): Map<string, ResolvedMilestone> {
+  const milestones = resolveSiteMilestones(planOf(workspace), site, waveOf(workspace, site))
+  return new Map(milestones.map((milestone) => [milestone.milestone.id, milestone]))
+}
+
+/**
+ * Does the span from the first day of `from`'s period to the last day of
+ * `to`'s touch a blackout? Both ends inclusive, so a span of one period is
+ * that whole period.
+ */
+function touchesBlackout(
+  workspace: Workspace,
+  from: ResolvedMilestone,
+  to: ResolvedMilestone,
+): boolean {
+  const first = from.planned!.date
+  const afterLast = dayAfterPeriod(to.planned!)
+  return planOf(workspace).constraints!.blackouts!.some(
+    (blackout) => blackout.start < afterLast && blackout.end >= first,
+  )
 }
 
 /**
@@ -152,8 +195,9 @@ describe('the bundled rollout demo, as "Explore the demo" loads it (#212)', () =
     expect(ROLLOUT_DEMO_JSON).toBe(readFileSync(FILE, 'utf8'))
   })
 
-  it('opens on the generator’s rollout', () => {
-    expect(ROLLOUT_DEMO_ROLLOUT_ID).toBe(ROLLOUT_DEMO_ID)
+  it('opens on the generator’s rollout, at the day the generator plans it as of', () => {
+    expect(BUNDLED_ID).toBe(ROLLOUT_DEMO_ID)
+    expect(BUNDLED_AS_OF).toBe(ROLLOUT_DEMO_AS_OF)
     expect(planOf(loadRolloutDemoWorkspace()).sites).toHaveLength(ROLLOUT_DEMO_SITES)
   })
 
@@ -243,6 +287,18 @@ describe('what the rollout demo holds (#212)', () => {
     ])
   })
 
+  it('uses the data-migration preset’s milestone set (#213)', () => {
+    expect(plan.milestones).toEqual(ROLLOUT_PRESETS.dataMigration.milestones)
+    for (const archetype of plan.archetypes) {
+      expect(Object.keys(archetype.durations!).sort()).toEqual(
+        plan.milestones
+          .slice(1)
+          .map((milestone) => milestone.id)
+          .sort(),
+      )
+    }
+  })
+
   it('has eight waves, the pilot first, planned finer the nearer they are', () => {
     const waves = wavesOf(demo.elements, ROLLOUT_DEMO_ID).map((wave) => wavePlanOf(wave)!)
     expect(waves.map((wave) => wave.label)).toEqual([
@@ -270,37 +326,90 @@ describe('what the rollout demo holds (#212)', () => {
     )
   })
 
-  it('dates the near waves’ sites to the day and leaves the later waves’ to their wave', () => {
-    const byWave = (label: string) => {
-      const wave = wavesOf(demo.elements, ROLLOUT_DEMO_ID).find(
-        (element) => wavePlanOf(element)?.label === label,
-      )!
-      return plan.sites.filter((site) => site.wave === wave.id)
+  const byWave = (label: string) => {
+    const wave = wavesOf(demo.elements, ROLLOUT_DEMO_ID).find(
+      (element) => wavePlanOf(element)?.label === label,
+    )!
+    return { wave: wavePlanOf(wave)!, sites: plan.sites.filter((site) => site.wave === wave.id) }
+  }
+  const LABELS = ['Pilot', 'W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7']
+  const PRECISIONS = ['day', 'day', 'week', 'month', 'quarter', 'quarter', 'quarter', 'quarter']
+
+  it('dates each wave’s cutover at the wave’s precision, and nothing else (#213)', () => {
+    for (const [index, label] of LABELS.entries()) {
+      const { wave } = byWave(label)
+      expect(Object.keys(wave.milestones!)).toEqual(['freezeStart'])
+      expect(wave.milestones!.freezeStart!.precision).toBe(PRECISIONS[index])
     }
-    for (const site of [...byWave('Pilot'), ...byWave('W1')]) {
-      expect(Object.keys(site.milestones!)).toEqual(
-        expect.arrayContaining(plan.milestones.map((milestone) => milestone.id)),
-      )
-      expect(new Set(Object.values(site.milestones!).map((date) => date.precision))).toEqual(
-        new Set(['day']),
-      )
+  })
+
+  it('has the near waves’ sites set their own cutovers, and the later waves’ inherit', () => {
+    const own = (label: string) =>
+      byWave(label).sites.filter((site) => site.milestones?.freezeStart !== undefined)
+    // Pilot: all of them; W1: two in three, the seeded blackout site among
+    // them at this seed; W2: every other one; W3: one; W4–W7: none.
+    expect(LABELS.map((label) => own(label).length)).toEqual([4, 10, 10, 1, 0, 0, 0, 0])
+    for (const [index, label] of LABELS.entries()) {
+      for (const site of own(label)) {
+        // The cutover is the only date a site sets; the rest are spaced from it.
+        expect(Object.keys(site.milestones!)).toEqual(['freezeStart'])
+        expect(site.milestones!.freezeStart!.precision).toBe(PRECISIONS[index])
+      }
     }
-    for (const site of byWave('W2')) {
-      expect(Object.values(site.milestones!).map((date) => date.precision)).toEqual(['week'])
+  })
+
+  it('resolves every milestone of a site at its wave’s precision, set or inherited', () => {
+    for (const [index, label] of LABELS.entries()) {
+      for (const site of byWave(label).sites) {
+        const milestones = [...resolved(demo, site).values()]
+        expect(milestones.map((milestone) => milestone.planned?.precision)).toEqual(
+          Array<string>(10).fill(PRECISIONS[index]!),
+        )
+        const cutover = milestones.find((milestone) => milestone.milestone.id === 'freezeStart')!
+        expect(cutover.source).toBe(site.milestones ? 'site' : 'wave')
+        for (const milestone of milestones) {
+          if (milestone !== cutover) expect(milestone.source).toBe('spaced')
+        }
+      }
     }
-    for (const label of ['W3', 'W4', 'W5', 'W6', 'W7']) {
-      for (const site of byWave(label)) expect(site.milestones).toBeUndefined()
+  })
+
+  it('records actuals up to ROLLOUT_DEMO_AS_OF and none after, and only the pilot has reached one', () => {
+    expect(ROLLOUT_DEMO_AS_OF).toBe('2026-10-23')
+    const pilot = byWave('Pilot').sites
+    for (const site of plan.sites) {
+      for (const milestone of resolved(demo, site).values()) {
+        // The site in no wave inherits no date, so it has reached nothing.
+        const reached =
+          milestone.planned !== undefined && milestone.planned.date <= ROLLOUT_DEMO_AS_OF
+        // Every milestone planned to start by the as-of day has an actual, and no other.
+        expect(milestone.actual !== undefined, `${site.location} ${milestone.milestone.id}`).toBe(
+          reached,
+        )
+        if (milestone.actual) expect(milestone.actual <= ROLLOUT_DEMO_AS_OF).toBe(true)
+      }
     }
-    // The pilot is under way: it has actuals, and nothing later does.
-    expect(byWave('Pilot').every((site) => site.actuals !== undefined)).toBe(true)
-    expect(plan.sites.filter((site) => site.actuals).length).toBe(byWave('Pilot').length)
+    expect(pilot.every((site) => site.actuals !== undefined)).toBe(true)
+    expect(plan.sites.filter((site) => site.actuals).length).toBe(pilot.length)
+  })
+
+  it('has the pilot under way at ROLLOUT_DEMO_AS_OF: preparing, and not overdue', () => {
+    const at = dayStart(ROLLOUT_DEMO_AS_OF)
+    const pilot = byWave('Pilot')
+    const statuses = pilot.sites.map((site) => siteStatus(plan, site, pilot.wave, at))
+    expect(statuses.map((status) => status.phase)).toEqual(Array<string>(4).fill('preparing'))
+    expect(statuses.map((status) => status.overdue)).toEqual(Array<boolean>(4).fill(false))
   })
 })
 
 describe.each(SEEDS)('the seeded problems, with seed %i (#212, for #214)', (seed) => {
   const workspace = rolloutDemoWorkspace(seed)
   const plan = planOf(workspace)
-  const data = rolloutData(new ModelStore(workspace), ROLLOUT_DEMO_ID)!
+  const data = rolloutData(
+    new ModelStore(workspace),
+    ROLLOUT_DEMO_ID,
+    dayStart(ROLLOUT_DEMO_AS_OF),
+  )!
 
   it('has every site but one in a wave', () => {
     expect(data.sites).toHaveLength(160)
@@ -314,16 +423,70 @@ describe.each(SEEDS)('the seeded problems, with seed %i (#212, for #214)', (seed
     ])
   })
 
+  const inWave = plan.sites.filter((site) => site.wave !== undefined)
+  const seededSite = plan.sites.find(
+    (site) => site.milestones?.freezeStart?.date === SEEDED.blackoutCutover,
+  )!
+
   it('has exactly one cutover inside a blackout', () => {
-    const blackouts = plan.constraints!.blackouts!
-    const inBlackout = plan.sites.filter((site) => {
-      const cutover = site.milestones?.freezeStart
-      return cutover && blackouts.some((blackout) => isIn(cutover.date, blackout))
+    const inBlackout = inWave.filter((site) => {
+      const cutover = resolved(workspace, site).get('freezeStart')!
+      return touchesBlackout(workspace, cutover, cutover)
     })
-    expect(inBlackout.map((site) => site.milestones!.freezeStart!.date)).toEqual([
-      SEEDED.blackoutCutover,
-    ])
-    expect(blackouts.find((blackout) => blackout.id === SEEDED.blackout)).toBeDefined()
+    expect(inBlackout.map((site) => site.location)).toEqual([seededSite.location])
+    expect(seededSite.milestones!.freezeStart).toEqual({
+      date: SEEDED.blackoutCutover,
+      precision: 'day',
+    })
+    expect(
+      plan.constraints!.blackouts!.find((blackout) => blackout.id === SEEDED.blackout),
+    ).toBeDefined()
+  })
+
+  it('has exactly one freeze, cutover to reconciliation, touching a blackout', () => {
+    const frozenInBlackout = inWave.filter((site) => {
+      const milestones = resolved(workspace, site)
+      return touchesBlackout(
+        workspace,
+        milestones.get('freezeStart')!,
+        milestones.get('reconciliationSignedOff')!,
+      )
+    })
+    expect(frozenInBlackout.map((site) => site.location)).toEqual([seededSite.location])
+  })
+
+  /** Every cutover the demo dates: each wave's, and each site's own. */
+  const cutovers: { who: string; wave: WavePlan; date: PlanDate }[] = [
+    ...wavesOf(workspace.elements, ROLLOUT_DEMO_ID).map((element) => {
+      const wave = wavePlanOf(element)!
+      return { who: element.id, wave, date: wave.milestones!.freezeStart! }
+    }),
+    ...inWave
+      .filter((site) => site.milestones?.freezeStart)
+      .map((site) => ({
+        who: site.location,
+        wave: waveOf(workspace, site)!,
+        date: site.milestones!.freezeStart!,
+      })),
+  ]
+
+  it('dates every cutover, a wave’s or a site’s own, inside its wave’s window', () => {
+    expect(cutovers.length).toBeGreaterThan(8)
+    const outside = cutovers.filter(
+      ({ wave, date }) =>
+        date.date < wave.window!.start!.date ||
+        dayAfterPeriod(date) > dayAfterPeriod(wave.window!.end!),
+    )
+    expect(outside.map(({ who }) => who)).toEqual([])
+  })
+
+  it('cuts over on a weekday wherever it is dated to the day', () => {
+    const days = cutovers.filter(({ date }) => date.precision === 'day')
+    expect(days.length).toBeGreaterThan(8)
+    const weekend = days.filter(({ date }) =>
+      [0, 6].includes(new Date(dayStart(date.date)).getUTCDay()),
+    )
+    expect(weekend.map(({ who }) => who)).toEqual([])
   })
 
   it('has exactly one residency violation, a Swiss site migrating to Frankfurt', () => {
@@ -333,12 +496,9 @@ describe.each(SEEDS)('the seeded problems, with seed %i (#212, for #214)', (seed
   })
 
   it('puts each seeded site problem on a site of its own', () => {
-    const blackout = plan.sites.find(
-      (site) => site.milestones?.freezeStart?.date === SEEDED.blackoutCutover,
-    )!
     const seeded = [
       data.unassigned[0]!.location,
-      blackout.location,
+      seededSite.location,
       ...residencyViolations(workspace),
     ]
     expect(seeded).toHaveLength(3)

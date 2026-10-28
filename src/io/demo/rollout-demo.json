@@ -2367,7 +2367,7 @@
       "type": "SystemSoftware"
     },
     {
-      "documentation": "Moves every site’s file share and plant quality database into its region’s central data lake, then retires them.",
+      "documentation": "Moves each region’s site file share and plant quality database into the region’s central data lake, site by site, then retires them.",
       "id": "wp-rollout-site-data",
       "name": "Site data to the regional lakes",
       "plan": {
@@ -2459,7 +2459,7 @@
           },
           {
             "id": "goNoGo",
-            "label": "Go / no-go",
+            "label": "Go/no-go",
             "startsPhase": "preparing"
           },
           {
@@ -2494,7 +2494,7 @@
             "location": "loc-site-at-01",
             "milestones": {
               "freezeStart": {
-                "date": "2027-05-03",
+                "date": "2027-05-24",
                 "precision": "week"
               }
             },
@@ -2505,146 +2505,6 @@
             "location": "loc-site-at-02",
             "milestones": {
               "freezeStart": {
-                "date": "2027-05-24",
-                "precision": "week"
-              }
-            },
-            "wave": "wp-wave-2"
-          },
-          {
-            "archetype": "office",
-            "location": "loc-site-at-03",
-            "milestones": {
-              "freezeStart": {
-                "date": "2027-04-26",
-                "precision": "week"
-              }
-            },
-            "wave": "wp-wave-2"
-          },
-          {
-            "archetype": "plant",
-            "location": "loc-site-at-04",
-            "milestones": {
-              "freezeStart": {
-                "date": "2027-05-31",
-                "precision": "week"
-              }
-            },
-            "wave": "wp-wave-2"
-          },
-          {
-            "archetype": "plant",
-            "location": "loc-site-at-05",
-            "milestones": {
-              "freezeStart": {
-                "date": "2027-05-17",
-                "precision": "week"
-              }
-            },
-            "wave": "wp-wave-2"
-          },
-          {
-            "archetype": "plant",
-            "location": "loc-site-at-06",
-            "milestones": {
-              "dressRehearsal": {
-                "date": "2027-01-11",
-                "precision": "day"
-              },
-              "freezeStart": {
-                "date": "2027-01-21",
-                "precision": "day"
-              },
-              "goNoGo": {
-                "date": "2027-01-18",
-                "precision": "day"
-              },
-              "hypercareEnd": {
-                "date": "2027-02-22",
-                "precision": "day"
-              },
-              "legacyDecommissioned": {
-                "date": "2027-05-07",
-                "precision": "day"
-              },
-              "legacyReadOnly": {
-                "date": "2027-03-08",
-                "precision": "day"
-              },
-              "mappingSignedOff": {
-                "date": "2026-11-16",
-                "precision": "day"
-              },
-              "mockLoad1": {
-                "date": "2026-12-07",
-                "precision": "day"
-              },
-              "mockLoad2": {
-                "date": "2026-12-28",
-                "precision": "day"
-              },
-              "reconciliationSignedOff": {
-                "date": "2027-01-25",
-                "precision": "day"
-              }
-            },
-            "rag": "green",
-            "wave": "wp-wave-1"
-          },
-          {
-            "archetype": "office",
-            "location": "loc-site-at-07",
-            "milestones": {
-              "dressRehearsal": {
-                "date": "2027-03-13",
-                "precision": "day"
-              },
-              "freezeStart": {
-                "date": "2027-03-18",
-                "precision": "day"
-              },
-              "goNoGo": {
-                "date": "2027-03-16",
-                "precision": "day"
-              },
-              "hypercareEnd": {
-                "date": "2027-04-03",
-                "precision": "day"
-              },
-              "legacyDecommissioned": {
-                "date": "2027-05-17",
-                "precision": "day"
-              },
-              "legacyReadOnly": {
-                "date": "2027-04-17",
-                "precision": "day"
-              },
-              "mappingSignedOff": {
-                "date": "2027-02-06",
-                "precision": "day"
-              },
-              "mockLoad1": {
-                "date": "2027-02-20",
-                "precision": "day"
-              },
-              "mockLoad2": {
-                "date": "2027-03-06",
-                "precision": "day"
-              },
-              "reconciliationSignedOff": {
-                "date": "2027-03-20",
-                "precision": "day"
-              }
-            },
-            "rag": "green",
-            "wave": "wp-wave-1"
-          },
-          {
-            "archetype": "office",
-            "location": "loc-site-at-08",
-            "milestones": {
-              "freezeStart": {
                 "date": "2027-06-21",
                 "precision": "week"
               }
@@ -2653,10 +2513,46 @@
           },
           {
             "archetype": "office",
+            "location": "loc-site-at-03",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-at-04",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-at-05",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-at-06",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-01-19",
+                "precision": "day"
+              }
+            },
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-at-07",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "office",
+            "location": "loc-site-at-08",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "office",
             "location": "loc-site-at-09",
             "milestones": {
               "freezeStart": {
-                "date": "2027-05-10",
+                "date": "2027-05-24",
                 "precision": "week"
               }
             },
@@ -2789,51 +2685,14 @@
           },
           {
             "actuals": {
-              "mappingSignedOff": "2026-09-06",
-              "mockLoad1": "2026-09-30",
-              "mockLoad2": "2026-10-21"
+              "mappingSignedOff": "2026-09-18",
+              "mockLoad1": "2026-10-07"
             },
             "archetype": "plant",
             "location": "loc-site-ca-04",
             "milestones": {
-              "dressRehearsal": {
-                "date": "2026-11-01",
-                "precision": "day"
-              },
               "freezeStart": {
-                "date": "2026-11-11",
-                "precision": "day"
-              },
-              "goNoGo": {
-                "date": "2026-11-08",
-                "precision": "day"
-              },
-              "hypercareEnd": {
-                "date": "2026-12-13",
-                "precision": "day"
-              },
-              "legacyDecommissioned": {
-                "date": "2027-02-25",
-                "precision": "day"
-              },
-              "legacyReadOnly": {
-                "date": "2026-12-27",
-                "precision": "day"
-              },
-              "mappingSignedOff": {
-                "date": "2026-09-06",
-                "precision": "day"
-              },
-              "mockLoad1": {
-                "date": "2026-09-27",
-                "precision": "day"
-              },
-              "mockLoad2": {
-                "date": "2026-10-18",
-                "precision": "day"
-              },
-              "reconciliationSignedOff": {
-                "date": "2026-11-15",
+                "date": "2026-11-20",
                 "precision": "day"
               }
             },
@@ -2869,144 +2728,31 @@
             "archetype": "warehouse",
             "location": "loc-site-ch-01",
             "milestones": {
-              "dressRehearsal": {
-                "date": "2027-01-22",
-                "precision": "day"
-              },
               "freezeStart": {
-                "date": "2027-01-27",
-                "precision": "day"
-              },
-              "goNoGo": {
-                "date": "2027-01-25",
-                "precision": "day"
-              },
-              "hypercareEnd": {
-                "date": "2027-02-20",
-                "precision": "day"
-              },
-              "legacyDecommissioned": {
-                "date": "2027-04-20",
-                "precision": "day"
-              },
-              "legacyReadOnly": {
-                "date": "2027-03-06",
-                "precision": "day"
-              },
-              "mappingSignedOff": {
-                "date": "2026-12-18",
-                "precision": "day"
-              },
-              "mockLoad1": {
-                "date": "2027-01-01",
-                "precision": "day"
-              },
-              "mockLoad2": {
-                "date": "2027-01-15",
-                "precision": "day"
-              },
-              "reconciliationSignedOff": {
-                "date": "2027-01-30",
+                "date": "2027-02-09",
                 "precision": "day"
               }
             },
             "notes": "HR records fall under Swiss data protection law; legal review of the move is open.",
-            "rag": "green",
+            "rag": "amber",
             "wave": "wp-wave-1"
           },
           {
             "archetype": "warehouse",
             "location": "loc-site-ch-02",
             "milestones": {
-              "dressRehearsal": {
-                "date": "2027-01-27",
-                "precision": "day"
-              },
               "freezeStart": {
-                "date": "2027-02-01",
-                "precision": "day"
-              },
-              "goNoGo": {
-                "date": "2027-01-30",
-                "precision": "day"
-              },
-              "hypercareEnd": {
-                "date": "2027-02-25",
-                "precision": "day"
-              },
-              "legacyDecommissioned": {
-                "date": "2027-04-25",
-                "precision": "day"
-              },
-              "legacyReadOnly": {
-                "date": "2027-03-11",
-                "precision": "day"
-              },
-              "mappingSignedOff": {
-                "date": "2026-12-23",
-                "precision": "day"
-              },
-              "mockLoad1": {
-                "date": "2027-01-06",
-                "precision": "day"
-              },
-              "mockLoad2": {
-                "date": "2027-01-20",
-                "precision": "day"
-              },
-              "reconciliationSignedOff": {
-                "date": "2027-02-04",
+                "date": "2027-03-01",
                 "precision": "day"
               }
             },
+            "rag": "green",
             "wave": "wp-wave-1"
           },
           {
             "archetype": "plant",
             "location": "loc-site-ch-03",
-            "milestones": {
-              "dressRehearsal": {
-                "date": "2027-01-17",
-                "precision": "day"
-              },
-              "freezeStart": {
-                "date": "2027-01-27",
-                "precision": "day"
-              },
-              "goNoGo": {
-                "date": "2027-01-24",
-                "precision": "day"
-              },
-              "hypercareEnd": {
-                "date": "2027-02-28",
-                "precision": "day"
-              },
-              "legacyDecommissioned": {
-                "date": "2027-05-13",
-                "precision": "day"
-              },
-              "legacyReadOnly": {
-                "date": "2027-03-14",
-                "precision": "day"
-              },
-              "mappingSignedOff": {
-                "date": "2026-11-22",
-                "precision": "day"
-              },
-              "mockLoad1": {
-                "date": "2026-12-13",
-                "precision": "day"
-              },
-              "mockLoad2": {
-                "date": "2027-01-03",
-                "precision": "day"
-              },
-              "reconciliationSignedOff": {
-                "date": "2027-01-31",
-                "precision": "day"
-              }
-            },
-            "rag": "green",
+            "rag": "amber",
             "wave": "wp-wave-1"
           },
           {
@@ -3014,7 +2760,7 @@
             "location": "loc-site-ch-04",
             "milestones": {
               "freezeStart": {
-                "date": "2027-06-07",
+                "date": "2027-06-14",
                 "precision": "week"
               }
             },
@@ -3024,92 +2770,29 @@
             "archetype": "plant",
             "location": "loc-site-ch-05",
             "milestones": {
-              "dressRehearsal": {
-                "date": "2027-03-02",
-                "precision": "day"
-              },
               "freezeStart": {
-                "date": "2027-03-12",
-                "precision": "day"
-              },
-              "goNoGo": {
-                "date": "2027-03-09",
-                "precision": "day"
-              },
-              "hypercareEnd": {
-                "date": "2027-04-13",
-                "precision": "day"
-              },
-              "legacyDecommissioned": {
-                "date": "2027-06-26",
-                "precision": "day"
-              },
-              "legacyReadOnly": {
-                "date": "2027-04-27",
-                "precision": "day"
-              },
-              "mappingSignedOff": {
-                "date": "2027-01-05",
-                "precision": "day"
-              },
-              "mockLoad1": {
-                "date": "2027-01-26",
-                "precision": "day"
-              },
-              "mockLoad2": {
-                "date": "2027-02-16",
-                "precision": "day"
-              },
-              "reconciliationSignedOff": {
-                "date": "2027-03-16",
+                "date": "2027-01-29",
                 "precision": "day"
               }
             },
-            "rag": "green",
             "wave": "wp-wave-1"
           },
           {
             "archetype": "plant",
             "location": "loc-site-ch-06",
+            "wave": "wp-wave-1"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-de-01",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "plant",
+            "location": "loc-site-de-02",
             "milestones": {
-              "dressRehearsal": {
-                "date": "2027-01-11",
-                "precision": "day"
-              },
               "freezeStart": {
-                "date": "2027-01-21",
-                "precision": "day"
-              },
-              "goNoGo": {
-                "date": "2027-01-18",
-                "precision": "day"
-              },
-              "hypercareEnd": {
-                "date": "2027-02-22",
-                "precision": "day"
-              },
-              "legacyDecommissioned": {
-                "date": "2027-05-07",
-                "precision": "day"
-              },
-              "legacyReadOnly": {
-                "date": "2027-03-08",
-                "precision": "day"
-              },
-              "mappingSignedOff": {
-                "date": "2026-11-16",
-                "precision": "day"
-              },
-              "mockLoad1": {
-                "date": "2026-12-07",
-                "precision": "day"
-              },
-              "mockLoad2": {
-                "date": "2026-12-28",
-                "precision": "day"
-              },
-              "reconciliationSignedOff": {
-                "date": "2027-01-25",
+                "date": "2027-03-05",
                 "precision": "day"
               }
             },
@@ -3118,7 +2801,12 @@
           },
           {
             "archetype": "plant",
-            "location": "loc-site-de-01",
+            "location": "loc-site-de-03",
+            "wave": "wp-wave-2"
+          },
+          {
+            "archetype": "warehouse",
+            "location": "loc-site-de-04",
             "milestones": {
               "freezeStart": {
                 "date": "2027-05-17",
@@ -3129,79 +2817,10 @@
           },
           {
             "archetype": "plant",
-            "location": "loc-site-de-02",
-            "milestones": {
-              "dressRehearsal": {
-                "date": "2027-01-29",
-                "precision": "day"
-              },
-              "freezeStart": {
-                "date": "2027-02-08",
-                "precision": "day"
-              },
-              "goNoGo": {
-                "date": "2027-02-05",
-                "precision": "day"
-              },
-              "hypercareEnd": {
-                "date": "2027-03-12",
-                "precision": "day"
-              },
-              "legacyDecommissioned": {
-                "date": "2027-05-25",
-                "precision": "day"
-              },
-              "legacyReadOnly": {
-                "date": "2027-03-26",
-                "precision": "day"
-              },
-              "mappingSignedOff": {
-                "date": "2026-12-04",
-                "precision": "day"
-              },
-              "mockLoad1": {
-                "date": "2026-12-25",
-                "precision": "day"
-              },
-              "mockLoad2": {
-                "date": "2027-01-15",
-                "precision": "day"
-              },
-              "reconciliationSignedOff": {
-                "date": "2027-02-12",
-                "precision": "day"
-              }
-            },
-            "wave": "wp-wave-1"
-          },
-          {
-            "archetype": "plant",
-            "location": "loc-site-de-03",
-            "milestones": {
-              "freezeStart": {
-                "date": "2027-05-03",
-                "precision": "week"
-              }
-            },
-            "wave": "wp-wave-2"
-          },
-          {
-            "archetype": "warehouse",
-            "location": "loc-site-de-04",
-            "milestones": {
-              "freezeStart": {
-                "date": "2027-04-26",
-                "precision": "week"
-              }
-            },
-            "wave": "wp-wave-2"
-          },
-          {
-            "archetype": "plant",
             "location": "loc-site-de-05",
             "milestones": {
               "freezeStart": {
-                "date": "2027-05-24",
+                "date": "2027-06-14",
                 "precision": "week"
               }
             },
@@ -3212,7 +2831,7 @@
             "location": "loc-site-de-06",
             "milestones": {
               "freezeStart": {
-                "date": "2027-04-26",
+                "date": "2027-06-07",
                 "precision": "week"
               }
             },
@@ -3221,70 +2840,16 @@
           {
             "archetype": "plant",
             "location": "loc-site-de-07",
-            "milestones": {
-              "freezeStart": {
-                "date": "2027-06-14",
-                "precision": "week"
-              }
-            },
             "wave": "wp-wave-2"
           },
           {
             "archetype": "warehouse",
             "location": "loc-site-de-08",
-            "milestones": {
-              "freezeStart": {
-                "date": "2027-05-03",
-                "precision": "week"
-              }
-            },
             "wave": "wp-wave-2"
           },
           {
             "archetype": "plant",
             "location": "loc-site-de-09",
-            "milestones": {
-              "dressRehearsal": {
-                "date": "2027-03-05",
-                "precision": "day"
-              },
-              "freezeStart": {
-                "date": "2027-03-15",
-                "precision": "day"
-              },
-              "goNoGo": {
-                "date": "2027-03-12",
-                "precision": "day"
-              },
-              "hypercareEnd": {
-                "date": "2027-04-16",
-                "precision": "day"
-              },
-              "legacyDecommissioned": {
-                "date": "2027-06-29",
-                "precision": "day"
-              },
-              "legacyReadOnly": {
-                "date": "2027-04-30",
-                "precision": "day"
-              },
-              "mappingSignedOff": {
-                "date": "2027-01-08",
-                "precision": "day"
-              },
-              "mockLoad1": {
-                "date": "2027-01-29",
-                "precision": "day"
-              },
-              "mockLoad2": {
-                "date": "2027-02-19",
-                "precision": "day"
-              },
-              "reconciliationSignedOff": {
-                "date": "2027-03-19",
-                "precision": "day"
-              }
-            },
             "rag": "amber",
             "wave": "wp-wave-1"
           },
@@ -3292,107 +2857,29 @@
             "archetype": "office",
             "location": "loc-site-de-10",
             "milestones": {
-              "dressRehearsal": {
-                "date": "2027-02-26",
-                "precision": "day"
-              },
               "freezeStart": {
-                "date": "2027-03-03",
-                "precision": "day"
-              },
-              "goNoGo": {
-                "date": "2027-03-01",
-                "precision": "day"
-              },
-              "hypercareEnd": {
-                "date": "2027-03-19",
-                "precision": "day"
-              },
-              "legacyDecommissioned": {
-                "date": "2027-05-02",
-                "precision": "day"
-              },
-              "legacyReadOnly": {
-                "date": "2027-04-02",
-                "precision": "day"
-              },
-              "mappingSignedOff": {
-                "date": "2027-01-22",
-                "precision": "day"
-              },
-              "mockLoad1": {
-                "date": "2027-02-05",
-                "precision": "day"
-              },
-              "mockLoad2": {
-                "date": "2027-02-19",
-                "precision": "day"
-              },
-              "reconciliationSignedOff": {
-                "date": "2027-03-05",
+                "date": "2027-01-21",
                 "precision": "day"
               }
             },
-            "rag": "amber",
+            "rag": "green",
             "wave": "wp-wave-1"
           },
           {
             "archetype": "warehouse",
             "location": "loc-site-de-11",
-            "milestones": {
-              "freezeStart": {
-                "date": "2027-05-31",
-                "precision": "week"
-              }
-            },
             "wave": "wp-wave-2"
           },
           {
             "archetype": "plant",
             "location": "loc-site-de-12",
             "milestones": {
-              "dressRehearsal": {
-                "date": "2027-03-21",
-                "precision": "day"
-              },
               "freezeStart": {
                 "date": "2027-03-31",
                 "precision": "day"
-              },
-              "goNoGo": {
-                "date": "2027-03-28",
-                "precision": "day"
-              },
-              "hypercareEnd": {
-                "date": "2027-05-02",
-                "precision": "day"
-              },
-              "legacyDecommissioned": {
-                "date": "2027-07-15",
-                "precision": "day"
-              },
-              "legacyReadOnly": {
-                "date": "2027-05-16",
-                "precision": "day"
-              },
-              "mappingSignedOff": {
-                "date": "2027-01-24",
-                "precision": "day"
-              },
-              "mockLoad1": {
-                "date": "2027-02-14",
-                "precision": "day"
-              },
-              "mockLoad2": {
-                "date": "2027-03-07",
-                "precision": "day"
-              },
-              "reconciliationSignedOff": {
-                "date": "2027-04-04",
-                "precision": "day"
               }
             },
-            "notes": "The plant asked for the earliest cutover W1 could offer.",
+            "notes": "Cutover set for 31 March at the site’s request, before the Q1 close was checked.",
             "rag": "red",
             "wave": "wp-wave-1"
           },
@@ -3401,7 +2888,7 @@
             "location": "loc-site-de-13",
             "milestones": {
               "freezeStart": {
-                "date": "2027-06-21",
+                "date": "2027-05-10",
                 "precision": "week"
               }
             },
@@ -3409,50 +2896,14 @@
           },
           {
             "actuals": {
-              "mappingSignedOff": "2026-09-30",
-              "mockLoad1": "2026-10-21"
+              "mappingSignedOff": "2026-09-23",
+              "mockLoad1": "2026-10-16"
             },
             "archetype": "plant",
             "location": "loc-site-dk-01",
             "milestones": {
-              "dressRehearsal": {
-                "date": "2026-11-23",
-                "precision": "day"
-              },
               "freezeStart": {
-                "date": "2026-12-03",
-                "precision": "day"
-              },
-              "goNoGo": {
-                "date": "2026-11-30",
-                "precision": "day"
-              },
-              "hypercareEnd": {
-                "date": "2027-01-04",
-                "precision": "day"
-              },
-              "legacyDecommissioned": {
-                "date": "2027-03-19",
-                "precision": "day"
-              },
-              "legacyReadOnly": {
-                "date": "2027-01-18",
-                "precision": "day"
-              },
-              "mappingSignedOff": {
-                "date": "2026-09-28",
-                "precision": "day"
-              },
-              "mockLoad1": {
-                "date": "2026-10-19",
-                "precision": "day"
-              },
-              "mockLoad2": {
-                "date": "2026-11-09",
-                "precision": "day"
-              },
-              "reconciliationSignedOff": {
-                "date": "2026-12-07",
+                "date": "2026-11-27",
                 "precision": "day"
               }
             },
@@ -3692,49 +3143,13 @@
           },
           {
             "actuals": {
-              "mappingSignedOff": "2026-10-16"
+              "mappingSignedOff": "2026-10-23"
             },
             "archetype": "office",
             "location": "loc-site-it-02",
             "milestones": {
-              "dressRehearsal": {
-                "date": "2026-11-20",
-                "precision": "day"
-              },
               "freezeStart": {
-                "date": "2026-11-25",
-                "precision": "day"
-              },
-              "goNoGo": {
-                "date": "2026-11-23",
-                "precision": "day"
-              },
-              "hypercareEnd": {
-                "date": "2026-12-11",
-                "precision": "day"
-              },
-              "legacyDecommissioned": {
-                "date": "2027-01-24",
-                "precision": "day"
-              },
-              "legacyReadOnly": {
-                "date": "2026-12-25",
-                "precision": "day"
-              },
-              "mappingSignedOff": {
-                "date": "2026-10-16",
-                "precision": "day"
-              },
-              "mockLoad1": {
-                "date": "2026-10-30",
-                "precision": "day"
-              },
-              "mockLoad2": {
-                "date": "2026-11-13",
-                "precision": "day"
-              },
-              "reconciliationSignedOff": {
-                "date": "2026-11-27",
+                "date": "2026-12-02",
                 "precision": "day"
               }
             },
@@ -3744,6 +3159,12 @@
           {
             "archetype": "warehouse",
             "location": "loc-site-it-03",
+            "milestones": {
+              "freezeStart": {
+                "date": "2027-08-01",
+                "precision": "month"
+              }
+            },
             "wave": "wp-wave-3"
           },
           {
@@ -3788,50 +3209,14 @@
           },
           {
             "actuals": {
-              "mappingSignedOff": "2026-10-05",
-              "mockLoad1": "2026-10-18"
+              "mappingSignedOff": "2026-10-03",
+              "mockLoad1": "2026-10-20"
             },
             "archetype": "warehouse",
             "location": "loc-site-jp-02",
             "milestones": {
-              "dressRehearsal": {
-                "date": "2026-11-07",
-                "precision": "day"
-              },
               "freezeStart": {
                 "date": "2026-11-12",
-                "precision": "day"
-              },
-              "goNoGo": {
-                "date": "2026-11-10",
-                "precision": "day"
-              },
-              "hypercareEnd": {
-                "date": "2026-12-06",
-                "precision": "day"
-              },
-              "legacyDecommissioned": {
-                "date": "2027-02-03",
-                "precision": "day"
-              },
-              "legacyReadOnly": {
-                "date": "2026-12-20",
-                "precision": "day"
-              },
-              "mappingSignedOff": {
-                "date": "2026-10-03",
-                "precision": "day"
-              },
-              "mockLoad1": {
-                "date": "2026-10-17",
-                "precision": "day"
-              },
-              "mockLoad2": {
-                "date": "2026-10-31",
-                "precision": "day"
-              },
-              "reconciliationSignedOff": {
-                "date": "2026-11-15",
                 "precision": "day"
               }
             },
@@ -3893,7 +3278,7 @@
             "location": "loc-site-pl-01",
             "milestones": {
               "freezeStart": {
-                "date": "2027-04-26",
+                "date": "2027-05-31",
                 "precision": "week"
               }
             },
@@ -3903,92 +3288,20 @@
             "archetype": "office",
             "location": "loc-site-pl-02",
             "milestones": {
-              "dressRehearsal": {
-                "date": "2027-02-28",
-                "precision": "day"
-              },
               "freezeStart": {
-                "date": "2027-03-05",
-                "precision": "day"
-              },
-              "goNoGo": {
-                "date": "2027-03-03",
-                "precision": "day"
-              },
-              "hypercareEnd": {
-                "date": "2027-03-21",
-                "precision": "day"
-              },
-              "legacyDecommissioned": {
-                "date": "2027-05-04",
-                "precision": "day"
-              },
-              "legacyReadOnly": {
-                "date": "2027-04-04",
-                "precision": "day"
-              },
-              "mappingSignedOff": {
-                "date": "2027-01-24",
-                "precision": "day"
-              },
-              "mockLoad1": {
-                "date": "2027-02-07",
-                "precision": "day"
-              },
-              "mockLoad2": {
-                "date": "2027-02-21",
-                "precision": "day"
-              },
-              "reconciliationSignedOff": {
-                "date": "2027-03-07",
+                "date": "2027-04-14",
                 "precision": "day"
               }
             },
-            "rag": "green",
+            "rag": "amber",
             "wave": "wp-wave-1"
           },
           {
             "archetype": "plant",
             "location": "loc-site-pl-03",
             "milestones": {
-              "dressRehearsal": {
-                "date": "2027-03-06",
-                "precision": "day"
-              },
               "freezeStart": {
-                "date": "2027-03-16",
-                "precision": "day"
-              },
-              "goNoGo": {
-                "date": "2027-03-13",
-                "precision": "day"
-              },
-              "hypercareEnd": {
-                "date": "2027-04-17",
-                "precision": "day"
-              },
-              "legacyDecommissioned": {
-                "date": "2027-06-30",
-                "precision": "day"
-              },
-              "legacyReadOnly": {
-                "date": "2027-05-01",
-                "precision": "day"
-              },
-              "mappingSignedOff": {
-                "date": "2027-01-09",
-                "precision": "day"
-              },
-              "mockLoad1": {
-                "date": "2027-01-30",
-                "precision": "day"
-              },
-              "mockLoad2": {
-                "date": "2027-02-20",
-                "precision": "day"
-              },
-              "reconciliationSignedOff": {
-                "date": "2027-03-20",
+                "date": "2027-03-08",
                 "precision": "day"
               }
             },
@@ -3998,56 +3311,14 @@
           {
             "archetype": "plant",
             "location": "loc-site-pl-04",
-            "milestones": {
-              "freezeStart": {
-                "date": "2027-06-21",
-                "precision": "week"
-              }
-            },
             "wave": "wp-wave-2"
           },
           {
             "archetype": "plant",
             "location": "loc-site-pl-05",
             "milestones": {
-              "dressRehearsal": {
-                "date": "2027-02-15",
-                "precision": "day"
-              },
               "freezeStart": {
-                "date": "2027-02-25",
-                "precision": "day"
-              },
-              "goNoGo": {
-                "date": "2027-02-22",
-                "precision": "day"
-              },
-              "hypercareEnd": {
-                "date": "2027-03-29",
-                "precision": "day"
-              },
-              "legacyDecommissioned": {
-                "date": "2027-06-11",
-                "precision": "day"
-              },
-              "legacyReadOnly": {
-                "date": "2027-04-12",
-                "precision": "day"
-              },
-              "mappingSignedOff": {
-                "date": "2026-12-21",
-                "precision": "day"
-              },
-              "mockLoad1": {
-                "date": "2027-01-11",
-                "precision": "day"
-              },
-              "mockLoad2": {
-                "date": "2027-02-01",
-                "precision": "day"
-              },
-              "reconciliationSignedOff": {
-                "date": "2027-03-01",
+                "date": "2027-03-16",
                 "precision": "day"
               }
             },
@@ -4059,7 +3330,7 @@
             "location": "loc-site-pl-06",
             "milestones": {
               "freezeStart": {
-                "date": "2027-06-21",
+                "date": "2027-06-14",
                 "precision": "week"
               }
             },
@@ -4068,49 +3339,6 @@
           {
             "archetype": "office",
             "location": "loc-site-pl-07",
-            "milestones": {
-              "dressRehearsal": {
-                "date": "2027-02-28",
-                "precision": "day"
-              },
-              "freezeStart": {
-                "date": "2027-03-05",
-                "precision": "day"
-              },
-              "goNoGo": {
-                "date": "2027-03-03",
-                "precision": "day"
-              },
-              "hypercareEnd": {
-                "date": "2027-03-21",
-                "precision": "day"
-              },
-              "legacyDecommissioned": {
-                "date": "2027-05-04",
-                "precision": "day"
-              },
-              "legacyReadOnly": {
-                "date": "2027-04-04",
-                "precision": "day"
-              },
-              "mappingSignedOff": {
-                "date": "2027-01-24",
-                "precision": "day"
-              },
-              "mockLoad1": {
-                "date": "2027-02-07",
-                "precision": "day"
-              },
-              "mockLoad2": {
-                "date": "2027-02-21",
-                "precision": "day"
-              },
-              "reconciliationSignedOff": {
-                "date": "2027-03-07",
-                "precision": "day"
-              }
-            },
-            "rag": "green",
             "wave": "wp-wave-1"
           },
           {
@@ -4529,6 +3757,12 @@
         "capacity": 16,
         "kind": "wave",
         "label": "W1",
+        "milestones": {
+          "freezeStart": {
+            "date": "2027-03-22",
+            "precision": "day"
+          }
+        },
         "order": 1,
         "rollout": "wp-rollout-site-data",
         "templateVersion": 2,
@@ -4552,6 +3786,12 @@
         "capacity": 18,
         "kind": "wave",
         "label": "W2",
+        "milestones": {
+          "freezeStart": {
+            "date": "2027-05-10",
+            "precision": "week"
+          }
+        },
         "order": 2,
         "rollout": "wp-rollout-site-data",
         "templateVersion": 2,
@@ -4574,6 +3814,12 @@
       "plan": {
         "kind": "wave",
         "label": "W3",
+        "milestones": {
+          "freezeStart": {
+            "date": "2027-08-01",
+            "precision": "month"
+          }
+        },
         "order": 3,
         "rollout": "wp-rollout-site-data",
         "templateVersion": 2,
@@ -4596,6 +3842,12 @@
       "plan": {
         "kind": "wave",
         "label": "W4",
+        "milestones": {
+          "freezeStart": {
+            "date": "2027-10-01",
+            "precision": "quarter"
+          }
+        },
         "order": 4,
         "rollout": "wp-rollout-site-data",
         "templateVersion": 2,
@@ -4618,6 +3870,12 @@
       "plan": {
         "kind": "wave",
         "label": "W5",
+        "milestones": {
+          "freezeStart": {
+            "date": "2028-01-01",
+            "precision": "quarter"
+          }
+        },
         "order": 5,
         "rollout": "wp-rollout-site-data",
         "templateVersion": 2,
@@ -4640,6 +3898,12 @@
       "plan": {
         "kind": "wave",
         "label": "W6",
+        "milestones": {
+          "freezeStart": {
+            "date": "2028-04-01",
+            "precision": "quarter"
+          }
+        },
         "order": 6,
         "rollout": "wp-rollout-site-data",
         "templateVersion": 2,
@@ -4662,6 +3926,12 @@
       "plan": {
         "kind": "wave",
         "label": "W7",
+        "milestones": {
+          "freezeStart": {
+            "date": "2028-07-01",
+            "precision": "quarter"
+          }
+        },
         "order": 7,
         "rollout": "wp-rollout-site-data",
         "templateVersion": 2,
@@ -4685,6 +3955,12 @@
         "capacity": 4,
         "kind": "wave",
         "label": "Pilot",
+        "milestones": {
+          "freezeStart": {
+            "date": "2026-11-13",
+            "precision": "day"
+          }
+        },
         "order": 0,
         "rollout": "wp-rollout-site-data",
         "templateVersion": 1,

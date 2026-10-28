@@ -525,14 +525,28 @@ through `toCanonicalJson`. The same seed writes the same bytes, and
 writes.
 
 The model is a fictional manufacturer: 5 regions, 20 countries and 160 sites as a
-Location hierarchy, each site's fields in `archipelago.site.*` properties, a site
-file share at every site and a plant quality database at every plant (Artifacts
-realizing Data Objects), and one data lake per region at its hub. The rollout's
-template replaces each local store with its region's lake at cutover and retires it
-90 days later. Eight waves, a pilot first, take every site but one, dated to the day
-near and to the quarter far. It carries problems on purpose, for #214's plan checks:
+Location hierarchy, each site's fields in `archipelago.site.*` properties, and per
+region two local stores (Artifacts realizing Data Objects): a site file share that
+every site of the region aggregates and a plant quality database that every plant
+of the region aggregates. Each region has one data lake at its hub. The rollout's
+template replaces each local store with its region's lake at a site's cutover and
+retires it 90 days later. It carries problems on purpose, for #214's plan checks:
 one site in no wave, one wave over capacity, one cutover inside a blackout and one
 residency violation. The test proves each is there exactly once, for several seeds.
+
+The milestones are the data-migration preset's (#213), and the plant, office and
+warehouse archetypes space them with their own `durations`. Eight waves, a pilot
+first, take every site but one. Each wave dates the cutover (`freezeStart`) in
+`WavePlan.milestones`, at a precision that coarsens with distance: the pilot and
+W1 to the day, W2 to the week, W3 to the month, W4 to W7 to the quarter. Every
+pilot site and two in three of W1 set their own cutover, at their wave's precision,
+as do half of W2 and one site of W3; every other site inherits its wave's date.
+The other milestones are spaced from the cutover (ADR 0016). The demo
+is planned as of `ROLLOUT_DEMO_AS_OF` (`demo/rollout-demo-constants.ts`): the
+pilot's actual dates run up to it, and "Explore the demo" opens the rollout home
+at `?at=` that day, so the pilot shows as under way whatever today is. The rollout
+home reads `?at=` as its time point for the register's phase and the timeline;
+a value that is not a calendar day is ignored.
 
 ## Archi's model file (#13)
 

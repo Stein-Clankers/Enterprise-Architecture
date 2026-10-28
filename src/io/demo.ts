@@ -50,10 +50,11 @@ export function loadDemoWorkspace(): Workspace {
 export const ROLLOUT_DEMO_JSON = rolloutDemoJson
 
 /**
- * The rollout the rollout demo opens on. The generator's own constant is not
- * imported, which would bundle the generator; a test holds the two equal.
+ * The rollout the rollout demo opens on, and the day it is planned as of,
+ * which its home opens at. They come from a module of their own, which the
+ * generator reads too, so the generator itself is not bundled.
  */
-export const ROLLOUT_DEMO_ROLLOUT_ID = 'wp-rollout-site-data'
+export { ROLLOUT_DEMO_AS_OF, ROLLOUT_DEMO_ID } from './demo/rollout-demo-constants'
 
 /**
  * Parse the bundled rollout demo through the canonical reader a user's

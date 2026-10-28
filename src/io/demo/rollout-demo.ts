@@ -1,16 +1,30 @@
 import {
+  addDays,
+  dayAfterPeriod,
+  dayStart,
   emptyWorkspace,
+  periodOf,
+  presetPlan,
+  resolveSiteMilestones,
+  ROLLOUT_PRESETS,
+  switchMilestone,
   type Archetype,
   type Blackout,
   type Element,
   type Milestone,
   type PlanDate,
   type Relationship,
+  type ResolvedMilestone,
+  type RolloutPlan,
   type SitePlan,
   type SiteRag,
   type TemplateChange,
+  type WavePlan,
   type Workspace,
 } from '@/model'
+import { ROLLOUT_DEMO_AS_OF, ROLLOUT_DEMO_ID } from './rollout-demo-constants'
+
+export { ROLLOUT_DEMO_AS_OF, ROLLOUT_DEMO_ID }
 
 /**
  * The generated 160-site data-migration rollout demo (#212, proposal §4.8).
@@ -35,9 +49,14 @@ import {
  * template change names it once and `aggregating` picks the sites that have
  * it (ADR 0013 point 4). Per region, the template `replace`s each local store
  * with the region's lake at cutover and `retire`s it 90 days later
- * (proposal §4.8). Eight waves, a pilot first, take every site but one.
- * The near waves are planned to the day, then the week and the month, and the
- * later waves only to the quarter: rolling elaboration (proposal §5).
+ * (proposal §4.8). Its milestones are the data-migration preset's (#213).
+ * Eight waves, a pilot first, take every site but one. Each wave dates its
+ * sites' cutover: the near waves to the day, then the week and the month, and
+ * the later waves only to the quarter, rolling elaboration (proposal §5). Most
+ * near-wave sites set a cutover of their own and the later waves' inherit the
+ * wave's; every other milestone is spaced from the cutover by the site's
+ * archetype (ADR 0016 point 2). The pilot is under way as of
+ * `ROLLOUT_DEMO_AS_OF`, the day the rollout home opens at.
  *
  * **Seeded problems** for #214's plan checks, each placed by rule rather than
  * by the seed, so every seed has exactly one of each (`SEEDED`):
@@ -56,12 +75,8 @@ import {
 /** The seed `npm run demo:generate` writes the checked-in demo with. */
 export const ROLLOUT_DEMO_SEED = 212
 
-export const ROLLOUT_DEMO_ID = 'wp-rollout-site-data'
 export const ROLLOUT_DEMO_NAME = 'Site data to the regional lakes'
 export const ROLLOUT_DEMO_SITES = 160
-
-/** The day the demo's actuals are recorded up to: nothing later has an actual. */
-export const ROLLOUT_DEMO_AS_OF = '2026-10-23'
 
 /** Which wave is which, and the problems the demo carries on purpose. */
 export const SEEDED = {
@@ -284,34 +299,24 @@ const platform = (region: Region) => `sys-platform-${region.code}`
 // ── The rollout's shape ──────────────────────────────────────────────────────
 
 /**
- * The data-migration milestones of proposal §4.8, written out as data.
- * TODO(#213): take them from the data-migration preset once #213 lands, so the
- * demo and the preset cannot drift.
+ * The data-migration preset's milestone set (#213, proposal §4.8), copied so
+ * no edit to the demo reaches the preset.
  */
-const MILESTONES: Milestone[] = [
-  { id: 'mappingSignedOff', label: 'Mapping signed off', startsPhase: 'preparing' },
-  { id: 'mockLoad1', label: 'Mock load 1', startsPhase: 'preparing' },
-  { id: 'mockLoad2', label: 'Mock load 2', startsPhase: 'preparing' },
-  { id: 'dressRehearsal', label: 'Dress rehearsal', startsPhase: 'preparing' },
-  { id: 'goNoGo', label: 'Go / no-go', startsPhase: 'preparing' },
-  { id: 'freezeStart', label: 'Freeze starts', startsPhase: 'cutover' },
-  { id: 'reconciliationSignedOff', label: 'Reconciliation signed off', startsPhase: 'hypercare' },
-  { id: 'hypercareEnd', label: 'Hypercare ends', startsPhase: 'migrated' },
-  { id: 'legacyReadOnly', label: 'Legacy read-only', startsPhase: 'migrated' },
-  { id: 'legacyDecommissioned', label: 'Legacy decommissioned', startsPhase: 'done' },
-]
+const MILESTONES: Milestone[] = presetPlan(ROLLOUT_PRESETS.dataMigration).milestones
 
-/** The milestone that starts the cutover phase: a site's cutover. */
-const CUTOVER = 'freezeStart'
+/** The milestone a site switches over at: its cutover. */
+const CUTOVER = switchMilestone(MILESTONES)!.id
+/** The milestone that ends the freeze: the freeze runs from cutover to it. */
+const FREEZE_END = 'reconciliationSignedOff'
 /** Days from cutover to a local store's retirement (proposal §4.8). */
 const RETIRE_AFTER_DAYS = 90
 
 type ArchetypeId = 'plant' | 'office' | 'warehouse'
 
 /**
- * Days from the previous milestone to each one. The near waves' site dates are
- * worked out from them, so the stored durations and the dates agree.
- * TODO(#213): these are the defaults a site inherits once inheritance lands.
+ * Days from the previous milestone to each one: the spacing a site's other
+ * milestones follow from its cutover, which is all the demo dates (ADR 0016
+ * point 2). Our own figures, as the preset's are.
  */
 const ARCHETYPES: Record<ArchetypeId, Archetype & { durations: Record<string, number> }> = {
   plant: {
@@ -361,6 +366,11 @@ const ARCHETYPES: Record<ArchetypeId, Archetype & { durations: Record<string, nu
   },
 }
 
+/** The longest freeze of any archetype: what a wave's own cutover keeps clear of blackouts. */
+const LONGEST_FREEZE = Math.max(
+  ...Object.values(ARCHETYPES).map((archetype) => archetype.durations[FREEZE_END]!),
+)
+
 const BLACKOUTS: Blackout[] = [
   { id: 'bo-year-end-2026', label: 'Year-end close', start: '2026-12-14', end: '2027-01-08' },
   { id: SEEDED.blackout, label: 'Q1 close', start: '2027-03-29', end: '2027-04-02' },
@@ -372,20 +382,28 @@ interface WaveSpec {
   id: string
   name: string
   label: string
+  /** The window, at the precision the wave is planned to. */
   start: PlanDate
   end: PlanDate
-  /** Sites the wave takes. */
+  /** Sites the wave takes: the last wave takes every site left, which is this many. */
   size: number
   capacity?: number
-  /** How precise its sites' own dates are; none when they inherit (#213). */
-  sitePrecision?: 'day' | 'week'
   templateVersion: number
+  /**
+   * Which of its sites, by position in the wave, set a cutover of their own.
+   * The rest inherit the wave's (ADR 0016 point 2).
+   */
+  ownCutover: (index: number) => boolean
 }
 
 const day = (date: string): PlanDate => ({ date, precision: 'day' })
 const quarter = (date: string): PlanDate => ({ date, precision: 'quarter' })
 
-/** Pilot and W1 to the day, W2 to the week, W3 to the month, the rest to the quarter. */
+/**
+ * Pilot and W1 to the day, W2 to the week, W3 to the month, the rest to the
+ * quarter: rolling elaboration (proposal §5). The nearer a wave, the more of
+ * its sites set their own cutover; the later waves' sites inherit the wave's.
+ */
 const WAVES: readonly WaveSpec[] = [
   {
     id: 'wp-wave-pilot',
@@ -395,8 +413,8 @@ const WAVES: readonly WaveSpec[] = [
     end: day('2026-12-11'),
     size: 4,
     capacity: 4,
-    sitePrecision: 'day',
     templateVersion: 1,
+    ownCutover: () => true,
   },
   {
     id: 'wp-wave-1',
@@ -406,8 +424,8 @@ const WAVES: readonly WaveSpec[] = [
     end: day('2027-04-16'),
     size: 15,
     capacity: 16,
-    sitePrecision: 'day',
     templateVersion: 2,
+    ownCutover: (index) => index % 3 !== 2,
   },
   {
     id: SEEDED.overCapacityWave,
@@ -417,8 +435,8 @@ const WAVES: readonly WaveSpec[] = [
     end: { date: '2027-06-28', precision: 'week' },
     size: 20,
     capacity: 18,
-    sitePrecision: 'week',
     templateVersion: 2,
+    ownCutover: (index) => index % 2 === 0,
   },
   {
     id: 'wp-wave-3',
@@ -428,6 +446,7 @@ const WAVES: readonly WaveSpec[] = [
     end: { date: '2027-09-01', precision: 'month' },
     size: DEFAULT_CAPACITY,
     templateVersion: 2,
+    ownCutover: (index) => index === 0,
   },
   ...['2027-10-01', '2028-01-01', '2028-04-01', '2028-07-01'].map((start, i): WaveSpec => ({
     id: `wp-wave-${i + 4}`,
@@ -437,16 +456,13 @@ const WAVES: readonly WaveSpec[] = [
     end: quarter(start),
     size: DEFAULT_CAPACITY,
     templateVersion: 2,
+    ownCutover: () => false,
   })),
 ]
 
 // ── Day arithmetic ───────────────────────────────────────────────────────────
 
-const DAY_MS = 86_400_000
-
-function addDays(iso: string, days: number): string {
-  return new Date(Date.parse(`${iso}T00:00:00Z`) + days * DAY_MS).toISOString().slice(0, 10)
-}
+const WEEK_MS = 7 * 86_400_000
 
 /** Monday is 0. */
 function weekday(iso: string): number {
@@ -611,46 +627,79 @@ export function rolloutDemoWorkspace(seed: number = ROLLOUT_DEMO_SEED): Workspac
     )
     pilot.push(rng.pick(candidates))
   }
-  // The seeded site in no wave.
-  const unassigned = rng.pick(
-    sites.filter((site) => site !== residencySite && !pilot.includes(site)),
-  )
+  // The seeded site in no wave, from the sites the pilot does not take.
+  const others = sites.filter((site) => !pilot.includes(site))
+  const unassigned = rng.pick(others.filter((site) => site !== residencySite))
   const regionOrder = new Map(REGIONS.map((region, index) => [region, index]))
   const rest = rng
-    .shuffle(sites.filter((site) => site !== unassigned && !pilot.includes(site)))
+    .shuffle(others.filter((site) => site !== unassigned))
     .sort((a, b) => regionOrder.get(a.region)! - regionOrder.get(b.region)!)
 
   const waveOf = new Map<Site, WaveSpec>()
-  for (const site of pilot) waveOf.set(site, WAVES[0]!)
+  /** A site's position in its wave, which decides whether it sets its own cutover. */
+  const position = new Map<Site, number>()
+  pilot.forEach((site, index) => {
+    waveOf.set(site, WAVES[0]!)
+    position.set(site, index)
+  })
   let taken = 0
   for (const wave of WAVES.slice(1)) {
-    for (const site of rest.slice(taken, taken + wave.size)) waveOf.set(site, wave)
+    // The last wave takes every site left: a site that should be in no wave
+    // but is left in `rest` shows as one too many there, never hidden by
+    // another site taking its place in no wave.
+    const end = wave === WAVES.at(-1) ? rest.length : taken + wave.size
+    rest.slice(taken, end).forEach((site, index) => {
+      waveOf.set(site, wave)
+      position.set(site, index)
+    })
     taken += wave.size
   }
-  // The seeded blackout: a site of W1, cut over in the Q1 close.
-  const blackoutSite = rest.find((site) => waveOf.get(site) === WAVES[1] && site !== residencySite)!
+  // The seeded blackout: a site of W1, cut over in the Q1 close. W1 takes
+  // `rest`'s first sites, so its first that is not the residency site is one.
+  const blackoutSite = rest.find((site) => site !== residencySite)!
 
-  // Site plans: the near waves' sites carry their own dates. The later waves'
-  // sites carry none. TODO(#213): they inherit their wave's once it lands.
+  // Each wave dates its sites' cutover at its own precision (ADR 0016 point 2),
+  // clear of every blackout for the longest freeze; a site's other milestones
+  // are spaced from its cutover by its archetype's durations.
+  const wavePlans = new Map<WaveSpec, WavePlan>(
+    WAVES.map((wave, order) => [
+      wave,
+      {
+        kind: 'wave',
+        rollout: ROLLOUT_DEMO_ID,
+        label: wave.label,
+        order,
+        window: { start: wave.start, end: wave.end },
+        ...(wave.capacity === undefined ? {} : { capacity: wave.capacity }),
+        templateVersion: wave.templateVersion,
+        milestones: { [CUTOVER]: periodIn(rng, wave, LONGEST_FREEZE) },
+      },
+    ]),
+  )
+  const shell: RolloutPlan = {
+    kind: 'rollout',
+    templateVersion: 2,
+    milestones: MILESTONES,
+    template: [],
+    archetypes: Object.values(ARCHETYPES),
+    sites: [],
+  }
+
+  // Site plans: the near waves' sites set their own cutover, the later waves'
+  // inherit their wave's. The pilot is under way, so it has actual dates.
   const plans: SitePlan[] = []
   for (const site of sites) {
     const plan: SitePlan = { location: site.id, archetype: site.archetype }
     const wave = waveOf.get(site)
-    if (wave) plan.wave = wave.id
-    if (wave?.sitePrecision === 'day') {
-      const durations = ARCHETYPES[site.archetype].durations
-      const cutover =
-        site === blackoutSite
-          ? SEEDED.blackoutCutover
-          : cutoverDay(rng, wave, durations.reconciliationSignedOff!)
-      plan.milestones = siteMilestones(cutover, durations)
-      const actuals = actualsOf(rng, plan.milestones)
-      if (Object.keys(actuals).length) plan.actuals = actuals
-    } else if (wave?.sitePrecision === 'week') {
-      const weeks = (Date.parse(wave.end.date) - Date.parse(wave.start.date)) / DAY_MS / 7
-      plan.milestones = {
-        [CUTOVER]: { date: addDays(wave.start.date, rng.int(0, weeks - 1) * 7), precision: 'week' },
+    if (wave) {
+      plan.wave = wave.id
+      const freeze = ARCHETYPES[site.archetype].durations[FREEZE_END]!
+      if (site === blackoutSite) plan.milestones = { [CUTOVER]: day(SEEDED.blackoutCutover) }
+      else if (wave.ownCutover(position.get(site)!)) {
+        plan.milestones = { [CUTOVER]: periodIn(rng, wave, freeze) }
       }
+      const actuals = actualsOf(rng, resolveSiteMilestones(shell, plan, wavePlans.get(wave)))
+      if (Object.keys(actuals).length) plan.actuals = actuals
     }
     const rag = ragOf(rng, wave, site === blackoutSite)
     if (rag) plan.rag = rag
@@ -667,12 +716,16 @@ export function rolloutDemoWorkspace(seed: number = ROLLOUT_DEMO_SEED): Workspac
     residencySite,
     'HR records fall under Swiss data protection law; legal review of the move is open.',
   )
-  note(blackoutSite, 'The plant asked for the earliest cutover W1 could offer.')
+  note(
+    blackoutSite,
+    'Cutover set for 31 March at the site’s request, before the Q1 close was checked.',
+  )
 
   // Per region, each local store is replaced by the lake at cutover and
   // retired 90 days later (proposal §4.8).
-  // TODO(#213): the disposition per data object (migrate, archive, purge,
-  // retain) is the preset's planned value; the model has no field for it yet.
+  // TODO(#230): the disposition per data object (migrate, archive, purge,
+  // retain) is a planned value of the template change; the model has no field
+  // for it yet, and #230 settles what a data migration's template means.
   const template: TemplateChange[] = REGIONS.flatMap((region) =>
     [filesStore(region), qualityStore(region)].flatMap((store): TemplateChange[] => [
       {
@@ -698,7 +751,7 @@ export function rolloutDemoWorkspace(seed: number = ROLLOUT_DEMO_SEED): Workspac
     type: 'WorkPackage',
     name: ROLLOUT_DEMO_NAME,
     documentation:
-      'Moves every site’s file share and plant quality database into its region’s central data lake, then retires them.',
+      'Moves each region’s site file share and plant quality database into the region’s central data lake, site by site, then retires them.',
     properties: { owner: 'Data Office' },
     plan: {
       kind: 'rollout',
@@ -710,24 +763,16 @@ export function rolloutDemoWorkspace(seed: number = ROLLOUT_DEMO_SEED): Workspac
       sites: plans,
     },
   })
-  WAVES.forEach((wave, order) => {
+  for (const wave of WAVES) {
     elements.push({
       id: wave.id,
       type: 'WorkPackage',
       name: wave.name,
       properties: {},
-      plan: {
-        kind: 'wave',
-        rollout: ROLLOUT_DEMO_ID,
-        label: wave.label,
-        order,
-        window: { start: wave.start, end: wave.end },
-        ...(wave.capacity === undefined ? {} : { capacity: wave.capacity }),
-        templateVersion: wave.templateVersion,
-      },
+      plan: wavePlans.get(wave)!,
     })
     relate('Aggregation', ROLLOUT_DEMO_ID, wave.id)
-  })
+  }
 
   return {
     ...emptyWorkspace('ws-rollout-demo', 'Kestrel Industries: site data migration'),
@@ -779,31 +824,40 @@ function cutoverDay(rng: Random, wave: WaveSpec, freeze: number): string {
   return rng.pick(days)
 }
 
-/** Every milestone to the day, from the cutover and the archetype's durations. */
-function siteMilestones(
-  cutover: string,
-  durations: Record<string, number>,
-): Record<string, PlanDate> {
-  const at = MILESTONES.findIndex((milestone) => milestone.id === CUTOVER)
-  const days = new Map<string, string>([[CUTOVER, cutover]])
-  for (let i = at - 1; i >= 0; i -= 1) {
-    const later = MILESTONES[i + 1]!.id
-    days.set(MILESTONES[i]!.id, addDays(days.get(later)!, -durations[later]!))
+/**
+ * A period of the wave's precision inside its window for a cutover whose
+ * freeze lasts `freeze` days: to the day, a weekday whose freeze stays clear
+ * of every blackout; to the week or the month, one of the window's; to the
+ * quarter, the window's own.
+ */
+function periodIn(rng: Random, wave: WaveSpec, freeze: number): PlanDate {
+  switch (wave.start.precision) {
+    case 'day':
+      return day(cutoverDay(rng, wave, freeze))
+    case 'week': {
+      // The window's end is a week of the window, so it may be drawn too.
+      const weeks = (dayStart(wave.end.date) - dayStart(wave.start.date)) / WEEK_MS
+      return { date: addDays(wave.start.date, rng.int(0, weeks) * 7), precision: 'week' }
+    }
+    case 'month': {
+      const months: string[] = []
+      for (let d = wave.start; d.date <= wave.end.date; d = periodOf(dayAfterPeriod(d), 'month')) {
+        months.push(d.date)
+      }
+      return { date: rng.pick(months), precision: 'month' }
+    }
+    case 'quarter':
+      return wave.start
   }
-  for (let i = at + 1; i < MILESTONES.length; i += 1) {
-    const id = MILESTONES[i]!.id
-    days.set(id, addDays(days.get(MILESTONES[i - 1]!.id)!, durations[id]!))
-  }
-  return Object.fromEntries([...days].map(([id, date]) => [id, day(date)]))
 }
 
 /** The milestones reached by `ROLLOUT_DEMO_AS_OF`, each a few days late at most. */
-function actualsOf(rng: Random, milestones: Record<string, PlanDate>): Record<string, string> {
+function actualsOf(rng: Random, milestones: readonly ResolvedMilestone[]): Record<string, string> {
   const actuals: Record<string, string> = {}
-  for (const [id, planned] of Object.entries(milestones)) {
+  for (const { milestone, planned } of milestones) {
+    if (!planned || planned.date > ROLLOUT_DEMO_AS_OF) continue
     const actual = addDays(planned.date, rng.int(0, 3))
-    if (planned.date > ROLLOUT_DEMO_AS_OF) continue
-    actuals[id] = actual <= ROLLOUT_DEMO_AS_OF ? actual : ROLLOUT_DEMO_AS_OF
+    actuals[milestone.id] = actual <= ROLLOUT_DEMO_AS_OF ? actual : ROLLOUT_DEMO_AS_OF
   }
   return actuals
 }

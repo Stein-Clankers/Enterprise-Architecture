@@ -51,11 +51,14 @@ export function SiteRegister({
   readOnly,
   onOpen,
   onEditDates,
+  asOf,
 }: {
   data: RolloutData
   readOnly: boolean
   onOpen: (locationId: string) => void
   onEditDates: (locationId: string) => void
+  /** The time point the screen is set to, when it is not today. */
+  asOf?: string
 }) {
   const store = useModelStore()
   const [query, setQuery] = useState('')
@@ -241,7 +244,7 @@ export function SiteRegister({
           <span>Wave</span>
           <span>Archetype</span>
           <span>Cutover</span>
-          <span>Phase today</span>
+          <span>{asOf ? `Phase at ${asOf}` : 'Phase today'}</span>
           <span>RAG</span>
           <span>Region</span>
           {!readOnly && <span />}

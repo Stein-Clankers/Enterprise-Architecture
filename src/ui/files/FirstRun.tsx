@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ROLLOUT_DEMO_ROLLOUT_ID } from '@/io'
+import { ROLLOUT_DEMO_AS_OF, ROLLOUT_DEMO_ID } from '@/io'
 import { supportsDirectoryAccess } from '@/io/shared-folder'
 import { useFileWorkspace } from './context'
 import './files.css'
@@ -15,8 +15,9 @@ import './files.css'
  *
  * "Explore the demo" is one of the three, and it offers two demos (#212): it
  * opens them as a disclosure beneath it rather than adding a fourth action.
- * The rollout demo opens on its rollout's home, which is what it is there to
- * show.
+ * The insurance demo opens on the inventory, wherever first run was shown;
+ * the rollout demo opens on its rollout's home at the day it is planned as of
+ * (`?at=`), so its pilot shows as under way whatever today is.
  */
 
 export interface FirstRunProps {
@@ -73,7 +74,10 @@ export function FirstRun({ onStartEmpty }: FirstRunProps) {
               <button
                 type="button"
                 className="first-run__demo"
-                onClick={() => loadDemo('archisurance')}
+                onClick={() => {
+                  navigate('/inventory')
+                  loadDemo('archisurance')
+                }}
               >
                 <span className="first-run__action-title">Insurance landscape</span>
                 <span className="first-run__action-help">29 elements, assessed and dated.</span>
@@ -82,7 +86,7 @@ export function FirstRun({ onStartEmpty }: FirstRunProps) {
                 type="button"
                 className="first-run__demo"
                 onClick={() => {
-                  navigate(`/rollout/${ROLLOUT_DEMO_ROLLOUT_ID}`)
+                  navigate(`/rollout/${ROLLOUT_DEMO_ID}?at=${ROLLOUT_DEMO_AS_OF}`)
                   loadDemo('rollout')
                 }}
               >
