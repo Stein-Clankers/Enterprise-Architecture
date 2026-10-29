@@ -6,15 +6,24 @@ import {
   rolloutPlanOf,
   wavePlanOf,
   type Element,
+  type ChangeEntry,
   type PlanProfile,
   type PropertyValue,
   type Relationship,
   type RolloutPlan,
+  type SiteException,
   type SitePlan,
   type TemplateChange,
   type Workspace,
 } from '@/model'
-import { canonicalPlan, planPartsDropped, readPlanProfile, readSitePlan } from './canonical-plans'
+import {
+  canonicalPlan,
+  canonicalSitePlan,
+  dropRepeatedExceptionIds,
+  planPartsDropped,
+  readPlanProfile,
+  readSitePlan,
+} from './canonical-plans'
 import { sortKeys } from './canonical-json'
 import { listed } from './exchange-xml'
 import { problem, type ImportProblem } from './problems'
@@ -72,6 +81,10 @@ export const PLAN_KEYS = {
   wave: `${PLAN}.wave`,
   archetype: `${PLAN}.archetype`,
   rag: `${PLAN}.rag`,
+  preset: `${PLAN}.preset`,
+  exceptions: `${PLAN}.exceptions`,
+  dependsOn: `${PLAN}.dependsOn`,
+  blackouts: `${PLAN}.blackouts`,
 } as const
 
 /** A site's planned date of milestone `<id>` is under this prefix, its actual date under the next. */
@@ -133,6 +146,7 @@ export function planToProperties(
     return out
   }
   out[PLAN_KEYS.templateVersion] = String(plan.templateVersion)
+  if (plan.preset !== undefined) out[PLAN_KEYS.preset] = plan.preset
   // The template names elements, and the file may call them something else.
   // The site plans are written as Work Packages of their own, not here.
   const canonical = canonicalPlan({
@@ -148,11 +162,17 @@ export function planToProperties(
 }
 
 function renamed(change: TemplateChange, of: (id: string) => string): TemplateChange {
-  const out = { ...change, subject: of(change.subject) } as TemplateChange
-  if (out.kind === 'replace') out.successor = of(out.successor)
+  const out = renamedEntry(change, of) as TemplateChange
   if (out.applicability.kind === 'aggregating') {
     out.applicability = { ...out.applicability, element: of(out.applicability.element) }
   }
+  return out
+}
+
+/** A change entry with the model ids it names in the file's spelling. */
+function renamedEntry<T extends ChangeEntry>(entry: T, of: (id: string) => string): T {
+  const out = { ...entry, subject: of(entry.subject) }
+  if (out.kind === 'replace') out.successor = of(out.successor)
   return out
 }
 
@@ -261,7 +281,29 @@ function siteProperties(
   for (const id of Object.keys(site.actuals ?? {}).sort()) {
     setKey(out, `${ACTUAL_KEY_PREFIX}${id}`, getKey(site.actuals, id)!)
   }
+  // ADR 0013 point 10: the exceptions have no ArchiMate vocabulary, so they
+  // travel as canonical JSON, as the template does; so do the dependencies
+  // and the site's blackouts (#214, ADR 0017). Each names model ids in the
+  // file's spelling, and is sorted after renaming, so a re-export of the
+  // import writes the same bytes.
+  const canonical = canonicalSitePlan({
+    location: site.location,
+    ...(site.exceptions ? { exceptions: site.exceptions.map((e) => renamedException(e, of)) } : {}),
+    ...(site.dependsOn ? { dependsOn: site.dependsOn.map(of) } : {}),
+    ...(site.blackouts ? { blackouts: site.blackouts } : {}),
+  })
+  for (const part of ['exceptions', 'dependsOn', 'blackouts'] as const) {
+    if (canonical[part] !== undefined) {
+      out[PLAN_KEYS[part]] = JSON.stringify(canonical[part], sortKeys)
+    }
+  }
   return out
+}
+
+function renamedException(exception: SiteException, of: (id: string) => string): SiteException {
+  return exception.kind === 'add'
+    ? { ...exception, change: renamedEntry(exception.change, of) }
+    : exception
 }
 
 // ── Reading ──────────────────────────────────────────────────────────────────
@@ -345,6 +387,20 @@ export function foldPlans(
     foldedElements.set(element.id, folded)
     if (element.folder !== undefined) filed.push(element.id)
   }
+  // Exception ids are unique across a rollout's sites, and each site plan's
+  // Work Package carried its own: a repeat is dropped, and said (#214).
+  for (const rollout of rollouts.values()) {
+    const dropped: string[] = []
+    dropRepeatedExceptionIds(rollout.plan.sites, dropped)
+    if (dropped.length) {
+      warn(
+        sink,
+        'exchange.plan-site-content-dropped',
+        rollout.id,
+        `Rollout "${rollout.id}" has exceptions whose ids another of its sites already uses, so they were dropped: ${listed(dropped)}.`,
+      )
+    }
+  }
 
   const foldedRelationships = new Set<string>()
   const lostRelationships: string[] = []
@@ -415,6 +471,7 @@ function readPlanElement(element: Element, kind: 'rollout' | 'wave', sink: PlanS
   }
   read(PLAN_KEYS.templateVersion, 'templateVersion', integer)
   if (kind === 'rollout') {
+    read(PLAN_KEYS.preset, 'preset', text)
     read(PLAN_KEYS.milestones, 'milestones', json)
     read(PLAN_KEYS.template, 'template', json)
     read(PLAN_KEYS.constraints, 'constraints', json)
@@ -521,6 +578,15 @@ function foldSite(
     } else if (actual !== undefined) setKey(actuals, actual, written)
     else if (key === PLAN_KEYS.wave || key === PLAN_KEYS.archetype || key === PLAN_KEYS.rag) {
       raw[key.slice(PLAN.length + 1)] = written
+    } else if (
+      key === PLAN_KEYS.exceptions ||
+      key === PLAN_KEYS.dependsOn ||
+      key === PLAN_KEYS.blackouts
+    ) {
+      // Canonical JSON (#214): `readSitePlan` names each part it cannot keep.
+      const parsed = json(written)
+      if (parsed === undefined) lost.push(`${key} = ${JSON.stringify(value)}`)
+      else raw[key.slice(PLAN.length + 1)] = parsed
     } else if (key !== PLAN_KEYS.kind && key !== PLAN_KEYS.rollout && key !== PLAN_KEYS.location) {
       lost.push(`${key} = ${JSON.stringify(value)}`)
     }

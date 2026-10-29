@@ -303,12 +303,30 @@ export function usageText(usage: MilestoneUsage): string {
 
 /**
  * Why a milestone cannot be deleted, and what to do instead. The app has no
- * template editor yet (#214 validates template references, #60 brings change
- * sets), so the only place to re-anchor a template change is the model's
- * file: the sentence says so, rather than asking for something the app
- * cannot do (#229 review, finding 9; ADR 0016 point 8).
+ * template editor yet (#60 brings change sets), so the only place to
+ * re-anchor a template change is the model's file; a site's own change (an
+ * `add` exception, #214) is re-anchored in the rollout workbook's Exceptions
+ * sheet. The sentence says where, rather than asking for something the app
+ * cannot do (#229 review, finding 9; ADR 0016 point 8, amended 2026-10-29).
  */
-export function blockedText(label: string, anchoredChanges: readonly string[]): string {
-  const one = anchoredChanges.length === 1
-  return `“${label}” cannot be deleted: the template ${one ? 'change' : 'changes'} ${anchoredChanges.join(', ')} ${one ? 'is' : 'are'} dated from it. The template can only be edited in the model’s file for now: date ${one ? 'it' : 'them'} from another milestone there, then delete this one.`
+export function blockedText(
+  label: string,
+  usage: Pick<MilestoneUsage, 'anchoredChanges' | 'anchoredExceptions'>,
+): string {
+  const changes = usage.anchoredChanges
+  const exceptions = usage.anchoredExceptions
+  const sentences: string[] = []
+  if (changes.length) {
+    const one = changes.length === 1
+    sentences.push(
+      `the template ${one ? 'change' : 'changes'} ${changes.join(', ')} ${one ? 'is' : 'are'} dated from it. The template can only be edited in the model’s file for now: date ${one ? 'it' : 'them'} from another milestone there`,
+    )
+  }
+  if (exceptions.length) {
+    const one = exceptions.length === 1
+    sentences.push(
+      `${changes.length ? 'The' : 'the'} site-only ${one ? 'change of exception' : 'changes of exceptions'} ${exceptions.join(', ')} ${one ? 'is' : 'are'} dated from it${changes.length ? ' too' : ''}: date ${one ? 'it' : 'them'} from another milestone in the rollout workbook’s Exceptions sheet`,
+    )
+  }
+  return `“${label}” cannot be deleted: ${sentences.join('. ')}, then delete this one.`
 }

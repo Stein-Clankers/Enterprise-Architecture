@@ -1,23 +1,35 @@
 import {
+  DISPOSITIONS,
+  EXCEPTION_CLASSES,
+  EXCEPTION_KINDS,
   archetypeIdOf,
   byLocation,
   formatPlanDate,
+  isChangeEntry,
+  isDisposition,
+  isExceptionClass,
+  isExceptionKind,
+  isIsoDay,
   isPositiveInteger,
+  isSiteException,
   isSiteRag,
   parsePlanDate,
   rolloutPlanOf,
   waveIdOf,
   wavePlanOf,
   wavesOf,
+  type ChangeEntry,
   type Element,
   type PlanDate,
   type PropertyValue,
   type Relationship,
   type RolloutPlan,
+  type SiteException,
   type SitePlan,
   type TemplateChange,
   type WavePlan,
 } from '@/model'
+import { sortKeys } from './canonical-json'
 import { problem, type ProblemSeverity } from './problems'
 import { getKey, setKey } from './records'
 import {
@@ -68,6 +80,8 @@ export const SHEET_NAMES = {
   sites: 'Sites',
   waves: 'Waves',
   sitePlan: 'SitePlan',
+  exceptions: 'Exceptions',
+  dependencies: 'Dependencies',
   milestones: 'Milestones',
   template: 'Template',
 } as const
@@ -181,11 +195,13 @@ export function exportRolloutWorkbook(
   }
 
   const planColumns = sitePlanColumns(plan)
-  const notCarried = plan.sites.filter((site) => site.actuals || site.notes !== undefined).length
+  const notCarried = plan.sites.filter(
+    (site) => site.actuals || site.notes !== undefined || site.blackouts,
+  ).length
   if (notCarried) {
     report(
       'rollout-workbook.not-carried',
-      `${notCarried} site${notCarried === 1 ? ' has' : 's have'} actual dates or notes, which this workbook does not carry yet; an import of it leaves them as they are.`,
+      `${notCarried} site${notCarried === 1 ? ' has' : 's have'} actual dates, notes or blackouts of ${notCarried === 1 ? 'its' : 'their'} own, which this workbook does not carry yet; an import of it leaves them as they are.`,
     )
   }
   const sitePlanSheet: Sheet = {
@@ -205,9 +221,96 @@ export function exportRolloutWorkbook(
 
   return {
     workbook: {
-      sheets: [sitesSheet, wavesSheet, sitePlanSheet, milestonesSheet(plan), templateSheet(plan)],
+      sheets: [
+        sitesSheet,
+        wavesSheet,
+        sitePlanSheet,
+        exceptionsSheet(plan),
+        dependenciesSheet(plan),
+        milestonesSheet(plan),
+        templateSheet(plan),
+      ],
     },
     problems,
+  }
+}
+
+const EXCEPTION_COLUMNS: readonly Column[] = [
+  { key: 'id', label: 'Id (blank: a new exception)' },
+  { key: 'location', label: 'Site (Location id)' },
+  { key: 'kind', label: 'Kind (skip, modify, add)' },
+  { key: 'change', label: 'Template change (id; skip and modify)' },
+  { key: 'entry', label: 'Site-only change (JSON; add)' },
+  { key: 'offsetDays', label: 'Offset (days from its anchor; modify)' },
+  { key: 'disposition', label: 'Disposition (migrate, archive, purge, retain; modify)' },
+  { key: 'class', label: 'Class (legal, operational, preference)' },
+  { key: 'owner', label: 'Owner' },
+  { key: 'expires', label: 'Expires (the last day it holds)' },
+  { key: 'rationale', label: 'Rationale' },
+  { key: 'action', label: 'Action (remove: delete the exception)' },
+]
+
+/**
+ * Every site's exceptions (#214), one row each, by id: ids are unique in the
+ * rollout. An `add`'s change is canonical JSON in one cell, never fields
+ * joined by a separator (CLAUDE.md).
+ */
+function exceptionsSheet(plan: RolloutPlan): Sheet {
+  const rows = plan.sites
+    .flatMap((site) => (site.exceptions ?? []).map((exception) => ({ site, exception })))
+    .sort((a, b) => byCodeUnit(a.exception.id, b.exception.id))
+  return {
+    name: SHEET_NAMES.exceptions,
+    rows: tableRows(
+      EXCEPTION_COLUMNS,
+      rows.map(({ site, exception }) => exceptionCells(site.location, exception)),
+    ),
+  }
+}
+
+/** One exception's row of the Exceptions sheet, in `EXCEPTION_COLUMNS` order. */
+function exceptionCells(location: string, exception: SiteException): Cell[] {
+  const text = (value: string | undefined) => (value === undefined ? EMPTY : textCell(value))
+  return [
+    textCell(exception.id),
+    textCell(location),
+    textCell(exception.kind),
+    exception.kind === 'add' ? EMPTY : textCell(exception.change),
+    exception.kind === 'add' ? textCell(entryJson(exception.change)) : EMPTY,
+    exception.kind === 'modify' && exception.offsetDays !== undefined
+      ? numberCell(exception.offsetDays)
+      : EMPTY,
+    text(exception.kind === 'modify' ? exception.disposition : undefined),
+    textCell(exception.class),
+    text(exception.owner),
+    text(exception.expires),
+    text(exception.rationale),
+    EMPTY,
+  ]
+}
+
+/** A change entry as one cell: canonical JSON, keys sorted, so one entry has one spelling. */
+function entryJson(entry: ChangeEntry): string {
+  return JSON.stringify(entry, sortKeys)
+}
+
+const DEPENDENCY_COLUMNS: readonly Column[] = [
+  { key: 'site', label: 'Site (Location id)' },
+  { key: 'dependsOn', label: 'Depends on (Location id of the site that cuts over first)' },
+  { key: 'action', label: 'Action (remove: delete the dependency)' },
+]
+
+/** Every dependency between sites (#214), one row per pair, by site and then by the one it depends on. */
+function dependenciesSheet(plan: RolloutPlan): Sheet {
+  const pairs = plan.sites
+    .flatMap((site) => (site.dependsOn ?? []).map((other) => [site.location, other] as const))
+    .sort(([a, x], [b, y]) => byCodeUnit(a, b) || byCodeUnit(x, y))
+  return {
+    name: SHEET_NAMES.dependencies,
+    rows: tableRows(
+      DEPENDENCY_COLUMNS,
+      pairs.map(([site, other]) => [textCell(site), textCell(other), EMPTY]),
+    ),
   }
 }
 
@@ -400,13 +503,19 @@ export interface RolloutChanges {
 /** The dry run of an import: what it would change, counted, and what it cannot apply. */
 export interface RolloutImportPlan {
   rolloutId: string
-  tallies: { sites: Tally; waves: Tally; sitePlans: Tally }
+  tallies: {
+    sites: Tally
+    waves: Tally
+    sitePlans: Tally
+    exceptions: Tally
+    dependencies: Tally
+  }
   problems: RolloutWorkbookProblem[]
   changes: RolloutChanges
 }
 
 /** Mints the id of a new Location or Aggregation; the store passes its own. */
-export type NewId = (prefix: 'el' | 'rel') => string
+export type NewId = (prefix: 'el' | 'rel' | 'ex') => string
 
 /**
  * The dry run of importing `workbook` into `rolloutId`. Nothing in `model` is
@@ -425,7 +534,13 @@ export function planRolloutImport(
   const plan = rolloutPlanOf(rollout)
   const result: RolloutImportPlan = {
     rolloutId,
-    tallies: { sites: tally(), waves: tally(), sitePlans: tally() },
+    tallies: {
+      sites: tally(),
+      waves: tally(),
+      sitePlans: tally(),
+      exceptions: tally(),
+      dependencies: tally(),
+    },
     problems: [],
     changes: { addElements: [], updateElements: [], addRelationships: [], removeRelationships: [] },
   }
@@ -467,7 +582,13 @@ export function planRolloutImport(
     }
     sheets.set(sheet.name, sheet)
   }
-  for (const name of [SHEET_NAMES.sites, SHEET_NAMES.waves, SHEET_NAMES.sitePlan]) {
+  for (const name of [
+    SHEET_NAMES.sites,
+    SHEET_NAMES.waves,
+    SHEET_NAMES.sitePlan,
+    SHEET_NAMES.exceptions,
+    SHEET_NAMES.dependencies,
+  ]) {
     if (!sheets.has(name)) {
       context.report(
         'info',
@@ -486,6 +607,12 @@ export function planRolloutImport(
   if (wavesSheet) importWaves(context, wavesSheet)
   const sitePlanSheet = sheets.get(SHEET_NAMES.sitePlan)
   if (sitePlanSheet) importSitePlans(context, sitePlanSheet)
+  // After the site plans: each changes a site plan as the sheets above left it.
+  const exceptionsSheet = sheets.get(SHEET_NAMES.exceptions)
+  if (exceptionsSheet) importExceptions(context, exceptionsSheet)
+  const dependenciesSheet = sheets.get(SHEET_NAMES.dependencies)
+  if (dependenciesSheet) importDependencies(context, dependenciesSheet)
+  dropDependenciesOnRemoved(context)
   const milestones = sheets.get(SHEET_NAMES.milestones)
   if (milestones) checkReadOnly(context, milestones, milestonesSheet(plan), 'milestone set')
   const template = sheets.get(SHEET_NAMES.template)
@@ -749,6 +876,60 @@ class Row {
       'error',
       'rollout-workbook.date-unreadable',
       `the cell holds ${describeCell(cell)}, which is no plan date: write a quarter (2027-Q2), a month (2027-05), an ISO week (2027-W19) or a day (2027-05-12). It was not applied.`,
+      key,
+    )
+    return undefined
+  }
+
+  /** A calendar day: a text cell `2027-05-12`, or a date cell. */
+  day(key: string): Field<string> {
+    const cell = this.cell(key)
+    if (cell === undefined || cell.kind === 'unreadable') return undefined
+    if (cell.kind === 'empty') return BLANK
+    if (cell.kind === 'date') return { value: cell.value }
+    if (cell.kind === 'string' && isIsoDay(cell.value)) return { value: cell.value }
+    this.report(
+      'error',
+      'rollout-workbook.day-unreadable',
+      `the cell holds ${describeCell(cell)}, which is no day: write it as 2027-05-12. It was not applied.`,
+      key,
+    )
+    return undefined
+  }
+
+  /** Text that is one of `words`, which `guard` accepts. */
+  word<T extends string>(
+    key: string,
+    guard: (value: unknown) => value is T,
+    words: readonly T[],
+  ): Field<T> {
+    const field = this.text(key)
+    if (field?.value === undefined) return field as Field<T>
+    if (guard(field.value)) return { value: field.value }
+    this.report(
+      'error',
+      'rollout-workbook.word-unknown',
+      `${JSON.stringify(field.value)} is not one of ${words.join(', ')}, so it was not applied.`,
+      key,
+    )
+    return undefined
+  }
+
+  /** A change entry, as canonical JSON in one cell. */
+  entry(key: string): Field<ChangeEntry> {
+    const field = this.text(key)
+    if (field?.value === undefined) return field as Field<ChangeEntry>
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(field.value)
+    } catch {
+      parsed = undefined
+    }
+    if (isChangeEntry(parsed)) return { value: parsed }
+    this.report(
+      'error',
+      'rollout-workbook.entry-unreadable',
+      `the cell holds ${describeCell({ kind: 'string', value: field.value })}, which is no change entry: write it as JSON, as the export does, such as {"id":"c1","kind":"retire","subject":"<element id>","date":{"anchor":"<milestone id>","offsetDays":0}}. It was not applied.`,
       key,
     )
     return undefined
@@ -1249,6 +1430,376 @@ function importSitePlans(context: ImportContext, sheet: Sheet<ReadCell>): void {
     context.sites.set(location, after)
     context.sitesChanged = true
     context.result.tallies.sitePlans.updated++
+  }
+}
+
+const EXCEPTION_KEYS = new Set(EXCEPTION_COLUMNS.map((column) => column.key))
+
+/**
+ * The Exceptions sheet (#214): one row per exception, keyed by its id, which
+ * is unique in the rollout. A blank id is a new exception, given an id; a row
+ * that names another site moves the exception there; `remove` in the action
+ * column deletes it. A row is applied whole or not at all: an exception half
+ * changed may not be one (`isSiteException`), so a cell that cannot be
+ * applied leaves the row's exception as it was, and says so.
+ */
+function importExceptions(context: ImportContext, sheet: Sheet<ReadCell>): void {
+  const table = readTable(context, sheet, (key) => EXCEPTION_KEYS.has(key), 'id')
+  if (!table) return
+  const tallies = context.result.tallies.exceptions
+  const changes = new Set(context.plan.template.map((change) => change.id))
+  /** The site holding each exception, by exception id, as the rows so far leave it. */
+  const holder = new Map<string, string>()
+  for (const site of context.sites.values()) {
+    for (const exception of site.exceptions ?? []) holder.set(exception.id, site.location)
+  }
+  const exceptionOf = (id: string): SiteException | undefined => {
+    const at = holder.get(id)
+    return at === undefined
+      ? undefined
+      : context.sites.get(at)!.exceptions!.find((exception) => exception.id === id)
+  }
+  /** The exceptions of sites the Sites sheet removes: they leave with their site. */
+  const leaving = new Map<string, { location: string; exception: SiteException }>()
+  for (const site of context.plan.sites) {
+    if (!context.removed.has(site.location)) continue
+    for (const exception of site.exceptions ?? []) {
+      leaving.set(exception.id, { location: site.location, exception })
+    }
+  }
+
+  for (const [rowIndex, id] of rowKeys(context, table, 'id')) {
+    const row = new Row(context, table, rowIndex)
+    const reported = context.result.problems.length
+    const action = row.cell('action') ?? EMPTY
+    const removing = action.kind === 'string' && action.value === 'remove'
+    if (action.kind !== 'empty' && !removing) {
+      row.report(
+        'error',
+        'rollout-workbook.action-unknown',
+        `${action.kind === 'unreadable' ? 'the cell could not be read' : `${describeCell(action)} is not an action`}; leave it blank, or write remove to delete the exception. The row was not read.`,
+        'action',
+        id || undefined,
+      )
+      continue
+    }
+    const gone = id === '' ? undefined : leaving.get(id)
+    if (gone) {
+      // As exported, the row says nothing: the exception leaves with its site.
+      // A row that would change it, or keep it at another site, says so.
+      if (!removing && !exportedAs(row, gone.location, gone.exception)) {
+        row.report(
+          'warning',
+          'rollout-workbook.site-removed',
+          `the Sites sheet takes ${JSON.stringify(gone.location)} out of the rollout, and its exceptions with it, so the changes to this one were not applied.`,
+          'id',
+          id,
+        )
+      }
+      continue
+    }
+    const before = id === '' ? undefined : exceptionOf(id)
+    if (removing) {
+      if (!before) {
+        row.report(
+          'warning',
+          'rollout-workbook.remove-not-found',
+          id === ''
+            ? 'a row with no id is a new exception, so there is nothing to remove.'
+            : `${JSON.stringify(id)} is not an exception of this rollout, so there is nothing to remove.`,
+          id === '' ? 'id' : 'action',
+          id || undefined,
+        )
+        tallies.unchanged++
+        continue
+      }
+      const location = holder.get(id)!
+      setExceptions(context, location, (list) => list.filter((exception) => exception.id !== id))
+      holder.delete(id)
+      tallies.deleted++
+      continue
+    }
+
+    // The exception as the row leaves it: the cells it reads replace the
+    // exception's fields, a blank deletes one, a missing column keeps it.
+    const draft: Record<string, unknown> = before
+      ? { ...before }
+      : { id: id === '' ? context.newId('ex') : id }
+    const set = (field: string, value: { value: unknown } | undefined) => {
+      if (value === undefined) return
+      if (value.value === undefined) delete draft[field]
+      else draft[field] = value.value
+    }
+    set('kind', row.word('kind', isExceptionKind, EXCEPTION_KINDS))
+    set('class', row.word('class', isExceptionClass, EXCEPTION_CLASSES))
+    // An add's change is its own entry, in `entry`; the others name a template
+    // change in `change`. A value in the other column is not read, so it says so.
+    const adds = draft.kind === 'add'
+    set('change', adds ? row.entry('entry') : row.text('change'))
+    const stray = row.cell(adds ? 'change' : 'entry')
+    if (stray !== undefined && stray.kind !== 'empty') {
+      row.report(
+        'error',
+        'rollout-workbook.cell-for-another-kind',
+        adds
+          ? 'an add exception names no template change: its site-only change is in the entry column.'
+          : `a ${String(draft.kind ?? 'skip')} exception has no site-only change: it names its template change in the change column.`,
+        adds ? 'change' : 'entry',
+        id || undefined,
+      )
+    }
+    set('offsetDays', row.integer('offsetDays', Number.isSafeInteger, 'a whole number of days'))
+    set('disposition', row.word('disposition', isDisposition, DISPOSITIONS))
+    set('owner', row.text('owner'))
+    set('expires', row.day('expires'))
+    set('rationale', row.text('rationale'))
+    const location = row.text('location')
+    const site = location === undefined ? holder.get(id) : location.value
+    if (context.result.problems.length > reported) {
+      row.report(
+        'error',
+        'rollout-workbook.exception-not-applied',
+        `a cell of the row could not be applied, so the exception was ${before ? 'left as it was' : 'not added'}.`,
+        'id',
+        id || undefined,
+      )
+      continue
+    }
+    if (site !== undefined && context.removed.has(site)) {
+      row.report(
+        'warning',
+        'rollout-workbook.site-removed',
+        `the Sites sheet takes ${JSON.stringify(site)} out of the rollout, so the exception was ${before ? 'left as it was' : 'not added'}.`,
+        'location',
+        id || undefined,
+      )
+      continue
+    }
+    if (site === undefined || !context.sites.has(site)) {
+      row.report(
+        'error',
+        'rollout-workbook.site-unknown',
+        `${site === undefined ? 'the row names no site' : `${JSON.stringify(site)} is not a site of this rollout`}, so the exception was ${before ? 'left as it was' : 'not added'}.`,
+        'location',
+        id || undefined,
+      )
+      continue
+    }
+    if (!isSiteException(draft)) {
+      row.report(
+        'error',
+        'rollout-workbook.exception-invalid',
+        `the row does not make an exception, so it was ${before ? 'left as it was' : 'not added'}: every exception has a kind and a class; a skip names a template change, a modify also an offset or a disposition (and only it has those), and an add its site-only change, as JSON.`,
+        'kind',
+        id || undefined,
+      )
+      continue
+    }
+    if (draft.kind !== 'add' && !changes.has(draft.change)) {
+      row.report(
+        'error',
+        'rollout-workbook.change-unknown',
+        `${JSON.stringify(draft.change)} is not a change of the rollout's template, so the exception was ${before ? 'left as it was' : 'not added'}.`,
+        'change',
+        id || undefined,
+      )
+      continue
+    }
+    const exception = draft
+    const from = holder.get(exception.id)
+    if (before && from === site && sameJson(exception, before)) {
+      tallies.unchanged++
+      continue
+    }
+    if (from !== undefined && from !== site) {
+      setExceptions(context, from, (list) => list.filter((other) => other.id !== exception.id))
+    }
+    setExceptions(context, site, (list) => [
+      ...list.filter((other) => other.id !== exception.id),
+      exception,
+    ])
+    holder.set(exception.id, site)
+    tallies[before ? 'updated' : 'created']++
+  }
+}
+
+/** Whether a row holds an exception as the export wrote it, in every column the sheet has. */
+function exportedAs(row: Row, location: string, exception: SiteException): boolean {
+  const cells = exceptionCells(location, exception)
+  return EXCEPTION_COLUMNS.every((column, index) => {
+    const cell = row.cell(column.key)
+    return cell === undefined || sameJson(cell, cells[index])
+  })
+}
+
+/** Change one site's exceptions, kept sorted by id; an empty list is no list. */
+function setExceptions(
+  context: ImportContext,
+  location: string,
+  change: (list: SiteException[]) => SiteException[],
+): void {
+  const site = context.sites.get(location)!
+  const exceptions = change(site.exceptions ?? []).sort((a, b) => byCodeUnit(a.id, b.id))
+  const after: SitePlan = { ...site, exceptions }
+  if (!exceptions.length) delete after.exceptions
+  context.sites.set(location, after)
+  context.sitesChanged = true
+}
+
+const DEPENDENCY_KEYS = new Set(DEPENDENCY_COLUMNS.map((column) => column.key))
+
+/**
+ * The Dependencies sheet (#214): one row per pair of sites, the second
+ * cutting over first. A row not yet in the plan adds the dependency, and
+ * `remove` in the action column deletes it. Both ids must be sites of the
+ * rollout, and different ones.
+ */
+function importDependencies(context: ImportContext, sheet: Sheet<ReadCell>): void {
+  const table = readTable(context, sheet, (key) => DEPENDENCY_KEYS.has(key), 'site')
+  if (!table) return
+  if (!table.columns.has('dependsOn')) {
+    context.report(
+      'error',
+      'rollout-workbook.key-column-missing',
+      'row 1 names no dependsOn column, which says what each site depends on, so the sheet was not read.',
+      { sheet: sheet.name, key: 'dependsOn' },
+    )
+    return
+  }
+  const tallies = context.result.tallies.dependencies
+  const original = new Map(context.plan.sites.map((site) => [site.location, site]))
+  /** Rows read so far, by pair: JSON of the two ids, never the two joined by a separator. */
+  const seen = new Map<string, number>()
+  for (const rowIndex of table.rows) {
+    const row = new Row(context, table, rowIndex)
+    const reported = context.result.problems.length
+    const action = row.cell('action') ?? EMPTY
+    const removing = action.kind === 'string' && action.value === 'remove'
+    if (action.kind !== 'empty' && !removing) {
+      row.report(
+        'error',
+        'rollout-workbook.action-unknown',
+        `${action.kind === 'unreadable' ? 'the cell could not be read' : `${describeCell(action)} is not an action`}; leave it blank, or write remove to delete the dependency. The row was not read.`,
+        'action',
+      )
+      continue
+    }
+    const site = row.text('site')?.value
+    const other = row.text('dependsOn')?.value
+    if (context.result.problems.length > reported) continue
+    if (site === undefined || other === undefined) {
+      // An unreadable cell has been reported by the reader; say what it cost.
+      row.report(
+        'error',
+        'rollout-workbook.dependency-incomplete',
+        'a dependency needs both sites, so the row was not read.',
+        site === undefined ? 'site' : 'dependsOn',
+      )
+      continue
+    }
+    const pair = JSON.stringify([site, other])
+    const first = seen.get(pair)
+    if (first !== undefined) {
+      row.report(
+        'error',
+        'rollout-workbook.duplicate-id',
+        `row ${first + 1} holds the same dependency; that row was read and this one was not.`,
+        'site',
+        site,
+      )
+      continue
+    }
+    seen.set(pair, rowIndex)
+    if (site === other) {
+      row.report(
+        'error',
+        'rollout-workbook.dependency-self',
+        'a site cannot depend on itself, so the row was not read.',
+        'dependsOn',
+        site,
+      )
+      continue
+    }
+    const leaves = [site, other].find((id) => context.removed.has(id))
+    if (leaves !== undefined) {
+      // A dependency of or on a site the Sites sheet removes leaves with it
+      // (`dropDependenciesOnRemoved` says so); only a new one has something to say.
+      const held = original.get(site)?.dependsOn?.includes(other) ?? false
+      if (!removing && !held) {
+        row.report(
+          'warning',
+          'rollout-workbook.site-removed',
+          `the Sites sheet takes ${JSON.stringify(leaves)} out of the rollout, so the dependency was not added.`,
+          leaves === site ? 'site' : 'dependsOn',
+          leaves,
+        )
+      }
+      continue
+    }
+    const unknown = [site, other].find((id) => !context.sites.has(id))
+    if (unknown !== undefined) {
+      row.report(
+        'error',
+        'rollout-workbook.site-unknown',
+        `${JSON.stringify(unknown)} is not a site of this rollout, so the dependency was not ${removing ? 'removed' : 'added'}.`,
+        unknown === site ? 'site' : 'dependsOn',
+        unknown,
+      )
+      continue
+    }
+    const plan = context.sites.get(site)!
+    const has = (plan.dependsOn ?? []).includes(other)
+    if (!removing && has) {
+      tallies.unchanged++
+      continue
+    }
+    if (removing && !has) {
+      row.report(
+        'warning',
+        'rollout-workbook.remove-not-found',
+        `${JSON.stringify(site)} does not depend on ${JSON.stringify(other)}, so there is nothing to remove.`,
+        'action',
+        site,
+      )
+      tallies.unchanged++
+      continue
+    }
+    const dependsOn = removing
+      ? plan.dependsOn!.filter((id) => id !== other)
+      : [...(plan.dependsOn ?? []), other].sort(byCodeUnit)
+    const after: SitePlan = { ...plan, dependsOn }
+    if (!dependsOn.length) delete after.dependsOn
+    context.sites.set(site, after)
+    context.sitesChanged = true
+    tallies[removing ? 'deleted' : 'created']++
+  }
+}
+
+/**
+ * A site the Sites sheet removes takes the other sites' dependencies on it
+ * with it: a dependency on a site that is not in the rollout is no plan
+ * (`plan.site-dependency-unknown`). Each one dropped is said, with the site
+ * that loses it, and counted as a dependency deleted.
+ */
+function dropDependenciesOnRemoved(context: ImportContext): void {
+  if (!context.removed.size) return
+  for (const [location, plan] of context.sites) {
+    const dropped = (plan.dependsOn ?? []).filter((id) => context.removed.has(id))
+    if (!dropped.length) continue
+    const dependsOn = plan.dependsOn!.filter((id) => !context.removed.has(id))
+    const after: SitePlan = { ...plan, dependsOn }
+    if (!dependsOn.length) delete after.dependsOn
+    context.sites.set(location, after)
+    context.sitesChanged = true
+    context.result.tallies.dependencies.deleted += dropped.length
+    for (const id of dropped) {
+      context.report(
+        'info',
+        'rollout-workbook.dependency-dropped',
+        `the Sites sheet takes ${JSON.stringify(id)} out of the rollout, so ${JSON.stringify(location)} no longer depends on it.`,
+        { sheet: SHEET_NAMES.sites, subject: location },
+      )
+    }
   }
 }
 

@@ -32,8 +32,10 @@ export function siteId(n: number): string {
  * Every field a plan can hold is set somewhere: milestone overrides at each
  * precision, actuals, RAG, notes with characters XML has to escape, unassigned
  * sites, both archetypes, every kind of template change, both kinds of entry
- * date and every applicability rule. Deterministic, built from the site number
- * alone, so a round trip that changes one byte is a real change.
+ * date and every applicability rule, the preset, and every kind of site
+ * exception, a site's dependencies and its own blackouts (#214). Deterministic,
+ * built from the site number alone, so a round trip that changes one byte is a
+ * real change.
  *
  * **One milestone's id is `constructor`**, a member of `Object.prototype`:
  * the id the app makes from the label "Constructor". Every record kept by
@@ -84,6 +86,7 @@ export function rolloutWorkspace(siteCount = 160): Workspace {
     properties: { owner: 'Data Office' },
     plan: {
       kind: 'rollout',
+      preset: 'dataMigration',
       templateVersion: 2,
       milestones,
       template: [
@@ -241,6 +244,7 @@ export function rolloutWorkspace(siteCount = 160): Workspace {
     if (n % 11 === 0) {
       site.notes = `Site ${code}: HR files stay <local> & "on site"\nuntil the works council agrees.`
     }
+    Object.assign(site, siteDeviations(n))
     sites.push(site)
   }
 
@@ -287,6 +291,83 @@ function waveMilestones(w: number): { milestones?: Record<string, PlanDate> } {
       return { milestones: { freezeStart: quarter('2027-07-01') } }
     case 3:
       return { milestones: { freezeStart: quarter('2027-10-01') } }
+    default:
+      return {}
+  }
+}
+
+/**
+ * A site's exceptions, dependencies and own blackouts (#214): every kind and
+ * class of exception, every optional field, and each list **out of order**,
+ * so a writer that forgets to sort is caught by the byte-identical round
+ * trips (CLAUDE.md: a fixture built in sorted order cannot test the sort).
+ * Text a site's people write holds characters XML and JSON both escape. The
+ * site-only change is anchored on Hypercare ends, which a template change is
+ * anchored on too, so the milestone tests keep their refusals.
+ */
+function siteDeviations(n: number): Pick<SitePlan, 'exceptions' | 'dependsOn' | 'blackouts'> {
+  switch (n) {
+    case 3:
+      return {
+        exceptions: [
+          {
+            id: 'ex-003-skip',
+            kind: 'skip',
+            change: 'tc-fit',
+            class: 'preference',
+            owner: 'Site 003 IT',
+            expires: '2027-06-30',
+            rationale: 'The site keeps "its own" fit <rating> & review.',
+          },
+          {
+            id: 'ex-003-modify',
+            kind: 'modify',
+            change: 'tc-retire-store',
+            offsetDays: 60,
+            disposition: 'archive',
+            class: 'operational',
+          },
+          {
+            id: 'ex-003-add',
+            kind: 'add',
+            change: {
+              id: 'site-003-retire',
+              kind: 'retire',
+              subject: 'sys-local-store',
+              date: { anchor: 'hypercareEnd', offsetDays: 14 },
+            },
+            class: 'legal',
+            owner: 'Legal',
+            expires: '2028-12-31',
+          },
+        ],
+      }
+    case 6:
+      return {
+        exceptions: [
+          {
+            id: 'ex-006-modify',
+            kind: 'modify',
+            change: 'tc-eliminate',
+            disposition: 'retain',
+            class: 'legal',
+          },
+        ],
+        // A hub before its spokes: site 6 waits for sites 5 and 2.
+        dependsOn: [siteId(5), siteId(2)],
+      }
+    case 12:
+      return {
+        blackouts: [
+          {
+            id: 'bo-site-012-stocktake',
+            label: 'Stocktake',
+            start: '2027-06-28',
+            end: '2027-07-02',
+          },
+          { id: 'bo-site-012-audit', start: '2027-03-01', end: '2027-03-03' },
+        ],
+      }
     default:
       return {}
   }

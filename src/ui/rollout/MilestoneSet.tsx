@@ -208,7 +208,7 @@ export function MilestoneDialog({
 
   if (milestone && confirmingDelete) {
     const usage = milestoneUsage(store, rolloutId, milestone.id)
-    const blocked = usage.anchoredChanges.length > 0
+    const blocked = usage.anchoredChanges.length > 0 || usage.anchoredExceptions.length > 0
     return (
       <ModalForm
         label="Delete milestone"
@@ -221,7 +221,7 @@ export function MilestoneDialog({
       >
         <p className="dialog__help">
           {blocked
-            ? blockedText(milestone.label, usage.anchoredChanges)
+            ? blockedText(milestone.label, usage)
             : `Delete “${milestone.label}”? ${usageText(usage)}`}
         </p>
         {refused && (

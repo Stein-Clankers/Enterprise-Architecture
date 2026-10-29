@@ -557,11 +557,64 @@ describe('each unreadable part of a canonical plan is named (#209)', () => {
       `site "${siteId(1)}".actuals.cutover`,
     ],
     ['notes that are not text', (plan) => (plan.sites[0]!.notes = 3), `site "${siteId(1)}".notes`],
+    ['an unknown site key', (plan) => (plan.sites[0]!.budget = []), `site "${siteId(1)}".budget`],
     [
-      'an unknown site key',
-      (plan) => (plan.sites[0]!.exceptions = []),
+      'exceptions that are not a list (#214)',
+      (plan) => (plan.sites[0]!.exceptions = {}),
       `site "${siteId(1)}".exceptions`,
     ],
+    [
+      'an exception of no class (#214)',
+      (plan) => (plan.sites[0]!.exceptions = [{ id: 'x', kind: 'skip', change: 'tc-fit' }]),
+      `site "${siteId(1)}".exceptions[0]`,
+    ],
+    [
+      'a modify exception that modifies nothing (#214)',
+      (plan) =>
+        (plan.sites[0]!.exceptions = [
+          { id: 'x', kind: 'modify', change: 'tc-fit', class: 'legal' },
+        ]),
+      `site "${siteId(1)}".exceptions[0]`,
+    ],
+    [
+      'a second exception of one id at a site (#214)',
+      (plan) =>
+        (plan.sites[0]!.exceptions = [
+          { id: 'x', kind: 'skip', change: 'tc-fit', class: 'legal' },
+          { id: 'x', kind: 'skip', change: 'tc-add-serving', class: 'legal' },
+        ]),
+      `site "${siteId(1)}".exceptions[1], a second "x"`,
+    ],
+    [
+      'an exception whose id another site’s has (#214)',
+      // Site 3 holds ex-003-skip; site 4 sorts after it, so its copy is the one dropped.
+      (plan) =>
+        (plan.sites[3]!.exceptions = [
+          { id: 'ex-003-skip', kind: 'skip', change: 'tc-add-serving', class: 'legal' },
+        ]),
+      `site "${siteId(4)}".exceptions "ex-003-skip", an id another site's exception has`,
+    ],
+    [
+      'dependencies that are not a list (#214)',
+      (plan) => (plan.sites[0]!.dependsOn = siteId(2)),
+      `site "${siteId(1)}".dependsOn`,
+    ],
+    [
+      'a dependency that is no id (#214)',
+      (plan) => (plan.sites[0]!.dependsOn = [siteId(2), '']),
+      `site "${siteId(1)}".dependsOn[1]`,
+    ],
+    [
+      'a dependency given twice (#214)',
+      (plan) => (plan.sites[0]!.dependsOn = [siteId(2), siteId(2)]),
+      `site "${siteId(1)}".dependsOn[1], a second "${siteId(2)}"`,
+    ],
+    [
+      'a site blackout that ends first (#214)',
+      (plan) => (plan.sites[0]!.blackouts = [{ id: 'b', start: '2027-02-01', end: '2027-01-01' }]),
+      `site "${siteId(1)}".blackouts[0]`,
+    ],
+    ['a preset this build does not know (#214)', (plan) => (plan.preset = 'erp'), 'preset "erp"'],
     ['constraints not an object', (plan) => (plan.constraints = []), 'constraints'],
     [
       'a blackout that ends first',

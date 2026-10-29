@@ -15,11 +15,13 @@ import {
   wavePlanOf,
   wavesOf,
   type Archetype,
+  type ChangeEntry,
   type Element,
   type Milestone,
   type PlanDate,
   type RolloutConstraints,
   type RolloutPlan,
+  type RolloutPresetId,
   type SitePlan,
   type TemplateChange,
   type WavePlan,
@@ -55,6 +57,8 @@ import { ReadOnlyModelError, type ModelStore } from './model-store'
 /** What a new rollout starts with: `presetPlan` fills the milestones and an archetype (#213). */
 export interface RolloutInput {
   name: string
+  /** The preset it is made from, for the checks the preset adds (#214). */
+  preset?: RolloutPresetId
   milestones?: Milestone[]
   template?: TemplateChange[]
   constraints?: RolloutConstraints
@@ -72,6 +76,7 @@ export function createRollout(store: ModelStore, input: RolloutInput): Element |
     archetypes: input.archetypes ?? [],
     sites: [],
   }
+  if (input.preset !== undefined) plan.preset = input.preset
   if (input.constraints !== undefined) plan.constraints = input.constraints
   if (typeof input.name !== 'string' || !isRolloutPlan(plan)) return undefined
   const rollout: Element = {
@@ -465,6 +470,11 @@ export interface MilestoneUsage {
   archetypes: number
   /** Template changes anchored on it, by id: these block the delete. */
   anchoredChanges: string[]
+  /**
+   * Sites' `add` exceptions whose change is anchored on it, by exception id:
+   * these block the delete too (#214, ADR 0016 point 8 as amended).
+   */
+  anchoredExceptions: string[]
 }
 
 export function milestoneUsage(
@@ -481,10 +491,20 @@ export function milestoneUsage(
       .length,
     archetypes: plan?.archetypes.filter((archetype) => uses(archetype.durations)).length ?? 0,
     anchoredChanges:
-      plan?.template
-        .filter((change) => 'anchor' in change.date && change.date.anchor === milestoneId)
-        .map((change) => change.id) ?? [],
+      plan?.template.filter((change) => isAnchoredOn(change, milestoneId)).map((c) => c.id) ?? [],
+    anchoredExceptions:
+      plan?.sites.flatMap((site) =>
+        (site.exceptions ?? [])
+          .filter(
+            (exception) => exception.kind === 'add' && isAnchoredOn(exception.change, milestoneId),
+          )
+          .map((exception) => exception.id),
+      ) ?? [],
   }
+}
+
+function isAnchoredOn(entry: ChangeEntry, milestoneId: string): boolean {
+  return 'anchor' in entry.date && entry.date.anchor === milestoneId
 }
 
 /**
@@ -493,9 +513,13 @@ export function milestoneUsage(
  * waves' dates and the archetypes' durations. The dialog asks first when
  * anything uses it (`milestoneUsage`).
  *
- * **Refused while a template change is anchored on it** (`false`, nothing
- * done): the change's date would name a milestone that is gone, and the
- * template is re-anchored on purpose, not by a side effect of this.
+ * **Refused while a template change, or a site's own change (an `add`
+ * exception), is anchored on it** (`false`, nothing done): the change's date
+ * would name a milestone that is gone, and a change is re-anchored on purpose,
+ * not by a side effect of this. `validate()` reports an anchor that dangles
+ * all the same, arriving from a file (#214), but the app cannot re-anchor a
+ * template change yet, so refusing here is still the kinder answer (ADR 0016
+ * point 8, amended 2026-10-29).
  */
 export function removeMilestone(
   store: ModelStore,
@@ -508,7 +532,8 @@ export function removeMilestone(
   if (!rollout || !plan || !plan.milestones.some((milestone) => milestone.id === milestoneId)) {
     return false
   }
-  if (milestoneUsage(store, rolloutId, milestoneId).anchoredChanges.length) return false
+  const usage = milestoneUsage(store, rolloutId, milestoneId)
+  if (usage.anchoredChanges.length || usage.anchoredExceptions.length) return false
   const next: RolloutPlan = {
     ...plan,
     milestones: plan.milestones.filter((milestone) => milestone.id !== milestoneId),

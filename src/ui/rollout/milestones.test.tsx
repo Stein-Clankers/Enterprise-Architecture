@@ -292,17 +292,28 @@ describe('the milestone-set editor (#213)', () => {
   })
 
   it('words a refused delete for one anchored change and for several', () => {
-    expect(blockedText('Go', ['tc-a', 'tc-b'])).toBe(
+    expect(blockedText('Go', { anchoredChanges: ['tc-a', 'tc-b'], anchoredExceptions: [] })).toBe(
       '“Go” cannot be deleted: the template changes tc-a, tc-b are dated from it. The template can only be edited in the model’s file for now: date them from another milestone there, then delete this one.',
     )
   })
 
+  it('words a refused delete for a site’s own change, alone and beside the template’s (#214)', () => {
+    expect(blockedText('Go', { anchoredChanges: [], anchoredExceptions: ['ex-1'] })).toBe(
+      '“Go” cannot be deleted: the site-only change of exception ex-1 is dated from it: date it from another milestone in the rollout workbook’s Exceptions sheet, then delete this one.',
+    )
+    expect(
+      blockedText('Go', { anchoredChanges: ['tc-a'], anchoredExceptions: ['ex-1', 'ex-2'] }),
+    ).toBe(
+      '“Go” cannot be deleted: the template change tc-a is dated from it. The template can only be edited in the model’s file for now: date it from another milestone there. The site-only changes of exceptions ex-1, ex-2 are dated from it too: date them from another milestone in the rollout workbook’s Exceptions sheet, then delete this one.',
+    )
+  })
+
   it('words what a delete takes with it, for each count and for none', () => {
-    const none = { sites: 0, waves: 0, archetypes: 0, anchoredChanges: [] }
+    const none = { sites: 0, waves: 0, archetypes: 0, anchoredChanges: [], anchoredExceptions: [] }
     expect(usageText(none)).toBe('Nothing has a date or a duration for it.')
     expect(usageText({ ...none, sites: 1 })).toMatch(/^1 site has dates/)
     expect(usageText({ ...none, waves: 2 })).toMatch(/^2 waves have dates/)
-    expect(usageText({ sites: 3, waves: 1, archetypes: 1, anchoredChanges: [] })).toMatch(
+    expect(usageText({ ...none, sites: 3, waves: 1, archetypes: 1 })).toMatch(
       /^3 sites, 1 wave and 1 archetype have dates/,
     )
   })
