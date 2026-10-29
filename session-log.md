@@ -1,6 +1,6 @@
 # Session Log
 
-## 2026-10-28 — #212 and #213 merged; ADR 0016 accepted and amended; #229 fix PR in progress
+## 2026-10-28 — #212 and #213 merged; ADR 0016 accepted and amended; #229 fix PR #235 open
 
 - **#229 (#213), milestone sets, date inheritance and the derived site phase:** merged by the sponsor before its review finished.
   - **ADR 0016** was accepted as written.
@@ -13,7 +13,7 @@
     - a site in no wave follows its actuals and is never overdue.
 
     Both go into ADR 0016 as an amendment, in the fix PR.
-  - **The fix PR** is being written. It covers the prototype-key fix with a `constructor` milestone in the shared fixture, both amendments, and #233. Its title is "Fixes from the #229 review".
+  - **The fix PR is #235** (open, CI green, not yet reviewed). It covers the prototype-key fix with a `constructor` milestone in the shared fixture, both amendments, and #233. It closes #233.
 - **#228 (#212), the generated 160-site demo:**
   - **Contents:** 5 regions, 20 countries, 160 sites and 8 waves. Each wave is dated at its own precision: day, week, month or quarter.
   - **Seeded problems:** four, for #214. A dependency-order problem waits for #214's dependencies.
@@ -40,7 +40,7 @@
   - #234: #228's round-2 follow-ups.
   - A line on #214 for the dependency-order problem the demo still lacks.
 - **Open:**
-  - review and merge the #229 fix PR;
+  - review #235 with `/review-pr 235 high`, then merge;
   - R2 continues with #214 (checks) and #215 (actuals);
   - switch `rollout.spec.ts` and `rollout-workbook.spec.ts` and their fixtures to the demo;
   - #208 and #210 still lack a LibreOffice-saved fixture.

@@ -48,6 +48,8 @@ Where the diff touches them, verify the CLAUDE.md invariants:
 
   **When a fix collapses two copies into one export, the test that held them equal can no longer fail; it goes with the copy.** #228's `expect(BUNDLED_ID).toBe(ROLLOUT_DEMO_ID)` compared one export with itself after the fix.
 
+  **A precedence order (`actual ?? spaced ?? planned`) is a guard per adjacent pair: swap two neighbours and run.** Swapping #235's first two lines of `reachedAt` left all 2928 tests green. **A fix that raises a minimum is measured at the viewport the issue named:** a test that bounds the minimum from below lets any larger one through, and #235's `min-width: 1120px` made Site and Region visible and left the register scrolling 312 px sideways at #233's 1280×720 (#236).
+
   **When a test's expected list repeats one value, ask what the consumer does with the equal values.** #229's own spacing test expected `Q1, Q1, Q1, Q1, Q2`, and nobody asked which phase four milestones in one quarter yield: since a date is reached on its period's first day, the site read Migrated before any cutover.
 
   **When a PR body ships a guard-removal table, re-run the rows whose guard has more than one predicate, and narrow rather than delete.** Deleting is what the author already did, and it proves only the weakest predicate. #228's table said `!touchesBlackout(d, addDays(d, freeze))` was caught, because deleting the call put a cutover *day* in a blackout. Narrowing it to `touchesBlackout(d, d)` left all 42 seeded-problem tests green on all seven seeds, so nothing pinned the freeze window.
