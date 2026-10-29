@@ -1,5 +1,43 @@
 # Session Log
 
+## 2026-10-29 — #235 merged: the #229 review's fixes, ADR 0016 amended, #233 closed
+
+- **#235**, the fixes from the #229 review, took three review rounds and was merged by the sponsor. It closes #233.
+- **What it fixes:**
+  - **Prototype keys:** `getKey` is guarded by `Object.hasOwn`, and the shared fixture carries a `constructor` milestone.
+  - **ADR 0016 amended** by the sponsor's 2026-10-28 decisions:
+    - a spaced date is reached on its exact day, and is shown and judged overdue by its period;
+    - a site in no wave follows its actuals and is never overdue.
+  - **The register:** the grid constants moved to `register-columns.ts`, with a file test.
+  - **Labels and history:** history entries name their subject, and the archetype label reads "Standard (placeholder)", clamped to two lines.
+  - **A journey** for the Milestones tab, the site Dates dialog and the wave dates.
+- **Round 1, approve after 3:**
+  - the backward-spaced exact day was untested;
+  - so was the precedence of actual over spaced day;
+  - the placeholder label was clipped.
+- **Round 2, approve after 1:** an actual day earlier than its spaced day was untested.
+- **Round 3:** the coordinator checked it by running the probe (`max(actual, spaced)` fails the test).
+- **Harvested:**
+  - CLAUDE.md:
+    - a rule applied with a sign is two cases, and an "early or late" precedence is tested on both sides;
+    - clipped text is read where it renders.
+  - Review skill:
+    - a precedence order is a guard per adjacent pair;
+    - a raised minimum is measured at the viewport the issue named;
+    - a probe of a fixture-carried constant regenerates the fixture;
+    - a preset's keys are checked against the plan's set.
+- **Filed:**
+  - #236: the register scrolls 312px sideways at 1280×720, and the milestone grid is untested;
+  - #237: the workbook's `locationAfter` setKey miss;
+  - #238: history naming for site and wave dates;
+  - #239: a lint rule for record reads, `harness`;
+  - #240: cleanups.
+- **Open:**
+  - R2: #214 (plan checks, including the demo's dependency problem) and #215 (actuals);
+  - R3 needs a decision on #230;
+  - switch the older rollout journeys and fixtures to the demo;
+  - #236 is the most visible follow-up.
+
 ## 2026-10-28 — #212 and #213 merged; ADR 0016 accepted and amended; #229 fix PR #235 open
 
 - **#229 (#213), milestone sets, date inheritance and the derived site phase:** merged by the sponsor before its review finished.
