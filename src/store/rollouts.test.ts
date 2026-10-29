@@ -930,7 +930,9 @@ describe('the history names the milestone each command touched (#229 review)', (
 
   it('deleting a milestone nothing else uses', () => {
     const s = store()
-    // Not Go/no-go: the Standard archetype spaces that one.
+    // A milestone no record holds. Not Legacy decommissioned, which this test
+    // deleted before: the Standard archetype holds a duration for it, so its
+    // deletion is a batch.
     addMilestone(s, ROLLOUT_ID, { label: 'Board sign-off', startsPhase: 'preparing' })
     removeMilestone(s, ROLLOUT_ID, 'boardSignOff')
     expect(label(s)).toBe(`Deleted milestone “Board sign-off” from ${ROLLOUT}`)

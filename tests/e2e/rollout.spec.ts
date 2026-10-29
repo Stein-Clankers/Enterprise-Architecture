@@ -324,6 +324,15 @@ test('edits the milestone set, a site’s own dates and a wave’s dates', async
     height: cell.scrollHeight <= cell.clientHeight,
   }))
   expect(fits).toEqual({ width: true, height: true })
+  // A label a programme writes may be longer: two lines at most, so the row
+  // stays as tall as its neighbour, and the title carries the rest.
+  expect(await archetype.evaluate((cell) => getComputedStyle(cell).webkitLineClamp)).toBe('2')
+  await expect(archetype).toHaveAttribute('title', 'Standard (placeholder)')
+  const rowHeight = (n: string) =>
+    page
+      .locator(`.register__row[data-location="loc-site-${n}"]`)
+      .evaluate((row) => row.clientHeight)
+  expect(await rowHeight('009')).toBe(await rowHeight('008'))
 
   await name.click()
   await expect(page).toHaveURL(/\/element\/loc-site-004$/)

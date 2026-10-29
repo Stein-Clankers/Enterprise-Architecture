@@ -180,9 +180,14 @@
  * An archetype's label wraps to a second line instead of ending in an
  * ellipsis: "Standard (placeholder)" cut short hid the word that says its
  * durations are not a programme's (#235 review). Two lines fit both row
- * heights (38px, 31px compact).
+ * heights (38px, 31px compact), and a label a programme writes is clamped to
+ * two, so no row grows taller than the others; the cell's title carries the
+ * rest.
  */
 .register__archetype {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   white-space: normal;
   overflow-wrap: anywhere;
 }

@@ -5,6 +5,7 @@ import {
   type Element,
   type PlanDate,
   type Relationship,
+  type Milestone,
   type SitePlan,
   type Workspace,
 } from '@/model'
@@ -55,6 +56,25 @@ export function rolloutWorkspace(siteCount = 160): Workspace {
   ]
   const relationships: Relationship[] = [...base.relationships]
 
+  const milestones: Milestone[] = [
+    { id: 'mappingSignedOff', label: 'Mapping signed off', startsPhase: 'preparing' },
+    // A member of Object.prototype, on purpose: see the docblock.
+    { id: 'constructor', label: 'Constructor', startsPhase: 'preparing' },
+    { id: 'freezeStart', label: 'Freeze starts', startsPhase: 'cutover' },
+    {
+      id: 'reconciliationSignedOff',
+      label: 'Reconciliation signed off',
+      startsPhase: 'hypercare',
+    },
+    { id: 'hypercareEnd', label: 'Hypercare ends', startsPhase: 'migrated' },
+    {
+      id: 'legacyDecommissioned',
+      label: 'Legacy decommissioned',
+      startsPhase: 'done',
+      // The rollout's own date, which a site inherits when its wave sets none (#213).
+      date: { date: '2028-10-01', precision: 'quarter' },
+    },
+  ]
   const sites: SitePlan[] = []
   elements.push({
     id: ROLLOUT_ID,
@@ -65,25 +85,7 @@ export function rolloutWorkspace(siteCount = 160): Workspace {
     plan: {
       kind: 'rollout',
       templateVersion: 2,
-      milestones: [
-        { id: 'mappingSignedOff', label: 'Mapping signed off', startsPhase: 'preparing' },
-        // A member of Object.prototype, on purpose: see the docblock.
-        { id: 'constructor', label: 'Constructor', startsPhase: 'preparing' },
-        { id: 'freezeStart', label: 'Freeze starts', startsPhase: 'cutover' },
-        {
-          id: 'reconciliationSignedOff',
-          label: 'Reconciliation signed off',
-          startsPhase: 'hypercare',
-        },
-        { id: 'hypercareEnd', label: 'Hypercare ends', startsPhase: 'migrated' },
-        {
-          id: 'legacyDecommissioned',
-          label: 'Legacy decommissioned',
-          startsPhase: 'done',
-          // The rollout's own date, which a site inherits when its wave sets none (#213).
-          date: { date: '2028-10-01', precision: 'quarter' },
-        },
-      ],
+      milestones,
       template: [
         {
           id: 'tc-replace-store',
@@ -150,8 +152,18 @@ export function rolloutWorkspace(siteCount = 160): Workspace {
       archetypes: [
         { id: 'plant', label: 'Plant', durations: { freezeStart: 42, hypercareEnd: 28 } },
         { id: 'office', label: 'Office', durations: { constructor: 14 } },
-        // What a preset seeds, as the app seeds it: one site uses it.
-        ...presetPlan(ROLLOUT_PRESETS.dataMigration).archetypes,
+        // What a preset seeds, with durations only for this rollout's own
+        // milestones: deleting a milestone deletes its durations (ADR 0016
+        // point 8), so no plan the app writes holds one for another set.
+        // One site uses it.
+        ...presetPlan(ROLLOUT_PRESETS.dataMigration).archetypes.map((archetype) => ({
+          ...archetype,
+          durations: Object.fromEntries(
+            Object.entries(archetype.durations ?? {}).filter(([id]) =>
+              milestones.some((milestone) => milestone.id === id),
+            ),
+          ),
+        })),
       ],
       sites,
     },

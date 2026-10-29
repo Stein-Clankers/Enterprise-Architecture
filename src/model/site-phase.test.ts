@@ -365,6 +365,11 @@ describe('resolving a site’s milestone dates (#213, ADR 0016)', () => {
     expect(phase('2027-08-05')).toBe('preparing')
     expect(phase('2027-08-19')).toBe('preparing')
     expect(phase('2027-08-20')).toBe('hypercare')
+    // Early as well as late (ADR 0016 point 4): an actual of 20 July is
+    // reached on 20 July, not on the spaced 5 August.
+    const early = { location: 'l', archetype: 'standard', actuals: { cutover: '2027-07-20' } }
+    expect(siteStatus(plan, early, q3, at('2027-07-19')).phase).toBe('preparing')
+    expect(siteStatus(plan, early, q3, at('2027-07-20')).phase).toBe('hypercare')
     // Spaced over period: the same cutover, with no actual, is shown as
     // 2027-Q3 and reached on 5 August, not on 1 July.
     const site = { location: 'l', archetype: 'standard' }
@@ -377,6 +382,9 @@ describe('resolving a site’s milestone dates (#213, ADR 0016)', () => {
     } as const
     expect(reachedAt({ ...input, spacedDay: '2027-08-05', actual: '2027-08-20' })).toBe(
       at('2027-08-20'),
+    )
+    expect(reachedAt({ ...input, spacedDay: '2027-08-05', actual: '2027-07-20' })).toBe(
+      at('2027-07-20'),
     )
     expect(reachedAt({ ...input, spacedDay: '2027-08-05' })).toBe(at('2027-08-05'))
     expect(reachedAt(input)).toBe(at('2027-07-01'))
