@@ -12,6 +12,8 @@ import {
   type SitePlan,
   type WavePlan,
 } from './plan'
+// The file has no imports, so the model can use it without a cycle.
+import { getKey } from '@/io/records'
 
 /**
  * A site's milestone dates and its phase, derived (#213, ADR 0013 points 5
@@ -42,7 +44,13 @@ import {
  * days it does not know. The chain carries the exact day and snaps each date
  * to its period only at the end (`periodOf`), so three spacings of 42 days
  * from a quarter are 126 days from its first day, not three roundings. A
- * spaced date is inherited.
+ * spaced date is inherited, and keeps that exact day (`spacedFrom.day`): the
+ * phase is derived from it, while the date is shown at its period (ADR 0016
+ * point 4, amended 2026-10-28).
+ *
+ * Every record is read by milestone id through `getKey`: a user names the
+ * milestones, and "Constructor" is the id `constructor`, which a plain
+ * object would otherwise find on `Object.prototype` (#229 review).
  *
  * A site in no wave inherits nothing from a wave; it still inherits the
  * rollout's dates.
@@ -56,8 +64,12 @@ export interface ResolvedMilestone {
   /** The planned date, or `undefined` when nothing resolves one. */
   planned?: PlanDate
   source?: DateSource
-  /** For a spaced date: the milestone it is spaced from, and by how many days. */
-  spacedFrom?: { milestone: string; days: number }
+  /**
+   * For a spaced date: the milestone it is spaced from, by how many days, and
+   * the exact day the chain reaches, which `planned` snaps to its period. The
+   * day is derived each time and never stored.
+   */
+  spacedFrom?: { milestone: string; days: number; day: string }
   /** The day it was actually reached, when the site records one. */
   actual?: string
 }
@@ -83,12 +95,12 @@ export function resolveSiteMilestones(
   const days: (string | undefined)[] = []
   for (const milestone of plan.milestones) {
     const resolved: ResolvedMilestone = { milestone }
-    const own = site.milestones?.[milestone.id]
-    const fromWave = wave?.milestones?.[milestone.id]
+    const own = getKey(site.milestones, milestone.id)
+    const fromWave = getKey(wave?.milestones, milestone.id)
     if (own) Object.assign(resolved, { planned: own, source: 'site' })
     else if (fromWave) Object.assign(resolved, { planned: fromWave, source: 'wave' })
     else if (milestone.date) Object.assign(resolved, { planned: milestone.date, source: 'rollout' })
-    const actual = site.actuals?.[milestone.id]
+    const actual = getKey(site.actuals, milestone.id)
     if (isIsoDay(actual)) resolved.actual = actual
     out.push(resolved)
     days.push(resolved.planned?.date)
@@ -99,18 +111,18 @@ export function resolveSiteMilestones(
     const day = addDays(days[from]!, gap)
     out[index]!.planned = periodOf(day, anchor.planned!.precision)
     out[index]!.source = 'spaced'
-    out[index]!.spacedFrom = { milestone: anchor.milestone.id, days: gap }
+    out[index]!.spacedFrom = { milestone: anchor.milestone.id, days: gap, day }
     days[index] = day
   }
   if (durations) {
     for (let index = 1; index < out.length; index++) {
-      const gap = durations[out[index]!.milestone.id]
+      const gap = getKey(durations, out[index]!.milestone.id)
       if (!out[index]!.planned && out[index - 1]!.planned && gap !== undefined) {
         space(index, index - 1, gap)
       }
     }
     for (let index = out.length - 2; index >= 0; index--) {
-      const gap = durations[out[index + 1]!.milestone.id]
+      const gap = getKey(durations, out[index + 1]!.milestone.id)
       if (!out[index]!.planned && out[index + 1]!.planned && gap !== undefined) {
         space(index, index + 1, -gap)
       }
@@ -125,16 +137,43 @@ export function resolveSiteMilestones(
 export interface PhaseInput {
   startsPhase: MilestonePhase
   planned?: PlanDate
+  /**
+   * For a spaced date, the exact day the chain reaches (`spacedFrom.day`):
+   * the day it counts as reached, where `planned` is the period it is shown at.
+   */
+  spacedDay?: string
   actual?: string
 }
 
 /**
- * When a milestone counts as reached: its actual day, which takes precedence,
- * else the first day of its planned period. `undefined` when it has neither.
+ * What the phase and the overdue flag are derived from, for a site's resolved
+ * milestones. The register (`siteStatus`) and the timeline both build their
+ * inputs here, so the two cannot derive a phase from different days.
+ */
+export function phaseInputs(milestones: readonly ResolvedMilestone[]): PhaseInput[] {
+  return milestones.map((resolved) => {
+    const input: PhaseInput = { startsPhase: resolved.milestone.startsPhase }
+    if (resolved.planned) input.planned = resolved.planned
+    if (resolved.spacedFrom) input.spacedDay = resolved.spacedFrom.day
+    if (resolved.actual !== undefined) input.actual = resolved.actual
+    return input
+  })
+}
+
+/**
+ * When a milestone counts as reached: its actual day, which takes precedence.
+ * Else, for a spaced date, the exact day its chain reaches, though it is shown
+ * at its anchor's precision: a wave that says only `readiness: 2027-Q3` must
+ * not put every later milestone of a Standard site on 1 July (ADR 0016 point
+ * 4, amended 2026-10-28). Else the first day of its planned period.
+ * `undefined` when it has none of these.
  */
 export function reachedAt(input: PhaseInput): number | undefined {
+  // In order of precedence, one line each: an actual, a spaced day, a period.
   if (input.actual !== undefined) return dayStart(input.actual)
-  return input.planned ? dayStart(input.planned.date) : undefined
+  if (input.spacedDay !== undefined) return dayStart(input.spacedDay)
+  if (input.planned !== undefined) return dayStart(input.planned.date)
+  return undefined
 }
 
 /**
@@ -143,19 +182,28 @@ export function reachedAt(input: PhaseInput): number | undefined {
  * the set in order, that has been reached. An actual date takes precedence
  * over the planned one, early or late.
  *
- * A site in no wave is **Unplanned**, whatever its dates say (proposal §4.5:
- * "no wave → Unplanned"). A site in a wave that has reached no milestone yet,
- * or whose milestones have no dates, is **Planned**.
+ * A site in a wave that has reached no milestone yet, or whose milestones have
+ * no dates, is **Planned**.
+ *
+ * A site in **no wave** has no plan its dates commit it to, so only its actual
+ * days count: it is **Unplanned** until the first of them (proposal §4.5:
+ * "no wave → Unplanned"), and from then on its phase follows them, as actual
+ * dates take precedence (ADR 0013 point 6). This is how a site whose wave was
+ * deleted after its cutover still reads as migrated (ADR 0016 point 4, amended
+ * 2026-10-28; ADR 0015 point 6).
  */
 export function deriveSitePhase(
   inputs: readonly PhaseInput[],
   inWave: boolean,
   at: number,
 ): SitePhase {
-  if (!inWave) return 'unplanned'
-  let phase: SitePhase = 'planned'
+  let phase: SitePhase = inWave ? 'planned' : 'unplanned'
   for (const input of inputs) {
-    const reached = reachedAt(input)
+    const reached = inWave
+      ? reachedAt(input)
+      : input.actual === undefined
+        ? undefined
+        : dayStart(input.actual)
     if (reached !== undefined && reached <= at) phase = input.startsPhase
   }
   return phase
@@ -163,7 +211,9 @@ export function deriveSitePhase(
 
 /**
  * The milestones overdue at `at`: a planned date whose whole period has passed
- * with no actual date. A computed flag, not a phase (proposal §4.5).
+ * with no actual date. A computed flag, not a phase (proposal §4.5). It reads
+ * the period a date is shown at, never a spaced date's exact day, so a date is
+ * never overdue before the period it shows has ended.
  */
 export function overdueMilestones<T extends PhaseInput>(inputs: readonly T[], at: number): T[] {
   return inputs.filter(
@@ -188,11 +238,13 @@ export function siteStatus(
   at: number,
 ): SiteStatus {
   const milestones = resolveSiteMilestones(plan, site, wave)
-  const inputs = milestones.map((resolved) => ({ ...resolved, ...resolved.milestone }))
+  const inputs = phaseInputs(milestones)
+  const inWave = wave !== undefined
   return {
     milestones,
-    phase: deriveSitePhase(inputs, wave !== undefined, at),
-    overdue: overdueMilestones(inputs, at).length > 0,
+    phase: deriveSitePhase(inputs, inWave, at),
+    // A site in no wave has no plan to be late against (ADR 0016 point 5).
+    overdue: inWave && overdueMilestones(inputs, at).length > 0,
   }
 }
 

@@ -19,7 +19,7 @@ import { sortKeys } from './canonical-json'
 import { listed } from './exchange-xml'
 import { problem, type ImportProblem } from './problems'
 import { PROFILE_NAMESPACE } from './profile-properties'
-import { setKey } from './records'
+import { getKey, setKey } from './records'
 
 /**
  * Rollouts, waves and site plans in the exchange format (#209). ADR 0015
@@ -128,7 +128,7 @@ export function planToProperties(
     out[PLAN_KEYS.templateVersion] = String(plan.templateVersion)
     // The dates its sites inherit, under the site plans' own key family (ADR 0016).
     for (const id of Object.keys(plan.milestones ?? {}).sort()) {
-      setKey(out, `${MILESTONE_KEY_PREFIX}${id}`, formatPlanDate(plan.milestones![id]!))
+      setKey(out, `${MILESTONE_KEY_PREFIX}${id}`, formatPlanDate(getKey(plan.milestones, id)!))
     }
     return out
   }
@@ -256,10 +256,10 @@ function siteProperties(
   if (site.archetype !== undefined) out[PLAN_KEYS.archetype] = site.archetype
   if (site.rag !== undefined) out[PLAN_KEYS.rag] = site.rag
   for (const id of Object.keys(site.milestones ?? {}).sort()) {
-    setKey(out, `${MILESTONE_KEY_PREFIX}${id}`, formatPlanDate(site.milestones![id]!))
+    setKey(out, `${MILESTONE_KEY_PREFIX}${id}`, formatPlanDate(getKey(site.milestones, id)!))
   }
   for (const id of Object.keys(site.actuals ?? {}).sort()) {
-    setKey(out, `${ACTUAL_KEY_PREFIX}${id}`, site.actuals![id]!)
+    setKey(out, `${ACTUAL_KEY_PREFIX}${id}`, getKey(site.actuals, id)!)
   }
   return out
 }

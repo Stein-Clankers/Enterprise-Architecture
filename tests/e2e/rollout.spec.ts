@@ -225,3 +225,115 @@ test('the timeline expands a wave to its sites: W1 to the day, W2 to the quarter
   await expect(next).toHaveCSS('stroke', within)
   await expect(next).not.toHaveCSS('fill', within)
 })
+
+/**
+ * #213's editors, in a real browser (#229 review, finding 3): the milestone
+ * set, a site's own dates and a wave's dates. The fixture's set has a
+ * milestone whose id is `constructor`, so every screen here meets it.
+ */
+test('edits the milestone set, a site’s own dates and a wave’s dates', async ({ page }) => {
+  await openRollout(page)
+
+  // The Milestones tab: add one, at the end, then move it one place earlier.
+  await page.getByRole('button', { name: 'Milestones', exact: true }).click()
+  const table = page.getByRole('table', { name: 'Milestones' })
+  const order = () =>
+    table
+      .locator('[data-milestone]')
+      .evaluateAll((rows) => rows.map((row) => row.getAttribute('data-milestone')))
+  await expect(table.locator('[data-milestone="constructor"]')).toBeVisible()
+  await page.getByRole('button', { name: '+ Milestone' }).click()
+  const add = page.getByRole('dialog', { name: 'New milestone' })
+  await add.getByRole('textbox', { name: 'Label' }).fill('Site survey')
+  await add.getByRole('combobox', { name: 'Starts phase' }).selectOption({ label: 'Preparing' })
+  await add.getByRole('button', { name: 'Add' }).click()
+  await expect(table.locator('[data-milestone="siteSurvey"]')).toBeVisible()
+  expect((await order()).at(-1)).toBe('siteSurvey')
+  const earlier = page.getByRole('button', { name: 'Move Site survey earlier' })
+  await earlier.click()
+  await expect
+    .poll(async () => (await order()).slice(-2))
+    .toEqual(['siteSurvey', 'legacyDecommissioned'])
+  await expect(earlier).toBeFocused()
+
+  // At the top, earlier does nothing and is drawn so: its colour is read off
+  // the page, against a move button beside it that does something.
+  const top = page.getByRole('button', { name: 'Move Mapping signed off earlier' })
+  const below = page.getByRole('button', { name: 'Move Mapping signed off later' })
+  await expect(top).toHaveAttribute('aria-disabled', 'true')
+  await expect(below).toHaveAttribute('aria-disabled', 'false')
+  const greyed = await tokenColour(page, '--bd2')
+  const live = await tokenColour(page, '--ink2')
+  expect(greyed).not.toBe(live)
+  await expect(below).toHaveCSS('color', live)
+  await expect(top).toHaveCSS('color', greyed)
+
+  // A site's own date: set one, then clear it with Inherit. Site 004 sets its
+  // freeze, 2027-W19, and W1 freezes on 17 May.
+  await page.getByRole('button', { name: 'Site register' }).click()
+  const cutover = page.locator('.register__row[data-location="loc-site-004"] .register__date')
+  await expect(cutover).toHaveText('2027-W19set')
+  await page.getByRole('button', { name: 'Dates of 004' }).click()
+  let dates = page.getByRole('dialog', { name: 'Dates of 004' })
+  await dates.getByRole('combobox', { name: 'Freeze starts precision' }).selectOption('day')
+  await dates.getByLabel('Freeze starts day').fill('2027-05-12')
+  await dates.getByRole('button', { name: 'Save' }).click()
+  await expect(cutover).toHaveText('2027-05-12set')
+  await expect(cutover).toHaveAttribute('data-source', 'site')
+  await page.getByRole('button', { name: 'Dates of 004' }).click()
+  dates = page.getByRole('dialog', { name: 'Dates of 004' })
+  await dates.getByRole('combobox', { name: 'Freeze starts precision' }).selectOption('')
+  await dates.getByRole('button', { name: 'Save' }).click()
+  await expect(cutover).toHaveText('2027-05-17inherited')
+  await expect(cutover).toHaveAttribute('data-source', 'wave')
+  await expect(dates).toHaveCount(0)
+
+  // A wave's date: W2 freezes in 2027-Q3; dated to the month in its dialog,
+  // site 005 inherits that.
+  const five = page.locator('.register__row[data-location="loc-site-005"] .register__date')
+  await expect(five).toHaveText('2027-Q3inherited')
+  await page.getByRole('button', { name: 'Wave board' }).click()
+  await page.getByRole('button', { name: 'Edit W2' }).click()
+  const wave = page.getByRole('dialog', { name: 'Edit wave' })
+  const inherit = wave.getByRole('group', { name: 'Dates its sites inherit' })
+  await inherit.getByRole('combobox', { name: 'Freeze starts precision' }).selectOption('month')
+  await inherit.getByLabel('Freeze starts day').fill('2027-08-10')
+  await wave.getByRole('button', { name: 'Save' }).click()
+  await expect(wave).toHaveCount(0)
+  await page.getByRole('button', { name: 'Site register' }).click()
+  await expect(five).toHaveText('2027-08inherited')
+  await expect(five).toHaveAttribute('title', 'Freeze starts: inherited from wave W2')
+
+  // #233: at 1280×720 a writer's register gave the Site column 0px, so no
+  // name could be seen or clicked. A name is visible, and opens its site.
+  expect(page.viewportSize()).toEqual({ width: 1280, height: 720 })
+  const name = page.locator('.register__row[data-location="loc-site-004"] .register__name')
+  await expect(name).toHaveText('Site 004')
+  await expect(name).toBeVisible()
+  expect((await name.boundingBox())!.width).toBeGreaterThan(40)
+
+  // #235 review: the Standard archetype's label says its durations are
+  // placeholders, so all of it shows: an ellipsis is invisible to
+  // toHaveTextContent, so the cell's scroll size is read against its box.
+  const archetype = page.locator(
+    '.register__row[data-location="loc-site-009"] .register__archetype',
+  )
+  await expect(archetype).toHaveText('Standard (placeholder)')
+  const fits = await archetype.evaluate((cell) => ({
+    width: cell.scrollWidth <= cell.clientWidth,
+    height: cell.scrollHeight <= cell.clientHeight,
+  }))
+  expect(fits).toEqual({ width: true, height: true })
+  // A label a programme writes may be longer: two lines at most, so the row
+  // stays as tall as its neighbour, and the title carries the rest.
+  expect(await archetype.evaluate((cell) => getComputedStyle(cell).webkitLineClamp)).toBe('2')
+  await expect(archetype).toHaveAttribute('title', 'Standard (placeholder)')
+  const rowHeight = (n: string) =>
+    page
+      .locator(`.register__row[data-location="loc-site-${n}"]`)
+      .evaluate((row) => row.clientHeight)
+  expect(await rowHeight('009')).toBe(await rowHeight('008'))
+
+  await name.click()
+  await expect(page).toHaveURL(/\/element\/loc-site-004$/)
+})

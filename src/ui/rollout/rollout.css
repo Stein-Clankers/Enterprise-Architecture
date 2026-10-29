@@ -161,13 +161,35 @@
   gap: 8px;
 }
 
+/*
+ * Wide enough for the writer's fixed columns (`register-columns.ts`: 716px,
+ * nine 12px gaps, 40px padding: 864px) and room for Site and Region, the two
+ * flexible ones. At 860px both were 0px wide (#233); `register-columns.test.ts`
+ * holds the sum.
+ */
 .register .table__header,
 .register .table__scroll {
-  min-width: 860px;
+  min-width: 1120px;
 }
 
 .register__row {
   cursor: default;
+}
+
+/*
+ * An archetype's label wraps to a second line instead of ending in an
+ * ellipsis: "Standard (placeholder)" cut short hid the word that says its
+ * durations are not a programme's (#235 review). Two lines fit both row
+ * heights (38px, 31px compact), and a label a programme writes is clamped to
+ * two, so no row grows taller than the others; the cell's title carries the
+ * rest.
+ */
+.register__archetype {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .register__code,
@@ -295,8 +317,14 @@ button.register__name:hover {
   color: var(--ink2);
 }
 
-.milestones__move:disabled {
+/*
+ * At either end a move button stays focusable (so a step to the end does not
+ * drop focus) and says it does nothing with aria-disabled, never the disabled
+ * attribute, so this is the selector that greys it (#229 review).
+ */
+.milestones__move[aria-disabled='true'] {
   color: var(--bd2);
+  cursor: default;
 }
 
 .site-dates {

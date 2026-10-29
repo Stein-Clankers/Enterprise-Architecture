@@ -13,6 +13,7 @@ import {
   type SiteRow,
   type WaveColumn,
 } from './rollout-data'
+import { COLUMNS_READER, COLUMNS_WRITER } from './register-columns'
 
 /**
  * The site register (#211, proposal §6 item 2): the inventory table scoped to
@@ -29,9 +30,6 @@ import {
  * (#213). The phase is derived at today, never stored; a writer's Dates
  * button opens the site's own dates.
  */
-
-const COLUMNS_WRITER = '28px 72px minmax(0,1.6fr) 100px 100px 150px 130px 72px minmax(0,1fr) 64px'
-const COLUMNS_READER = '72px minmax(0,1.6fr) 100px 100px 150px 130px 72px minmax(0,1fr)'
 
 /**
  * The selects' values. A wave's is its id behind a prefix, and the two
@@ -335,7 +333,10 @@ function RegisterRow({
       ) : (
         <span className="register__mono mono">—</span>
       )}
-      <span className="table__secondary">{site.archetype ?? '—'}</span>
+      {/* Wraps to two lines rather than cutting a label short (#235 review). */}
+      <span className="table__secondary register__archetype" title={site.archetype}>
+        {site.archetype ?? '—'}
+      </span>
       {cutover?.planned ? (
         <span
           className="register__date"

@@ -1364,6 +1364,9 @@
       "plan": {
         "archetypes": [
           {
+            "durations": {
+              "constructor": 14
+            },
             "id": "office",
             "label": "Office"
           },
@@ -1374,6 +1377,16 @@
             },
             "id": "plant",
             "label": "Plant"
+          },
+          {
+            "durations": {
+              "freezeStart": 3,
+              "hypercareEnd": 28,
+              "legacyDecommissioned": 90,
+              "reconciliationSignedOff": 4
+            },
+            "id": "standard",
+            "label": "Standard (placeholder)"
           }
         ],
         "constraints": {
@@ -1397,6 +1410,11 @@
           {
             "id": "mappingSignedOff",
             "label": "Mapping signed off",
+            "startsPhase": "preparing"
+          },
+          {
+            "id": "constructor",
+            "label": "Constructor",
             "startsPhase": "preparing"
           },
           {
@@ -1427,6 +1445,7 @@
         "sites": [
           {
             "actuals": {
+              "constructor": "2027-02-15",
               "freezeStart": "2027-03-02",
               "mappingSignedOff": "2027-02-12"
             },
@@ -1488,6 +1507,10 @@
             "archetype": "plant",
             "location": "loc-site-008",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -1496,6 +1519,7 @@
             "wave": "wp-wave-1"
           },
           {
+            "archetype": "standard",
             "location": "loc-site-009",
             "wave": "wp-wave-2"
           },
@@ -1537,6 +1561,12 @@
           {
             "archetype": "plant",
             "location": "loc-site-014",
+            "milestones": {
+              "mappingSignedOff": {
+                "date": "2027-06-01",
+                "precision": "month"
+              }
+            },
             "wave": "wp-wave-3"
           },
           {
@@ -1548,6 +1578,10 @@
             "archetype": "plant",
             "location": "loc-site-016",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -1608,6 +1642,10 @@
           {
             "location": "loc-site-024",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -1678,6 +1716,10 @@
             "archetype": "plant",
             "location": "loc-site-032",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -1736,6 +1778,10 @@
             "archetype": "plant",
             "location": "loc-site-040",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -1798,6 +1844,10 @@
           {
             "location": "loc-site-048",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -1868,6 +1918,10 @@
             "archetype": "plant",
             "location": "loc-site-056",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -1926,6 +1980,10 @@
             "archetype": "plant",
             "location": "loc-site-064",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -1987,6 +2045,10 @@
           {
             "location": "loc-site-072",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -2057,6 +2119,10 @@
             "archetype": "plant",
             "location": "loc-site-080",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -2115,6 +2181,10 @@
             "archetype": "plant",
             "location": "loc-site-088",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -2177,6 +2247,10 @@
           {
             "location": "loc-site-096",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -2246,6 +2320,10 @@
             "archetype": "plant",
             "location": "loc-site-104",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -2306,6 +2384,10 @@
             "archetype": "plant",
             "location": "loc-site-112",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -2365,6 +2447,10 @@
           {
             "location": "loc-site-120",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -2436,6 +2522,10 @@
             "archetype": "plant",
             "location": "loc-site-128",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -2496,6 +2586,10 @@
             "archetype": "plant",
             "location": "loc-site-136",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -2556,6 +2650,10 @@
           {
             "location": "loc-site-144",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -2626,6 +2724,10 @@
             "archetype": "plant",
             "location": "loc-site-152",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -2684,6 +2786,10 @@
             "archetype": "plant",
             "location": "loc-site-160",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -2807,6 +2913,10 @@
         "kind": "wave",
         "label": "Pilot",
         "milestones": {
+          "constructor": {
+            "date": "2027-02-01",
+            "precision": "day"
+          },
           "freezeStart": {
             "date": "2027-02-22",
             "precision": "day"
@@ -2847,6 +2957,10 @@
         "kind": "wave",
         "label": "W1",
         "milestones": {
+          "constructor": {
+            "date": "2027-04-19",
+            "precision": "day"
+          },
           "freezeStart": {
             "date": "2027-05-17",
             "precision": "day"

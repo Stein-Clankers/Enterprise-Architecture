@@ -1,12 +1,12 @@
 import { Fragment, useState } from 'react'
 import { PLAN_DATE_PRECISIONS, formatPlanDate, isPlanDatePrecision, type PlanDate } from '@/model'
-import { setKey } from '@/io'
+import { getKey, setKey } from '@/io'
 import { setSiteMilestones, useModelStore } from '@/store'
 import { ModalForm } from './RolloutDialogs'
 import { useInitialFocus } from './use-initial-focus'
 import { PRECISION_LABELS, overrideValue, type OverrideDraft } from './plan-date-draft'
 import { PlanSource } from './SiteRegister'
-import { sourceText, type RolloutData } from './rollout-data'
+import { sourceText, waveHeading, type RolloutData } from './rollout-data'
 
 /**
  * One site's own milestone dates (#213). Each milestone shows the date the
@@ -31,7 +31,7 @@ export function SiteDatesDialog({
   const [drafts, setDrafts] = useState<Record<string, OverrideDraft>>(() =>
     Object.fromEntries(
       data.plan.milestones.map((milestone) => {
-        const value = own?.[milestone.id]
+        const value = getKey(own, milestone.id)
         return [
           milestone.id,
           value ? { precision: value.precision, day: value.date } : { precision: '', day: '' },
@@ -42,14 +42,14 @@ export function SiteDatesDialog({
   const [refused, setRefused] = useState(false)
   const firstRef = useInitialFocus<HTMLSelectElement>()
   const wave = data.waves.find((column) => column.element.id === site?.wave)
-  const waveLabel = wave ? wave.plan.label || wave.element.name : undefined
+  const waveLabel = wave ? waveHeading(wave).text : undefined
   const name = site ? (site.code ?? site.name) : location
 
   const changes: Record<string, PlanDate | null> = {}
   const unreadable: string[] = []
   for (const milestone of data.plan.milestones) {
-    const value = overrideValue(drafts[milestone.id]!)
-    const before = own?.[milestone.id]
+    const value = overrideValue(getKey(drafts, milestone.id)!)
+    const before = getKey(own, milestone.id)
     if (value === undefined) unreadable.push(milestone.label)
     else if (value === null ? before !== undefined : !samePlanDate(value, before)) {
       setKey(changes, milestone.id, value)
@@ -76,7 +76,7 @@ export function SiteDatesDialog({
         <span className="site-dates__head">Day</span>
         {data.plan.milestones.map((milestone, index) => {
           const resolved = site?.milestones.find((entry) => entry.milestone.id === milestone.id)
-          const draft = drafts[milestone.id]!
+          const draft = getKey(drafts, milestone.id)!
           const value = overrideValue(draft)
           const set = (next: Partial<OverrideDraft>) =>
             setDrafts((was) => ({ ...was, [milestone.id]: { ...draft, ...next } }))

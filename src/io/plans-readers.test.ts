@@ -97,7 +97,7 @@ describe('reading plans from canonical JSON (#209)', () => {
     )
     const plan = rolloutOf(workspace!)!
     expect(plan.milestones.map((m) => m.id)).not.toContain('goLive')
-    expect(plan.milestones).toHaveLength(5)
+    expect(plan.milestones).toHaveLength(6)
     expect(plan.sites).toHaveLength(12)
     expect(plan.sites.find((site) => site.location === siteId(1))?.notes).toBeUndefined()
     expect(plan.sites.find((site) => site.location === siteId(3))?.rag).toBeUndefined()

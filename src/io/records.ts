@@ -24,6 +24,18 @@ export function setKey<T>(record: Record<string, T>, key: string, value: T): voi
   })
 }
 
+/**
+ * `record[key]`, for a key this build did not choose: the record's own
+ * property, never one it inherits from `Object.prototype`. `undefined` when
+ * the record is absent or has no such own property.
+ */
+export function getKey<T>(
+  record: Readonly<Record<string, T>> | undefined,
+  key: string,
+): T | undefined {
+  return record !== undefined && Object.hasOwn(record, key) ? record[key] : undefined
+}
+
 /** The entries as a record, safe for keys this build did not choose. */
 export function toRecord<T>(entries: Iterable<readonly [string, T]>): Record<string, T> {
   const out: Record<string, T> = {}

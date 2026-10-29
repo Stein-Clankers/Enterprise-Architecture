@@ -66,3 +66,30 @@ describe('theme tokens (issue #6 AC4)', () => {
     expect(orphans, 'a dark-only token has no light value, so light renders unstyled').toEqual([])
   })
 })
+
+/**
+ * #213, ADR 0016 point 6: Unplanned is drawn in `--ink2`, Planned in
+ * `--lc-plan`, and the two must differ in both themes. `--ink3` was the
+ * obvious neutral and is rejected because it *is* `--lc-plan` in the light
+ * theme; that reason is asserted too, so the choice is looked at again if it
+ * stops being true (#229 review, finding 5).
+ */
+describe('the Unplanned ink (#213, ADR 0016 point 6)', () => {
+  const value = (selector: string, name: string) =>
+    declarationsIn(selector)
+      .find((declaration) => declaration.name === name)
+      ?.value.toLowerCase()
+
+  it.each([':root', "[data-theme='dark']"])('--ink2 differs from --lc-plan in %s', (selector) => {
+    const ink2 = value(selector, '--ink2')
+    const plan = value(selector, '--lc-plan')
+    expect(ink2).toMatch(/^#[0-9a-f]{6}$/)
+    expect(plan).toMatch(/^#[0-9a-f]{6}$/)
+    expect(ink2).not.toBe(plan)
+  })
+
+  it('--ink3 is --lc-plan in the light theme, which is why Unplanned is not --ink3', () => {
+    expect(value(':root', '--ink3')).toMatch(/^#[0-9a-f]{6}$/)
+    expect(value(':root', '--ink3')).toBe(value(':root', '--lc-plan'))
+  })
+})

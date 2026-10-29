@@ -5,6 +5,7 @@ import addFormats from 'ajv-formats'
 import { describe, expect, it } from 'vitest'
 import {
   ROLLOUT_PRESETS,
+  addDays,
   dayAfterPeriod,
   dayStart,
   resolveSiteMilestones,
@@ -391,6 +392,36 @@ describe('what the rollout demo holds (#212)', () => {
     }
     expect(pilot.every((site) => site.actuals !== undefined)).toBe(true)
     expect(plan.sites.filter((site) => site.actuals).length).toBe(pilot.length)
+  })
+
+  // ADR 0016 point 4, amended 2026-10-28: the W4–W7 sites have only a
+  // quarter-precision cutover from their wave, and every other milestone is
+  // spaced from it, so all of them are shown in that quarter. Reached on the
+  // quarter's first day, they read Migrated on their cutover day. Reached on
+  // the chain's exact day, a site cuts over first and is Migrated only from
+  // the day its hypercare ends.
+  it('has no W4–W7 site Migrated or Done before its hypercare ends, from ROLLOUT_DEMO_AS_OF on', () => {
+    let checked = 0
+    for (const label of ['W4', 'W5', 'W6', 'W7']) {
+      const { wave, sites } = byWave(label)
+      for (const site of sites) {
+        const milestones = resolved(demo, site)
+        const cutover = milestones.get('freezeStart')!
+        const migrated = milestones.get('hypercareEnd')!
+        expect(cutover.planned!.precision).toBe('quarter')
+        expect(migrated.planned).toEqual(cutover.planned)
+        const migratedOn = migrated.spacedFrom!.day
+        const phase = (day: string) => siteStatus(plan, site, wave, dayStart(day)).phase
+        // On its cutover day it is in Cutover, not past it.
+        expect(phase(cutover.planned!.date), site.location).toBe('cutover')
+        for (let day = ROLLOUT_DEMO_AS_OF; day < migratedOn; day = addDays(day, 1)) {
+          expect(['migrated', 'done'], `${site.location} ${day}`).not.toContain(phase(day))
+          checked++
+        }
+        expect(phase(migratedOn)).toBe('migrated')
+      }
+    }
+    expect(checked).toBeGreaterThan(1000)
   })
 
   it('has the pilot under way at ROLLOUT_DEMO_AS_OF: preparing, and not overdue', () => {

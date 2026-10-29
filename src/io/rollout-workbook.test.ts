@@ -258,6 +258,7 @@ describe('the exported workbook (#210)', () => {
       'capacity',
       'templateVersion',
       'milestone.mappingSignedOff',
+      'milestone.constructor',
       'milestone.freezeStart',
       'milestone.reconciliationSignedOff',
       'milestone.hypercareEnd',
@@ -271,16 +272,17 @@ describe('the exported workbook (#210)', () => {
       'archetype',
       'rag',
       'milestone.mappingSignedOff',
+      'milestone.constructor',
       'milestone.freezeStart',
       'milestone.reconciliationSignedOff',
       'milestone.hypercareEnd',
       'milestone.legacyDecommissioned',
     ])
     // Each date column says whose date it is: a site's own, or one its sites inherit.
-    expect(sheetOf(workbook, 'SitePlan').rows[1]![6]).toEqual(
+    expect(sheetOf(workbook, 'SitePlan').rows[1]![7]).toEqual(
       textCell('Freeze starts (set at the site; blank: inherit)'),
     )
-    expect(sheetOf(workbook, 'Waves').rows[1]![8]).toEqual(
+    expect(sheetOf(workbook, 'Waves').rows[1]![9]).toEqual(
       textCell('Freeze starts (its sites inherit this)'),
     )
     expect(sheetOf(workbook, 'Sites').rows[1]![3]).toEqual(textCell('Code'))
@@ -306,6 +308,7 @@ describe('the exported workbook (#210)', () => {
         numberCell(5),
         numberCell(1),
         textCell('2027-01-11'),
+        textCell('2027-02-01'),
         textCell('2027-02-22'),
         textCell('2027-03-01'),
         textCell('2027-03-29'),
@@ -320,6 +323,7 @@ describe('the exported workbook (#210)', () => {
         EMPTY,
         numberCell(2),
         textCell('2027-04-05'),
+        textCell('2027-04-19'),
         textCell('2027-05-17'),
         textCell('2027-05-24'),
         textCell('2027-06-21'),
@@ -341,6 +345,7 @@ describe('the exported workbook (#210)', () => {
       EMPTY,
       EMPTY,
       textCell('2027-03'),
+      EMPTY,
       textCell('2027-W19'),
       EMPTY,
       textCell('2027-07-13'),
@@ -532,7 +537,12 @@ describe('a blank cell deletes the value (#94)', () => {
       siteId(8),
       'milestone.freezeStart',
       (m: Workspace) => sitePlan(m, siteId(8))!.milestones,
-      { freezeStart: { date: '2027-05-10', precision: 'week' } },
+      {
+        freezeStart: { date: '2027-05-10', precision: 'week' },
+        constructor: { date: '2027-04-01', precision: 'month' },
+      },
+      // A blank deletes that date and no other: the `constructor` date stays.
+      { constructor: { date: '2027-04-01', precision: 'month' } },
     ],
     [
       'Sites',
@@ -1216,6 +1226,7 @@ describe('what an import reads, and what it leaves alone', () => {
       templateVersion: 1,
       milestones: {
         mappingSignedOff: { date: '2027-04-05', precision: 'day' },
+        constructor: { date: '2027-04-19', precision: 'day' },
         freezeStart: { date: '2027-05-24', precision: 'week' },
         legacyDecommissioned: { date: '2027-10-01', precision: 'quarter' },
       },

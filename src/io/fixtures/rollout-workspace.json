@@ -148,6 +148,9 @@
       "plan": {
         "archetypes": [
           {
+            "durations": {
+              "constructor": 14
+            },
             "id": "office",
             "label": "Office"
           },
@@ -158,6 +161,16 @@
             },
             "id": "plant",
             "label": "Plant"
+          },
+          {
+            "durations": {
+              "freezeStart": 3,
+              "hypercareEnd": 28,
+              "legacyDecommissioned": 90,
+              "reconciliationSignedOff": 4
+            },
+            "id": "standard",
+            "label": "Standard (placeholder)"
           }
         ],
         "constraints": {
@@ -181,6 +194,11 @@
           {
             "id": "mappingSignedOff",
             "label": "Mapping signed off",
+            "startsPhase": "preparing"
+          },
+          {
+            "id": "constructor",
+            "label": "Constructor",
             "startsPhase": "preparing"
           },
           {
@@ -211,6 +229,7 @@
         "sites": [
           {
             "actuals": {
+              "constructor": "2027-02-15",
               "freezeStart": "2027-03-02",
               "mappingSignedOff": "2027-02-12"
             },
@@ -272,6 +291,10 @@
             "archetype": "plant",
             "location": "loc-site-008",
             "milestones": {
+              "constructor": {
+                "date": "2027-04-01",
+                "precision": "month"
+              },
               "freezeStart": {
                 "date": "2027-05-10",
                 "precision": "week"
@@ -394,6 +417,10 @@
         "kind": "wave",
         "label": "Pilot",
         "milestones": {
+          "constructor": {
+            "date": "2027-02-01",
+            "precision": "day"
+          },
           "freezeStart": {
             "date": "2027-02-22",
             "precision": "day"
@@ -434,6 +461,10 @@
         "kind": "wave",
         "label": "W1",
         "milestones": {
+          "constructor": {
+            "date": "2027-04-19",
+            "precision": "day"
+          },
           "freezeStart": {
             "date": "2027-05-17",
             "precision": "day"

@@ -1,4 +1,15 @@
-import { typeLabel, type Element, type Folder, type Relationship, type View } from '@/model'
+import {
+  rolloutPlanOf,
+  typeLabel,
+  wavePlanOf,
+  type Element,
+  type Folder,
+  type Milestone,
+  type RolloutPlan,
+  type Relationship,
+  type View,
+} from '@/model'
+import { getKey } from '@/io/records'
 
 /**
  * Every mutation is a command.
@@ -163,6 +174,15 @@ export function describeCommand(command: Command): string {
       ) {
         return `Added ${typeLabel(first.element.type)} “${first.element.name}” to “${second.after.name}”`
       }
+      // A milestone deleted with the waves' dates for it (#213, #229 review).
+      if (first?.kind === 'update-element' && command.commands.slice(1).every(isWaveUpdate)) {
+        const said = describeMilestoneRemoval(
+          first.before,
+          first.after,
+          command.commands.length - 1,
+        )
+        if (said) return said
+      }
       return `${command.commands.length} changes`
     }
   }
@@ -173,6 +193,8 @@ function describeElementUpdate(before: Element, after: Element): string {
   if (before.folder !== after.folder && sameApartFromFolder(before, after)) {
     return `Moved “${after.name}”`
   }
+  const milestones = describeMilestoneChange(before, after)
+  if (milestones) return milestones
   const changed: string[] = []
   if (before.name !== after.name) changed.push('name')
   if (before.documentation !== after.documentation) changed.push('documentation')
@@ -183,6 +205,132 @@ function describeElementUpdate(before: Element, after: Element): string {
   if (JSON.stringify(before.plan) !== JSON.stringify(after.plan)) changed.push('plan')
   const what = changed.length ? changed.join(', ') : 'element'
   return `Updated ${what} of “${after.name}”`
+}
+
+// ── Milestone commands (#213) ────────────────────────────────────────────────
+
+/**
+ * A rollout's milestone set or its sites' milestone dates, changed by one of
+ * the milestone commands (`store/rollouts.ts`): which milestone, and what was
+ * done to it. Every one of them is an `update-element` of the rollout, so
+ * without this each read "Updated plan of “<rollout>”", whichever milestone
+ * it touched (#229 review, finding 4). `undefined` for any other plan change.
+ */
+function describeMilestoneChange(before: Element, after: Element): string | undefined {
+  if (!sameApart(before, after, 'plan')) return undefined
+  const was = rolloutPlanOf(before)
+  const now = rolloutPlanOf(after)
+  if (!was || !now) return undefined
+  const rollout = `“${after.name}”`
+  const removed = describeMilestoneRemoval(before, after, 0)
+  if (removed) return removed
+  if (!sameApart(was, now, 'milestones')) {
+    return sameApart(was, now, 'sites') ? siteDatesText(was, now, rollout) : undefined
+  }
+  const wasIds = was.milestones.map((milestone) => milestone.id)
+  const nowIds = now.milestones.map((milestone) => milestone.id)
+  const added = now.milestones.filter((milestone) => !wasIds.includes(milestone.id))
+  if (added.length === 1 && nowIds.length === wasIds.length + 1) {
+    return `Added milestone “${added[0]!.label}” to ${rollout}`
+  }
+  if (nowIds.length !== wasIds.length || added.length) return undefined
+  const changed = now.milestones.filter(
+    (milestone) =>
+      JSON.stringify(milestone) !==
+      JSON.stringify(was.milestones.find((candidate) => candidate.id === milestone.id)),
+  )
+  if (changed.length === 1) return `Updated milestone “${changed[0]!.label}” of ${rollout}`
+  // A move swaps two neighbours: the one that was first now follows the other.
+  const moved = wasIds.findIndex((id, index) => nowIds[index] !== id)
+  if (changed.length === 0 && moved >= 0) {
+    const first = was.milestones[moved]!
+    const second = was.milestones[moved + 1]
+    if (second && nowIds[moved] === second.id && nowIds[moved + 1] === first.id) {
+      return `Moved milestone “${first.label}” after “${second.label}” in ${rollout}`
+    }
+  }
+  return undefined
+}
+
+/**
+ * A milestone deleted from a rollout, with what went with it: the sites'
+ * dates for it, the waves' (`waves`, one update each in the same batch) and
+ * the archetypes' durations. `undefined` when `before` to `after` is not the
+ * deletion of exactly one milestone.
+ */
+function describeMilestoneRemoval(
+  before: Element,
+  after: Element,
+  waves: number,
+): string | undefined {
+  const was = rolloutPlanOf(before)
+  const now = rolloutPlanOf(after)
+  if (!was || !now || now.milestones.length !== was.milestones.length - 1) return undefined
+  const ids = new Set(now.milestones.map((milestone) => milestone.id))
+  const gone = was.milestones.filter((milestone) => !ids.has(milestone.id))
+  if (gone.length !== 1) return undefined
+  const id = gone[0]!.id
+  const has = (record: Record<string, unknown> | undefined) =>
+    record !== undefined && Object.hasOwn(record, id)
+  const sites = was.sites.filter((site) => has(site.milestones) || has(site.actuals)).length
+  const archetypes = was.archetypes.filter((archetype) => has(archetype.durations)).length
+  const dates = listed(
+    [sites && plural(sites, 'site'), waves && plural(waves, 'wave')].filter(
+      (part): part is string => Boolean(part),
+    ),
+  )
+  const with_ = [
+    dates && `its dates on ${dates}`,
+    archetypes &&
+      `its ${archetypes === 1 ? 'duration' : 'durations'} in ${plural(archetypes, 'archetype')}`,
+  ].filter((part): part is string => Boolean(part))
+  const subject = `Deleted milestone “${gone[0]!.label}” from “${after.name}”`
+  return with_.length ? `${subject}, with ${with_.join(' and ')}` : subject
+}
+
+/** One site's (or several sites') own milestone dates changed: which milestones. */
+function siteDatesText(was: RolloutPlan, now: RolloutPlan, rollout: string): string | undefined {
+  const before = new Map(was.sites.map((site) => [site.location, site]))
+  const touched = new Set<string>()
+  let sites = 0
+  for (const site of now.sites) {
+    const old = before.get(site.location)
+    if (!old || JSON.stringify(old) === JSON.stringify(site)) continue
+    if (!sameApart(old, site, 'milestones')) return undefined
+    sites++
+    for (const id of new Set([
+      ...Object.keys(old.milestones ?? {}),
+      ...Object.keys(site.milestones ?? {}),
+    ])) {
+      // By `getKey`: a milestone id is a user's, and may be `constructor`.
+      const a = getKey(old.milestones, id)
+      const b = getKey(site.milestones, id)
+      if (a?.date !== b?.date || a?.precision !== b?.precision) touched.add(id)
+    }
+  }
+  if (!sites || before.size !== now.sites.length) return undefined
+  const labels = now.milestones
+    .filter((milestone: Milestone) => touched.has(milestone.id))
+    .map((milestone) => `“${milestone.label}”`)
+  if (!labels.length) return undefined
+  return `Updated the ${listed(labels)} ${labels.length === 1 ? 'date' : 'dates'} of ${plural(sites, 'site')} in ${rollout}`
+}
+
+function isWaveUpdate(command: Command): boolean {
+  return command.kind === 'update-element' && wavePlanOf(command.after) !== undefined
+}
+
+/** True when two objects differ in nothing but `key`. */
+function sameApart<T extends object>(a: T, b: T, key: keyof T): boolean {
+  const { [key]: _a, ...restA } = a
+  const { [key]: _b, ...restB } = b
+  return JSON.stringify(restA) === JSON.stringify(restB)
+}
+
+/** "a", "a and b", "a, b and c". */
+function listed(parts: readonly string[]): string {
+  if (parts.length < 2) return parts[0] ?? ''
+  return `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`
 }
 
 /**
