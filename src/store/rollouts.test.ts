@@ -736,6 +736,9 @@ describe('milestone sets (#213)', () => {
     expect(plan(s, rollout.id).archetypes).toEqual([
       { id: 'standard', label: 'Standard (placeholder)', durations: preset.durations },
     ])
+    // The preset is kept, for the checks it adds (#214); a rollout from none has none.
+    expect(plan(s, rollout.id).preset).toBe('dataMigration')
+    expect(plan(s, createRollout(s, { name: 'Bare' })!.id)).not.toHaveProperty('preset')
   })
 
   it('adds a milestone with an id made from its label, unique in the set, one command each', () => {

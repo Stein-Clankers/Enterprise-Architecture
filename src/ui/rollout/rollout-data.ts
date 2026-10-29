@@ -1,11 +1,13 @@
 import {
   formatPlanDate,
+  planChecks,
   rolloutPlanOf,
   siteStatus,
   switchMilestone,
   wavePlanOf,
   wavesOf,
   type Element,
+  type Finding,
   type Milestone,
   type ResolvedMilestone,
   type RolloutPlan,
@@ -20,9 +22,9 @@ import type { MilestoneUsage, ModelStore } from '@/store'
  * What the rollout screens show, derived from the model in one pass (#211).
  *
  * Nothing here is stored: counts, capacity and over-capacity, each site's
- * resolved milestone dates and its phase (#213) are worked out from the
- * rollout's site plans and its waves each time the model changes, at the time
- * point the caller gives.
+ * resolved milestone dates and its phase (#213), and the plan checks (#214)
+ * are worked out from the rollout's site plans and its waves each time the
+ * model changes, at the time point the caller gives.
  */
 
 /**
@@ -82,6 +84,8 @@ export interface RolloutData {
   cutoverMilestone: Milestone | undefined
   /** The time point phases are derived at, in UTC ms. */
   at: number
+  /** The rollout's plan checks at the time point (#214, `planChecks`), in their fixed order. */
+  checks: Finding[]
 }
 
 export const NO_REGION = 'No region'
@@ -190,6 +194,11 @@ export function rolloutData(
     regions,
     cutoverMilestone,
     at,
+    checks: planChecks(
+      { elements: store.elementList(), relationships: store.relationshipList() },
+      rolloutId,
+      at,
+    ),
   }
 }
 
