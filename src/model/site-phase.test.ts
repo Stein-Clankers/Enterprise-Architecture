@@ -12,6 +12,7 @@ import {
   deriveSitePhase,
   overdueMilestones,
   phaseInputs,
+  reachedAt,
   resolveSiteMilestones,
   siteStatus,
   switchMilestone,
@@ -332,6 +333,54 @@ describe('resolving a site’s milestone dates (#213, ADR 0016)', () => {
     expect(phase('2027-09-02')).toBe('migrated')
     expect(phase('2027-10-01')).toBe('migrated')
     expect(phase('2027-12-01')).toBe('done')
+  })
+
+  it('derives the phase of a date spaced backward from its exact day too', () => {
+    // A rule applied with a sign is two cases (CLAUDE.md): the wave says only
+    // `cutover: 2027-Q3`, so go/no-go is 7 days before 1 July (24 June) and
+    // readiness 28 before that, 27 May, shown as 2027-Q2. Reached on the
+    // quarter's first day, the site would be Preparing from 1 April.
+    const plan = rollout()
+    const site = { location: 'l', archetype: 'standard' }
+    const q3 = wave({ cutover: { date: '2027-07-01', precision: 'quarter' } })
+    const readiness = resolvedOf(resolveSiteMilestones(plan, site, q3), 'readiness')
+    expect(readiness).toMatchObject({
+      planned: { date: '2027-04-01', precision: 'quarter' },
+      source: 'spaced',
+      spacedFrom: { milestone: 'goNoGo', days: -28, day: '2027-05-27' },
+    })
+    const phase = (t: string) => siteStatus(plan, site, q3, at(t)).phase
+    expect(phase('2027-04-01')).toBe('planned')
+    expect(phase('2027-05-26')).toBe('planned')
+    expect(phase('2027-05-27')).toBe('preparing')
+  })
+
+  it('reaches a milestone on its actual day before its spaced day, and its spaced day before its period', () => {
+    // A precedence order is a guard per adjacent pair (CLAUDE.md).
+    const plan = rollout()
+    const q3 = wave({ readiness: { date: '2027-07-01', precision: 'quarter' } })
+    // Actual over spaced: the spaced cutover is 5 August, the actual 20 August.
+    const late = { location: 'l', archetype: 'standard', actuals: { cutover: '2027-08-20' } }
+    const phase = (t: string) => siteStatus(plan, late, q3, at(t)).phase
+    expect(phase('2027-08-05')).toBe('preparing')
+    expect(phase('2027-08-19')).toBe('preparing')
+    expect(phase('2027-08-20')).toBe('hypercare')
+    // Spaced over period: the same cutover, with no actual, is shown as
+    // 2027-Q3 and reached on 5 August, not on 1 July.
+    const site = { location: 'l', archetype: 'standard' }
+    expect(siteStatus(plan, site, q3, at('2027-08-04')).phase).toBe('preparing')
+    expect(siteStatus(plan, site, q3, at('2027-08-05')).phase).toBe('hypercare')
+    // And the inputs say the same, read one by one.
+    const input = {
+      startsPhase: 'hypercare',
+      planned: { date: '2027-07-01', precision: 'quarter' },
+    } as const
+    expect(reachedAt({ ...input, spacedDay: '2027-08-05', actual: '2027-08-20' })).toBe(
+      at('2027-08-20'),
+    )
+    expect(reachedAt({ ...input, spacedDay: '2027-08-05' })).toBe(at('2027-08-05'))
+    expect(reachedAt(input)).toBe(at('2027-07-01'))
+    expect(reachedAt({ startsPhase: 'hypercare' })).toBeUndefined()
   })
 
   it('flags a spaced date overdue only once the period it is shown at has ended', () => {

@@ -734,7 +734,7 @@ describe('milestone sets (#213)', () => {
     const rollout = createRollout(s, { name: 'Data', ...presetPlan(preset) })!
     expect(plan(s, rollout.id).milestones).toEqual(preset.milestones)
     expect(plan(s, rollout.id).archetypes).toEqual([
-      { id: 'standard', label: 'Standard (placeholder durations)', durations: preset.durations },
+      { id: 'standard', label: 'Standard (placeholder)', durations: preset.durations },
     ])
   })
 
@@ -838,13 +838,14 @@ describe('milestone sets (#213)', () => {
     expect(milestoneUsage(s, ROLLOUT_ID, 'freezeStart')).toEqual({
       sites,
       waves: 4,
-      archetypes: 1,
+      // Plant's, and the Standard archetype the preset seeds.
+      archetypes: 2,
       anchoredChanges: ['tc-replace-store'],
     })
     expect(milestoneUsage(s, ROLLOUT_ID, 'legacyDecommissioned')).toEqual({
       sites: 0,
       waves: 0,
-      archetypes: 0,
+      archetypes: 1,
       anchoredChanges: [],
     })
   })
@@ -855,7 +856,7 @@ describe('milestone sets (#213)', () => {
     expect(milestoneUsage(s, ROLLOUT_ID, 'reconciliationSignedOff')).toEqual({
       sites: 2,
       waves: 2,
-      archetypes: 1,
+      archetypes: 2,
       anchoredChanges: [],
     })
     expect(removeMilestone(s, ROLLOUT_ID, 'reconciliationSignedOff')).toBe(true)
@@ -894,6 +895,11 @@ describe('milestone sets (#213)', () => {
     expect(milestoneIdFor('Übergabe', [])).toBe('übergabe')
     expect(milestoneIdFor('Go-live Zürich 2', [])).toBe('goLiveZürich2')
     expect(milestoneIdFor('Constructor', [])).toBe('constructor')
+    // Decomposed (U, then U+0308 COMBINING DIAERESIS) is the same id as composed.
+    expect('U\u0308bergabe').not.toBe('Übergabe')
+    expect(milestoneIdFor('U\u0308bergabe', [])).toBe('übergabe')
+    // A mark with no composed form stays in its word: Hindi's vowel signs.
+    expect(milestoneIdFor('हिन्दी', [])).toBe('हिन्दी')
   })
 })
 
@@ -924,8 +930,10 @@ describe('the history names the milestone each command touched (#229 review)', (
 
   it('deleting a milestone nothing else uses', () => {
     const s = store()
-    removeMilestone(s, ROLLOUT_ID, 'legacyDecommissioned')
-    expect(label(s)).toBe(`Deleted milestone “Legacy decommissioned” from ${ROLLOUT}`)
+    // Not Go/no-go: the Standard archetype spaces that one.
+    addMilestone(s, ROLLOUT_ID, { label: 'Board sign-off', startsPhase: 'preparing' })
+    removeMilestone(s, ROLLOUT_ID, 'boardSignOff')
+    expect(label(s)).toBe(`Deleted milestone “Board sign-off” from ${ROLLOUT}`)
   })
 
   it('deleting a milestone with its sites’, waves’ and archetypes’ dates, which is a batch', () => {
@@ -933,7 +941,7 @@ describe('the history names the milestone each command touched (#229 review)', (
     removeMilestone(s, ROLLOUT_ID, 'reconciliationSignedOff')
     expect(s.history.at(-1)!.command.kind).toBe('batch')
     expect(label(s)).toBe(
-      `Deleted milestone “Reconciliation signed off” from ${ROLLOUT}, with its dates on 2 sites and 2 waves and its duration in 1 archetype`,
+      `Deleted milestone “Reconciliation signed off” from ${ROLLOUT}, with its dates on 2 sites and 2 waves and its durations in 2 archetypes`,
     )
   })
 
@@ -941,7 +949,7 @@ describe('the history names the milestone each command touched (#229 review)', (
     const s = store()
     removeMilestone(s, ROLLOUT_ID, 'reconciliationSignedOff')
     expect(label(s)).toBe(
-      `Deleted milestone “Reconciliation signed off” from ${ROLLOUT}, with its dates on 2 waves`,
+      `Deleted milestone “Reconciliation signed off” from ${ROLLOUT}, with its dates on 2 waves and its duration in 1 archetype`,
     )
     const t = store()
     removeMilestone(t, ROLLOUT_ID, 'constructor')

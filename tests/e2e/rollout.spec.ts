@@ -311,6 +311,20 @@ test('edits the milestone set, a site’s own dates and a wave’s dates', async
   await expect(name).toHaveText('Site 004')
   await expect(name).toBeVisible()
   expect((await name.boundingBox())!.width).toBeGreaterThan(40)
+
+  // #235 review: the Standard archetype's label says its durations are
+  // placeholders, so all of it shows: an ellipsis is invisible to
+  // toHaveTextContent, so the cell's scroll size is read against its box.
+  const archetype = page.locator(
+    '.register__row[data-location="loc-site-009"] .register__archetype',
+  )
+  await expect(archetype).toHaveText('Standard (placeholder)')
+  const fits = await archetype.evaluate((cell) => ({
+    width: cell.scrollWidth <= cell.clientWidth,
+    height: cell.scrollHeight <= cell.clientHeight,
+  }))
+  expect(fits).toEqual({ width: true, height: true })
+
   await name.click()
   await expect(page).toHaveURL(/\/element\/loc-site-004$/)
 })

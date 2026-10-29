@@ -1,4 +1,13 @@
-import type { Element, PlanDate, Relationship, SitePlan, Workspace } from '@/model'
+import {
+  ROLLOUT_PRESETS,
+  STANDARD_ARCHETYPE_ID,
+  presetPlan,
+  type Element,
+  type PlanDate,
+  type Relationship,
+  type SitePlan,
+  type Workspace,
+} from '@/model'
 import { setKey } from '@/io/records'
 import { smallWorkspace } from './fixtures'
 
@@ -141,6 +150,8 @@ export function rolloutWorkspace(siteCount = 160): Workspace {
       archetypes: [
         { id: 'plant', label: 'Plant', durations: { freezeStart: 42, hypercareEnd: 28 } },
         { id: 'office', label: 'Office', durations: { constructor: 14 } },
+        // What a preset seeds, as the app seeds it: one site uses it.
+        ...presetPlan(ROLLOUT_PRESETS.dataMigration).archetypes,
       ],
       sites,
     },
@@ -198,6 +209,7 @@ export function rolloutWorkspace(siteCount = 160): Workspace {
     const site: SitePlan = { location }
     if (n % 17 !== 0) site.wave = waveId(n <= 2 ? 0 : 1 + (n % (WAVE_COUNT - 1)))
     if (n % 3 !== 0) site.archetype = n % 2 === 0 ? 'plant' : 'office'
+    if (n === 9) site.archetype = STANDARD_ARCHETYPE_ID
     const milestones: Record<string, PlanDate> = {}
     if (n % 4 === 0) milestones.freezeStart = { date: '2027-05-10', precision: 'week' }
     if (n % 6 === 0) {

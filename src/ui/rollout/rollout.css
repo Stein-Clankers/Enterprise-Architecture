@@ -176,6 +176,17 @@
   cursor: default;
 }
 
+/*
+ * An archetype's label wraps to a second line instead of ending in an
+ * ellipsis: "Standard (placeholder)" cut short hid the word that says its
+ * durations are not a programme's (#235 review). Two lines fit both row
+ * heights (38px, 31px compact).
+ */
+.register__archetype {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .register__code,
 .register__mono {
   font-size: 11px;

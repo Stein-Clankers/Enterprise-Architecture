@@ -573,15 +573,18 @@ export function setSiteMilestones(
 
 /**
  * A milestone id from its label: its words in camel case, `goNoGo` for
- * "Go/no-go", made unique in the set with a number. A word is letters and
- * digits of any script, so "Übergabe" is `übergabe`, not `bergabe`. A label
+ * "Go/no-go", made unique in the set with a number. A word is letters, marks
+ * and digits of any script, so "Übergabe" is `übergabe`, not `bergabe`. A label
  * with no letter or digit gives `milestone`.
  *
  * The id may be any word, `constructor` among them: every record keyed by it
  * is read with `getKey` (#229 review).
  */
 export function milestoneIdFor(label: string, milestones: readonly Milestone[]): string {
-  const words = label.match(/[\p{L}\p{N}]+/gu) ?? []
+  // Composed first, so "Übergabe" typed as U + a combining diaeresis is the
+  // id that "Übergabe" is; marks (\p{M}) belong to their word, so a script
+  // whose vowels are combining signs keeps its words whole.
+  const words = label.normalize('NFC').match(/[\p{L}\p{M}\p{N}]+/gu) ?? []
   const base =
     words
       .map((word, index) =>

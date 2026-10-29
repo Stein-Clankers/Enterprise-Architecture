@@ -88,9 +88,12 @@ export const STANDARD_ARCHETYPE_ID = 'standard'
 
 /**
  * Its label: the durations are ours, not a programme's, and a site whose
- * dates are spaced by them shows "inherited" dates nobody planned.
+ * dates are spaced by them shows "inherited" dates nobody planned. Short
+ * enough that the register's archetype column shows all of it in two lines:
+ * "Standard (placeholder durations)" was cut to "Standard (pla…", hiding the
+ * one word it is there for (#235 review).
  */
-export const STANDARD_ARCHETYPE_LABEL = 'Standard (placeholder durations)'
+export const STANDARD_ARCHETYPE_LABEL = 'Standard (placeholder)'
 
 /** What a rollout made from `preset` starts with: fresh copies, so no edit reaches the preset. */
 export function presetPlan(preset: RolloutPreset): {

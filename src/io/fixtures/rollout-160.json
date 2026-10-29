@@ -1377,6 +1377,21 @@
             },
             "id": "plant",
             "label": "Plant"
+          },
+          {
+            "durations": {
+              "dressRehearsal": 14,
+              "freezeStart": 3,
+              "goNoGo": 7,
+              "hypercareEnd": 28,
+              "legacyDecommissioned": 90,
+              "legacyReadOnly": 1,
+              "mockLoad1": 21,
+              "mockLoad2": 21,
+              "reconciliationSignedOff": 4
+            },
+            "id": "standard",
+            "label": "Standard (placeholder)"
           }
         ],
         "constraints": {
@@ -1509,6 +1524,7 @@
             "wave": "wp-wave-1"
           },
           {
+            "archetype": "standard",
             "location": "loc-site-009",
             "wave": "wp-wave-2"
           },

@@ -169,9 +169,11 @@ export function phaseInputs(milestones: readonly ResolvedMilestone[]): PhaseInpu
  * `undefined` when it has none of these.
  */
 export function reachedAt(input: PhaseInput): number | undefined {
+  // In order of precedence, one line each: an actual, a spaced day, a period.
   if (input.actual !== undefined) return dayStart(input.actual)
   if (input.spacedDay !== undefined) return dayStart(input.spacedDay)
-  return input.planned ? dayStart(input.planned.date) : undefined
+  if (input.planned !== undefined) return dayStart(input.planned.date)
+  return undefined
 }
 
 /**

@@ -113,7 +113,7 @@ describe('the Standard archetype a preset seeds (#229 review)', () => {
       path: '/rollout/:id',
       screen: <RolloutScreen />,
     })
-    const label = 'Standard (placeholder durations)'
+    const label = 'Standard (placeholder)'
     expect(row(siteId(1))).toHaveTextContent(label)
     await userEvent.setup().click(screen.getByRole('button', { name: 'Wave board' }))
     const card = document.querySelector(`[data-location="${siteId(1)}"] .board-card__archetype`)
@@ -234,7 +234,7 @@ describe('the milestone-set editor (#213)', () => {
     await h.user.click(screen.getByRole('button', { name: 'Delete…' }))
     const ask = screen.getByRole('dialog', { name: 'Delete milestone' })
     expect(ask).toHaveTextContent(
-      'Delete “Reconciliation signed off”? 2 waves have dates or durations for it, which are deleted with it. Undo brings them back.',
+      'Delete “Reconciliation signed off”? 2 waves and 1 archetype have dates or durations for it, which are deleted with it. Undo brings them back.',
     )
     expect(within(ask).getByRole('button', { name: 'Delete milestone' })).toHaveFocus()
     await h.user.click(within(ask).getByRole('button', { name: 'Delete milestone' }))
@@ -244,7 +244,7 @@ describe('the milestone-set editor (#213)', () => {
     )
     expect(h.store.history.length).toBe(before.history + 1)
     expect(h.store.history.at(-1)!.label).toBe(
-      'Deleted milestone “Reconciliation signed off” from “Local data to the central lake”, with its dates on 2 waves',
+      'Deleted milestone “Reconciliation signed off” from “Local data to the central lake”, with its dates on 2 waves and its duration in 1 archetype',
     )
     expect(screen.getByRole('button', { name: '+ Milestone' })).toHaveFocus()
     act(() => void h.store.undo())

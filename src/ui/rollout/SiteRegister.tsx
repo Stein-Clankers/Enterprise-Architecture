@@ -333,7 +333,10 @@ function RegisterRow({
       ) : (
         <span className="register__mono mono">—</span>
       )}
-      <span className="table__secondary">{site.archetype ?? '—'}</span>
+      {/* Wraps to two lines rather than cutting a label short (#235 review). */}
+      <span className="table__secondary register__archetype" title={site.archetype}>
+        {site.archetype ?? '—'}
+      </span>
       {cutover?.planned ? (
         <span
           className="register__date"
