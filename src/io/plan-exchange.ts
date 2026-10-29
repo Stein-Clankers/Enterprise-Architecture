@@ -72,6 +72,7 @@ export const PLAN_KEYS = {
   wave: `${PLAN}.wave`,
   archetype: `${PLAN}.archetype`,
   rag: `${PLAN}.rag`,
+  goNoGo: `${PLAN}.goNoGo`,
 } as const
 
 /** A site's planned date of milestone `<id>` is under this prefix, its actual date under the next. */
@@ -255,6 +256,7 @@ function siteProperties(
   if (site.wave !== undefined) out[PLAN_KEYS.wave] = of(site.wave)
   if (site.archetype !== undefined) out[PLAN_KEYS.archetype] = site.archetype
   if (site.rag !== undefined) out[PLAN_KEYS.rag] = site.rag
+  if (site.goNoGo !== undefined) out[PLAN_KEYS.goNoGo] = site.goNoGo
   for (const id of Object.keys(site.milestones ?? {}).sort()) {
     setKey(out, `${MILESTONE_KEY_PREFIX}${id}`, formatPlanDate(getKey(site.milestones, id)!))
   }
@@ -519,7 +521,12 @@ function foldSite(
       if (date) setKey(milestones, planned, date)
       else lost.push(`${key} = ${JSON.stringify(value)}`)
     } else if (actual !== undefined) setKey(actuals, actual, written)
-    else if (key === PLAN_KEYS.wave || key === PLAN_KEYS.archetype || key === PLAN_KEYS.rag) {
+    else if (
+      key === PLAN_KEYS.wave ||
+      key === PLAN_KEYS.archetype ||
+      key === PLAN_KEYS.rag ||
+      key === PLAN_KEYS.goNoGo
+    ) {
       raw[key.slice(PLAN.length + 1)] = written
     } else if (key !== PLAN_KEYS.kind && key !== PLAN_KEYS.rollout && key !== PLAN_KEYS.location) {
       lost.push(`${key} = ${JSON.stringify(value)}`)

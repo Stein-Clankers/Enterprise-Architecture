@@ -501,8 +501,22 @@ export function isSiteRag(value: unknown): value is SiteRag {
 }
 
 /**
+ * The decision taken at a site's go/no-go gate (proposal §5, L3): a human
+ * decision, recorded as the PMO returns it in the workbook, never derived.
+ * Absent means not decided yet. It does not move the phase: a milestone's
+ * actual day does (#215).
+ */
+export const GO_NO_GO_DECISIONS = ['go', 'no-go'] as const
+export type GoNoGo = (typeof GO_NO_GO_DECISIONS)[number]
+
+export function isGoNoGo(value: unknown): value is GoNoGo {
+  return (GO_NO_GO_DECISIONS as readonly unknown[]).includes(value)
+}
+
+/**
  * One Location's plan within one rollout (proposal §4.4). Exceptions and
- * dependencies arrive with #214.
+ * dependencies arrive with #214. The actual days, the RAG and the go/no-go
+ * decision are what the PMO returns in the rollout workbook (#215).
  */
 export interface SitePlan {
   /** The Location element's id: the key of the record within its rollout. */
@@ -516,6 +530,8 @@ export interface SitePlan {
   /** ISO day each milestone was actually reached, keyed by milestone id. */
   actuals?: Record<string, string>
   rag?: SiteRag
+  /** The go/no-go decision, when it has been taken (#215). */
+  goNoGo?: GoNoGo
   notes?: string
 }
 
@@ -529,6 +545,7 @@ export function isSitePlan(value: unknown): value is SitePlan {
       'milestones',
       'actuals',
       'rag',
+      'goNoGo',
       'notes',
     ]) &&
     isId(value.location) &&
@@ -537,6 +554,7 @@ export function isSitePlan(value: unknown): value is SitePlan {
     (value.milestones === undefined || isRecordOf(value.milestones, isPlanDate)) &&
     (value.actuals === undefined || isRecordOf(value.actuals, isIsoDay)) &&
     (value.rag === undefined || isSiteRag(value.rag)) &&
+    (value.goNoGo === undefined || isGoNoGo(value.goNoGo)) &&
     (value.notes === undefined || typeof value.notes === 'string')
   )
 }

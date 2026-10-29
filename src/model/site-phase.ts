@@ -224,6 +224,35 @@ export function overdueMilestones<T extends PhaseInput>(inputs: readonly T[], at
   )
 }
 
+// ── Planned against actual (#215) ────────────────────────────────────────────
+
+/**
+ * The inputs as the plan has them, with no actual day: the phase these give
+ * is where the plan says the site is, as if nothing had been recorded. The
+ * burn-up's planned line counts it. A site in no wave has no plan, so its
+ * planned phase stays Unplanned (`deriveSitePhase`).
+ */
+export function plannedOnly(inputs: readonly PhaseInput[]): PhaseInput[] {
+  return inputs.map(({ actual: _actual, ...planned }) => planned)
+}
+
+/**
+ * The inputs as they happened: each milestone's actual day and nothing
+ * planned, so a milestone with no actual day is never reached. The burn-up's
+ * actual line counts the phase these give, which a planned date that has
+ * passed cannot move.
+ */
+export function actualOnly(inputs: readonly PhaseInput[]): PhaseInput[] {
+  return inputs.map(({ startsPhase, actual }) =>
+    actual === undefined ? { startsPhase } : { startsPhase, actual },
+  )
+}
+
+/** Has a site in `phase` reached Migrated? Done is after it, so it has. */
+export function hasMigrated(phase: SitePhase): boolean {
+  return phase === 'migrated' || phase === 'done'
+}
+
 /** A site's milestones, phase and overdue flag at `at`. */
 export interface SiteStatus {
   milestones: ResolvedMilestone[]

@@ -335,5 +335,5 @@ test('edits the milestone set, a site’s own dates and a wave’s dates', async
   expect(await rowHeight('009')).toBe(await rowHeight('008'))
 
   await name.click()
-  await expect(page).toHaveURL(/\/element\/loc-site-004$/)
+  await expect(page).toHaveURL(/\/element\/loc-site-004\?tab=migration$/)
 })

@@ -693,6 +693,13 @@
             "red"
           ]
         },
+        "goNoGo": {
+          "enum": [
+            "go",
+            "no-go"
+          ],
+          "description": "The decision taken at the go/no-go gate; absent is not decided yet."
+        },
         "notes": {
           "type": "string",
           "minLength": 1

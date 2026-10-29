@@ -221,7 +221,12 @@ exceptions, dependencies and plan checks are #214.
   spaced one on the exact day its chain reaches. A site in no wave is
   Unplanned until its first actual day, and then follows its actual days.
   Overdue is a flag: a planned period that has ended with no actual day, for
-  a site in a wave (ADR 0016, amended 2026-10-28).
+  a site in a wave (ADR 0016, amended 2026-10-28). The burn-up (#215) reads
+  the same derivation twice, from the planned dates alone (`plannedOnly`) and
+  from the actual days alone (`actualOnly`), and counts a site as migrated
+  once its phase is Migrated or Done (`hasMigrated`).
+- **A site's go/no-go decision** (`SitePlan.goNoGo`, `go` or `no-go`, #215)
+  is the PMO's record, beside its RAG; it does not move the phase.
 - **Every record kept by milestone id is read with `getKey`**
   (`io/records.ts`): a user names the milestone, and "Constructor" is the id
   `constructor`, which a plain object finds on `Object.prototype` (#229

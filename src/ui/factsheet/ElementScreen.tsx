@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   completenessDetail,
+  dayStart,
   deriveLifecyclePhase,
+  isIsoDay,
+  rolloutPlanOf,
   tagColourToken,
   typeLabel,
   type LifecyclePhase,
@@ -20,6 +23,7 @@ import { TypeCodeBadge } from '@/ui/common/TypeCodeBadge'
 import { guideHref } from '@/ui/guide/connections'
 import { CompletenessRing } from '@/ui/common/meters'
 import { DeleteElementDialog } from '@/ui/views/ConnectDialogs'
+import { SiteMigration } from '@/ui/rollout/SiteMigration'
 import { AddRelationDialog } from './AddRelationDialog'
 import { NeighbourhoodGraph } from './NeighbourhoodGraph'
 import {
@@ -43,12 +47,20 @@ import './factsheet.css'
  * timeline is for.
  */
 
-const TABS = ['Overview', 'Relations', 'Assessment', 'Quality'] as const
+/**
+ * Overview, and Migration for a Location that is a site of a rollout (#215);
+ * the others are stubs until the quality seal exists (UI spec open question 2).
+ * The tab is in the URL (`?tab=migration`), so a tab is a link.
+ */
+const TABS = ['Overview', 'Migration', 'Relations', 'Assessment', 'Quality'] as const
+type Tab = (typeof TABS)[number]
+const TAB_PARAM: Partial<Record<Tab, string>> = { Migration: 'migration' }
 
 export function ElementScreen() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
+  const [params, setParams] = useSearchParams()
   const { store, role } = useModelStoreContext()
   const readOnly = role === 'reader'
   const [editingOpen, setEditing] = useState(false)
@@ -71,6 +83,10 @@ export function ElementScreen() {
   }, [role])
 
   const at = useMemo(() => Date.now(), [])
+  // The Migration tab's time point: `?at=`, as on the rollout home, else today.
+  const atParam = params.get('at')
+  const asOf = isIsoDay(atParam) ? atParam : undefined
+  const siteAt = asOf === undefined ? at : dayStart(asOf)
 
   const view = useModelSelector(
     (s) => {
@@ -102,6 +118,14 @@ export function ElementScreen() {
           .sort((a, b) => a.name.localeCompare(b.name, 'en')),
         candidates: s.elementList().filter((candidate) => candidate.id !== id),
         elementById: (other: string) => s.element(other),
+        // A site of a rollout gets the Migration tab (#215).
+        isSite:
+          element.type === 'Location' &&
+          s
+            .elementList()
+            .some((candidate) =>
+              rolloutPlanOf(candidate)?.sites.some((site) => site.location === id),
+            ),
         tagToken: (tag: string) => tagColourToken(s.snapshot(), tag),
       }
     },
@@ -121,6 +145,9 @@ export function ElementScreen() {
   }
 
   const { element, entries, completeness, history } = view
+  const tab: Tab =
+    view.isSite && params.get('tab') === TAB_PARAM.Migration ? 'Migration' : 'Overview'
+  const tabs = TABS.filter((candidate) => candidate !== 'Migration' || view.isSite)
   const phase = deriveLifecyclePhase(element.profile?.lifecycle, at)
   // The breadcrumb returns to the inventory with the filters the user arrived with.
   const backToInventory = `/inventory${(location.state as { fromInventory?: string } | null)?.fromInventory ?? ''}`
@@ -305,77 +332,91 @@ export function ElementScreen() {
           </div>
         </div>
 
-        {/*
-          No tab roles until there is something to switch. `role="tablist"` with
-          no `role="tabpanel"` and no `aria-controls` promises a widget that is
-          not there — three of the four tabs are disabled stubs, so the honest
-          markup is the buttons alone (UI spec open question 2).
-        */}
-        <div className="sheet__tabs">
-          {TABS.map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              aria-current={tab === 'Overview' ? 'page' : undefined}
-              className={`sheet__tab${tab === 'Overview' ? ' sheet__tab--active' : ''}`}
-              // Relations and Assessment already live on Overview; these stay
-              // stubs until the quality seal exists (UI spec open question 2).
-              title={tab === 'Overview' ? undefined : 'Everything lives on Overview for now'}
-              disabled={tab !== 'Overview'}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
+        <nav className="sheet__tabs" aria-label="Fact sheet">
+          {tabs.map((candidate) => {
+            const live = candidate === 'Overview' || candidate === 'Migration'
+            return (
+              <button
+                key={candidate}
+                type="button"
+                aria-current={candidate === tab ? 'page' : undefined}
+                className={`sheet__tab${candidate === tab ? ' sheet__tab--active' : ''}`}
+                // Relations and Assessment already live on Overview; these stay
+                // stubs until the quality seal exists (UI spec open question 2).
+                title={live ? undefined : 'Everything lives on Overview for now'}
+                disabled={!live}
+                onClick={() =>
+                  setParams(
+                    (draft) => {
+                      const param = TAB_PARAM[candidate]
+                      if (param) draft.set('tab', param)
+                      else draft.delete('tab')
+                      return draft
+                    },
+                    { replace: true },
+                  )
+                }
+              >
+                {candidate}
+              </button>
+            )
+          })}
+        </nav>
       </div>
 
       <div className="sheet__body">
-        <div className="sheet__main">
-          <DocumentationSection
-            documentation={element.documentation}
-            editing={editing}
-            onChange={(value) => {
-              if (value === (element.documentation ?? '')) return
-              store.updateElement(element.id, (draft) => {
-                // Cleared is absent, as on an element never documented (#171).
-                if (value === '') delete draft.documentation
-                else draft.documentation = value
-                return draft
-              })
-            }}
-          />
-          <LifecycleSection
-            type={element.type}
-            profile={element.profile}
-            phase={phase}
-            editing={editing}
-            onChange={setLifecycleDate}
-          />
-          <AssessmentSection
-            type={element.type}
-            profile={element.profile}
-            editing={editing}
-            onChange={patchProfile}
-          />
-          <RelationsSection
-            entries={entries}
-            editing={editing}
-            onOpen={(other) => navigate(`/element/${other}`)}
-            onAdd={(type) => setAddingRelation(type)}
-            onRemove={(relationshipId) => store.removeRelationship(relationshipId)}
-          />
-          <PropertiesSection element={element} lastModified={lastModified} />
-          {editing && (
-            <button
-              type="button"
-              className="button"
-              style={{ alignSelf: 'flex-start' }}
-              onClick={() => setAddingRelation('Serving')}
-            >
-              + Relation
-            </button>
-          )}
-        </div>
+        {tab === 'Migration' ? (
+          <div className="sheet__main">
+            <SiteMigration locationId={element.id} at={siteAt} asOf={asOf} readOnly={readOnly} />
+          </div>
+        ) : (
+          <div className="sheet__main">
+            <DocumentationSection
+              documentation={element.documentation}
+              editing={editing}
+              onChange={(value) => {
+                if (value === (element.documentation ?? '')) return
+                store.updateElement(element.id, (draft) => {
+                  // Cleared is absent, as on an element never documented (#171).
+                  if (value === '') delete draft.documentation
+                  else draft.documentation = value
+                  return draft
+                })
+              }}
+            />
+            <LifecycleSection
+              type={element.type}
+              profile={element.profile}
+              phase={phase}
+              editing={editing}
+              onChange={setLifecycleDate}
+            />
+            <AssessmentSection
+              type={element.type}
+              profile={element.profile}
+              editing={editing}
+              onChange={patchProfile}
+            />
+            <RelationsSection
+              entries={entries}
+              editing={editing}
+              onOpen={(other) => navigate(`/element/${other}`)}
+              onAdd={(type) => setAddingRelation(type)}
+              onRemove={(relationshipId) => store.removeRelationship(relationshipId)}
+            />
+            <PropertiesSection element={element} lastModified={lastModified} />
+            {editing && (
+              <button
+                type="button"
+                className="button"
+                style={{ alignSelf: 'flex-start' }}
+                onClick={() => setAddingRelation('Serving')}
+              >
+                + Relation
+              </button>
+            )}
+          </div>
+        )}
 
         <aside className="sheet__rail">
           <section>

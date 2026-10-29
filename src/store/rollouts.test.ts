@@ -32,6 +32,7 @@ import {
   renameWave,
   setArchetype,
   setSiteMilestones,
+  setSiteProgress,
   snapPlanDate,
   unassignSites,
   updateMilestone,
@@ -587,6 +588,7 @@ describe('as a reader (#209)', () => {
       'setSiteMilestones',
       (s) => setSiteMilestones(s, ROLLOUT_ID, siteId(4), { freezeStart: null }),
     ],
+    ['setSiteProgress', (s) => setSiteProgress(s, ROLLOUT_ID, siteId(4), { rag: 'red' })],
   ]
 
   it.each(commands)('%s works for a writer', (_, command) => {
@@ -646,6 +648,7 @@ describe('as a reader (#209)', () => {
           freezeStart: { date: '2027-05-10', precision: '' },
         }),
     ],
+    ['setSiteProgress', (s) => setSiteProgress(s, ROLLOUT_ID, siteId(4), { rag: '' })],
   ]
 
   it.each(refused)('%s refuses this input as a writer', (_, command) => {
@@ -1092,5 +1095,134 @@ describe('a wave’s milestone dates (#213)', () => {
       milestones: { freezeStart: day },
     })!
     expect(wavePlanOf(s.element(wave.id))?.milestones).toEqual({ freezeStart: day })
+  })
+})
+
+describe('a site’s progress: actual days, RAG and go/no-go (#215)', () => {
+  const site = (s: ModelStore, n: number) =>
+    plan(s).sites.find((candidate) => candidate.location === siteId(n))!
+  const label = (s: ModelStore) => s.history.at(-1)!.label
+  const ROLLOUT = '“Local data to the central lake”'
+  /** Everything of the model but site `n`'s actual days, RAG and go/no-go. */
+  const rest = (s: ModelStore, n: number) => {
+    const snapshot = s.snapshot()
+    const rollout = rolloutPlanOf(snapshot.elements.find((e) => e.id === ROLLOUT_ID))!
+    for (const candidate of rollout.sites) {
+      if (candidate.location !== siteId(n)) continue
+      delete candidate.actuals
+      delete candidate.rag
+      delete candidate.goNoGo
+    }
+    return toCanonicalJson(snapshot)
+  }
+
+  it('sets actual days, the RAG and the decision as one command, and nothing else', () => {
+    const s = store()
+    const before = state(s)
+    const untouched = rest(s, 4)
+    expect(
+      setSiteProgress(s, ROLLOUT_ID, siteId(4), {
+        actuals: { mappingSignedOff: '2027-03-30', constructor: '2027-04-12' },
+        rag: 'amber',
+        goNoGo: 'go',
+      }),
+    ).toBe(true)
+    expect(site(s, 4).actuals).toEqual({
+      mappingSignedOff: '2027-03-30',
+      constructor: '2027-04-12',
+    })
+    // `constructor` is the site's own, never `Object.prototype`'s member.
+    expect(Object.hasOwn(site(s, 4).actuals!, 'constructor')).toBe(true)
+    expect(site(s, 4).rag).toBe('amber')
+    expect(site(s, 4).goNoGo).toBe('go')
+    expect(rest(s, 4)).toBe(untouched)
+    expect(s.history.length).toBe(before.history + 1)
+    expect(label(s)).toBe(`Updated the actual dates, RAG and go/no-go of 1 site in ${ROLLOUT}`)
+    s.undo()
+    expect(state(s).json).toBe(before.json)
+  })
+
+  it('names only what changed in the history', () => {
+    const s = store()
+    setSiteProgress(s, ROLLOUT_ID, siteId(4), { rag: 'red' })
+    expect(label(s)).toBe(`Updated the RAG of 1 site in ${ROLLOUT}`)
+    setSiteProgress(s, ROLLOUT_ID, siteId(4), { goNoGo: 'no-go' })
+    expect(label(s)).toBe(`Updated the go/no-go of 1 site in ${ROLLOUT}`)
+    setSiteProgress(s, ROLLOUT_ID, siteId(4), { actuals: { freezeStart: '2027-05-11' } })
+    expect(label(s)).toBe(`Updated the actual dates of 1 site in ${ROLLOUT}`)
+  })
+
+  it('clears each with null; the last actual cleared leaves no actuals record', () => {
+    const s = store()
+    // Site 1 has three actual days, a RAG of none and a decision of go.
+    expect(Object.keys(site(s, 1).actuals!)).toHaveLength(3)
+    expect(
+      setSiteProgress(s, ROLLOUT_ID, siteId(1), {
+        actuals: { mappingSignedOff: null, freezeStart: null },
+        goNoGo: null,
+      }),
+    ).toBe(true)
+    expect(site(s, 1).actuals).toEqual({ constructor: '2027-02-15' })
+    expect(site(s, 1)).not.toHaveProperty('goNoGo')
+    setSiteProgress(s, ROLLOUT_ID, siteId(1), { actuals: { constructor: null } })
+    expect(site(s, 1)).not.toHaveProperty('actuals')
+    setSiteProgress(s, ROLLOUT_ID, siteId(5), { rag: null })
+    expect(site(s, 5)).not.toHaveProperty('rag')
+  })
+
+  it('leaves a key it is not given as it is, and records nothing for no change', () => {
+    const s = store()
+    const before = state(s)
+    expect(setSiteProgress(s, ROLLOUT_ID, siteId(1), {})).toBe(true)
+    expect(setSiteProgress(s, ROLLOUT_ID, siteId(1), { rag: undefined, goNoGo: 'go' })).toBe(true)
+    expect(state(s)).toEqual(before)
+  })
+
+  it('moves the derived phase: an actual day before its planned date counts at once', () => {
+    const s = store()
+    // Site 4 is in W1, whose mapping is planned for 2027-04-05.
+    const phase = (at: string) => {
+      const p = plan(s)
+      const own = site(s, 4)
+      return siteStatus(p, own, wavePlanOf(s.element(own.wave!)), dayStart(at)).phase
+    }
+    expect(phase('2027-03-31')).toBe('planned')
+    setSiteProgress(s, ROLLOUT_ID, siteId(4), { actuals: { mappingSignedOff: '2027-03-30' } })
+    expect(phase('2027-03-31')).toBe('preparing')
+    expect(phase('2027-03-29')).toBe('planned')
+  })
+
+  /** One refused value at a time: each guard, alone, refuses the whole change. */
+  it.each([
+    ['a day that is no calendar day', { actuals: { freezeStart: '2027-02-30' } }],
+    ['a period, not a day', { actuals: { freezeStart: '2027-Q2' } }],
+    ['an emptied date field', { actuals: { freezeStart: '' } }],
+    ['a milestone the rollout does not have', { actuals: { goLive: '2027-05-11' } }],
+    ['a RAG no rating names', { rag: 'blue' }],
+    ['the RAG select’s empty option', { rag: '' }],
+    ['a decision that is neither go nor no-go', { goNoGo: 'maybe' }],
+    ['the decision select’s empty option', { goNoGo: '' }],
+  ])('refuses %s, and keeps the other values', (_, change) => {
+    const s = store()
+    const before = state(s)
+    expect(
+      setSiteProgress(s, ROLLOUT_ID, siteId(4), {
+        actuals: { mappingSignedOff: '2027-03-30' },
+        rag: 'red',
+        ...change,
+        ...('actuals' in change
+          ? { actuals: { mappingSignedOff: '2027-03-30', ...change.actuals } }
+          : {}),
+      }),
+    ).toBe(false)
+    expect(state(s)).toEqual(before)
+  })
+
+  it('refuses a site not in the rollout, and an id that is no rollout', () => {
+    const s = store()
+    const before = state(s)
+    expect(setSiteProgress(s, ROLLOUT_ID, 'loc-emea', { rag: 'red' })).toBe(false)
+    expect(setSiteProgress(s, waveId(1), siteId(4), { rag: 'red' })).toBe(false)
+    expect(state(s)).toEqual(before)
   })
 })

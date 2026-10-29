@@ -429,7 +429,7 @@ command.
 |---|---|
 | Sites | `id`, `name`, `parent`, `archipelago.site.code`, every other `archipelago.site.*` property the rollout's Locations hold, `action` |
 | Waves | `id`, `label`, `order`, `windowStart`, `windowEnd`, `capacity`, `templateVersion` |
-| SitePlan | `location`, `name` (read only), `wave`, `archetype`, `rag`, one `milestone.<id>` per milestone |
+| SitePlan | `location`, `name` (read only), `wave`, `archetype`, `rag`, `goNoGo`, and per milestone its planned `milestone.<id>` followed by its `actual.<id>` day |
 | Template | the template's changes, for reference; read only |
 
 A site's fields are the Location's `archipelago.site.*` properties, and a cell
@@ -465,8 +465,18 @@ second tab), or an id it would add is taken, nothing is applied and the dialog
 says so. A reader's apply throws `ReadOnlyModelError`, even for a dry run that
 changes nothing.
 
-**What the workbook does not carry yet:** actual dates and notes (R2). An
-export says how many sites have them, and an import leaves them as they are.
+**Actuals from the PMO (#215).** An `actual.<id>` cell is a day (`2027-05-12`
+or a date cell); anything else (`2027-02-30`, a period, a number) is reported
+as `rollout-workbook.actual-unreadable` and leaves that actual as it was, and a
+blank cell, or empty text, clears it. `goNoGo` is `go`, `no-go` or blank, and
+any other value is `rollout-workbook.go-no-go-unknown`. Actuals, RAG and
+go/no-go change nothing else of the site's plan, and the derived phase follows
+them (ADR 0016).
+
+**What the workbook does not carry yet:** notes. An export says how many sites
+have them, and an import leaves them as they are. A planned or actual date for
+a milestone the set no longer has has no column either; the export says so as
+`rollout-workbook.dates-not-carried`, and an import leaves it.
 
 `rollout-workspace.json` is the rollout test fixture at eight sites, written by
 `scripts/fixtures/build-rollout-workspace.ts` through the canonical writer; the

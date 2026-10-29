@@ -7,6 +7,7 @@ import {
   isMilestone,
   isPlanDate,
   isPositiveInteger,
+  isGoNoGo,
   isSiteRag,
   isTemplateChange,
   type Archetype,
@@ -289,6 +290,10 @@ export function readSitePlan(raw: unknown, path: string, dropped: string[]): Sit
       case 'rag':
         if (isSiteRag(value)) site.rag = value
         else dropped.push(`${at}.rag`)
+        break
+      case 'goNoGo':
+        if (isGoNoGo(value)) site.goNoGo = value
+        else dropped.push(`${at}.goNoGo`)
         break
       case 'notes':
         // Empty notes are no notes: one model, one spelling.

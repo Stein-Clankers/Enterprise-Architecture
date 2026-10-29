@@ -1450,6 +1450,7 @@
               "mappingSignedOff": "2027-02-12"
             },
             "archetype": "office",
+            "goNoGo": "go",
             "location": "loc-site-001",
             "wave": "wp-wave-0"
           },
@@ -1484,6 +1485,7 @@
             "wave": "wp-wave-2"
           },
           {
+            "goNoGo": "no-go",
             "location": "loc-site-006",
             "milestones": {
               "hypercareEnd": {

@@ -8,6 +8,7 @@ import {
   isArchetype,
   isBlackout,
   isChangeEntry,
+  isGoNoGo,
   isIsoDay,
   isMilestone,
   isPlanDate,
@@ -194,6 +195,16 @@ describe('the plan guards (#209)', () => {
     ).toBe(false)
     expect(isSitePlan({ location: 'l', rag: 'blue' })).toBe(false)
     expect(isSitePlan({ location: 'l', notes: 'kept' })).toBe(true)
+  })
+
+  it('take a go/no-go decision of go or no-go, and nothing else (#215)', () => {
+    expect(isSitePlan({ location: 'l', goNoGo: 'go' })).toBe(true)
+    expect(isSitePlan({ location: 'l', goNoGo: 'no-go' })).toBe(true)
+    // A select's empty option, and the words a person might type instead.
+    for (const value of ['', 'Go', 'nogo', 'yes', true, null]) {
+      expect(isGoNoGo(value)).toBe(false)
+      expect(isSitePlan({ location: 'l', goNoGo: value })).toBe(false)
+    }
   })
 })
 

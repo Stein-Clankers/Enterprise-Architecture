@@ -6,6 +6,7 @@ import {
   wavePlanOf,
   wavesOf,
   type Element,
+  type GoNoGo,
   type Milestone,
   type ResolvedMilestone,
   type RolloutPlan,
@@ -276,6 +277,19 @@ export function waveHeading(wave: { element: Element; plan: WavePlan }): {
   return wave.plan.label
     ? { text: wave.plan.label, code: true }
     : { text: wave.element.name, code: false }
+}
+
+/** A go/no-go decision in words (#215). */
+export const GO_NO_GO_LABELS: Record<GoNoGo, string> = { go: 'Go', 'no-go': 'No-go' }
+
+/**
+ * The rollouts `locationId` is a site of, by name, each as its screens' data
+ * at `at`: the site fact sheet's Migration tab shows one block per rollout (#215).
+ */
+export function siteRollouts(store: ModelStore, locationId: string, at: number): RolloutData[] {
+  return rolloutsOf(store)
+    .filter((rollout) => rolloutPlanOf(rollout)!.sites.some((site) => site.location === locationId))
+    .map((rollout) => rolloutData(store, rollout.id, at)!)
 }
 
 /** Every rollout in the model, by name. */

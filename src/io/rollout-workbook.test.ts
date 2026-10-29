@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
+  dayStart,
   resolveSiteMilestones,
   rolloutPlanOf,
+  siteStatus,
   wavePlanOf,
   type Element,
   type View,
@@ -271,17 +273,26 @@ describe('the exported workbook (#210)', () => {
       'wave',
       'archetype',
       'rag',
+      'goNoGo',
       'milestone.mappingSignedOff',
+      'actual.mappingSignedOff',
       'milestone.constructor',
+      'actual.constructor',
       'milestone.freezeStart',
+      'actual.freezeStart',
       'milestone.reconciliationSignedOff',
+      'actual.reconciliationSignedOff',
       'milestone.hypercareEnd',
+      'actual.hypercareEnd',
       'milestone.legacyDecommissioned',
+      'actual.legacyDecommissioned',
     ])
-    // Each date column says whose date it is: a site's own, or one its sites inherit.
-    expect(sheetOf(workbook, 'SitePlan').rows[1]![7]).toEqual(
+    // Each date column says whose date it is: a site's own, or one its sites
+    // inherit; and each actual column that it is the day it happened (#215).
+    expect(sheetOf(workbook, 'SitePlan').rows[1]!.slice(10, 12)).toEqual([
       textCell('Freeze starts (set at the site; blank: inherit)'),
-    )
+      textCell('Freeze starts: actual day (2027-05-12; blank: not reached)'),
+    ])
     expect(sheetOf(workbook, 'Waves').rows[1]![9]).toEqual(
       textCell('Freeze starts (its sites inherit this)'),
     )
@@ -337,24 +348,44 @@ describe('the exported workbook (#210)', () => {
       textCell('done'),
       textCell('2028-Q4'),
     ])
-    // Site 12: a wave, no archetype, no RAG, a month, a week and a day override.
+    // Site 12: a wave, no archetype, no RAG, a month, a week and a day
+    // override, and no actual day.
     expect(sheetOf(workbook, 'SitePlan').rows[2 + 11]).toEqual([
       textCell(siteId(12)),
       textCell('Site 012'),
       textCell(waveId(1)),
       EMPTY,
       EMPTY,
+      EMPTY,
       textCell('2027-03'),
+      EMPTY,
+      EMPTY,
       EMPTY,
       textCell('2027-W19'),
       EMPTY,
+      EMPTY,
+      EMPTY,
       textCell('2027-07-13'),
+      EMPTY,
+      EMPTY,
       EMPTY,
     ])
     expect(sheetOf(workbook, 'SitePlan').rows[2 + 9]!.slice(3, 5)).toEqual([
       textCell('plant'),
       textCell('amber'),
     ])
+    // Site 1: actual days, `constructor`'s among them, as text in their own
+    // columns beside the planned ones; and its go/no-go decision (#215).
+    const site1 = sheetOf(workbook, 'SitePlan').rows[2]!
+    expect(site1.slice(5, 11)).toEqual([
+      textCell('go'),
+      EMPTY,
+      textCell('2027-02-12'),
+      EMPTY,
+      textCell('2027-02-15'),
+      EMPTY,
+    ])
+    expect(site1[11]).toEqual(textCell('2027-03-02'))
   })
 
   it('writes waves in their order, even when the model lists them the other way round', () => {
@@ -408,7 +439,7 @@ describe('the exported workbook (#210)', () => {
     expect(template.rows[5]![5]).toEqual(textCell('Eliminate'))
   })
 
-  it('says what it cannot carry: a second parent region, actual dates and notes', () => {
+  it('says what it cannot carry: a second parent region and notes', () => {
     const model = workspace()
     model.elements.push({ id: 'loc-dach', type: 'Location', name: 'DACH', properties: {} })
     model.relationships.push({
@@ -427,7 +458,7 @@ describe('the exported workbook (#210)', () => {
       }),
       expect.objectContaining({
         code: 'rollout-workbook.not-carried',
-        message: expect.stringContaining('4 sites have actual dates or notes'),
+        message: expect.stringContaining('2 sites have notes'),
       }),
     ])
     // The first by id, so the same model always shows the same one.
@@ -1349,23 +1380,40 @@ describe('names that look like the format’s own syntax round-trip (CLAUDE.md e
     const rollout = rolloutPlanOf(element(model, ROLLOUT_ID))!
     rollout.milestones.push(
       { id: 'milestone.go', label: 'Looks like a column key', startsPhase: 'done' },
+      { id: 'actual.go', label: 'Looks like an actual column', startsPhase: 'done' },
       { id: 'a.b', label: 'Dotted', startsPhase: 'done' },
     )
     rollout.sites[0]!.milestones = {
       'milestone.go': { date: '2027-04-01', precision: 'quarter' },
       'a.b': { date: '2027-05-01', precision: 'month' },
     }
+    rollout.sites[0]!.actuals = { 'actual.go': '2027-04-02' }
     const workbook = await exportedFile(model)
-    const keys = sheetOf(workbook, 'SitePlan').rows[0]!.slice(-2)
-    expect(keys).toEqual([textCell('milestone.milestone.go'), textCell('milestone.a.b')])
+    const keys = sheetOf(workbook, 'SitePlan').rows[0]!.slice(-6)
+    expect(keys).toEqual(
+      [
+        'milestone.milestone.go',
+        'actual.milestone.go',
+        'milestone.actual.go',
+        'actual.actual.go',
+        'milestone.a.b',
+        'actual.a.b',
+      ].map(textCell),
+    )
     const { dryRun, result } = commit(model, workbook)
     expect(dryRun.problems).toEqual([])
     expect(result).toBe('unchanged')
     set(workbook, 'SitePlan', siteId(1), 'milestone.a.b', textCell('2027-06'))
+    set(workbook, 'SitePlan', siteId(1), 'actual.actual.go', textCell('2027-04-05'))
+    set(workbook, 'SitePlan', siteId(1), 'actual.milestone.go', textCell('2027-04-06'))
     const edited = commit(model, workbook)
     expect(sitePlan(edited.after, siteId(1))!.milestones).toEqual({
       'milestone.go': { date: '2027-04-01', precision: 'quarter' },
       'a.b': { date: '2027-06-01', precision: 'month' },
+    })
+    expect(sitePlan(edited.after, siteId(1))!.actuals).toEqual({
+      'actual.go': '2027-04-05',
+      'milestone.go': '2027-04-06',
     })
   })
 })
@@ -1589,5 +1637,243 @@ describe('milestone dates in the workbook (#213)', () => {
       'rollout-workbook.column-unknown',
     ])
     expect(wavePlan(after, waveId(1)).milestones).not.toHaveProperty('goLive')
+  })
+})
+
+// ── Actuals, RAG and go/no-go (#215) ─────────────────────────────────────────
+
+describe('actual days, RAG and go/no-go from the PMO (#215)', () => {
+  const PLAN = `elements.${ROLLOUT_ID}.plan.sites`
+  /** Each site's derived phase at a fixed day, so today's date cannot decide it. */
+  const phases = (model: Workspace, at: string) => {
+    const rollout = rolloutPlanOf(element(model, ROLLOUT_ID))!
+    return rollout.sites.map((site) => [
+      site.location,
+      siteStatus(
+        rollout,
+        site,
+        site.wave === undefined ? undefined : wavePlanOf(element(model, site.wave)),
+        dayStart(at),
+      ).phase,
+    ])
+  }
+
+  it('ten actual days, a RAG and a decision change those fields and nothing else', async () => {
+    const workbook = await exportedFile()
+    const actual = (n: number, milestone: string, day: string) =>
+      set(workbook, 'SitePlan', siteId(n), `actual.${milestone}`, textCell(day))
+    // Sites 1 and 2 cut over in the pilot; their hypercare ends early,
+    // before its planned 2027-03-29.
+    actual(1, 'reconciliationSignedOff', '2027-03-04')
+    actual(1, 'hypercareEnd', '2027-03-12')
+    actual(2, 'constructor', '2027-02-20')
+    actual(2, 'reconciliationSignedOff', '2027-03-05')
+    actual(2, 'hypercareEnd', '2027-03-14')
+    // Sites of later waves start preparing before their planned mapping.
+    actual(3, 'mappingSignedOff', '2027-03-01')
+    actual(4, 'mappingSignedOff', '2027-03-10')
+    actual(4, 'constructor', '2027-03-11')
+    actual(7, 'constructor', '2027-03-02')
+    actual(8, 'mappingSignedOff', '2027-03-09')
+    set(workbook, 'SitePlan', siteId(5), 'rag', textCell('red'))
+    set(workbook, 'SitePlan', siteId(4), 'goNoGo', textCell('go'))
+
+    const model = workspace()
+    expect(phases(model, '2027-03-15').slice(0, 8)).toEqual([
+      [siteId(1), 'hypercare'],
+      [siteId(2), 'hypercare'],
+      [siteId(3), 'planned'],
+      [siteId(4), 'planned'],
+      [siteId(5), 'planned'],
+      [siteId(6), 'preparing'],
+      [siteId(7), 'planned'],
+      [siteId(8), 'planned'],
+    ])
+    const { dryRun, result, store, before, after } = commit(model, workbook)
+    expect(dryRun.problems).toEqual([])
+    expect(dryRun.tallies).toEqual({
+      sites: tallied({ unchanged: SITE_COUNT }),
+      waves: tallied({ unchanged: 5 }),
+      sitePlans: tallied({ updated: 7, unchanged: SITE_COUNT - 7 }),
+    })
+    expect(result).toBe('applied')
+    expect(changedPaths(before, after)).toEqual([
+      `${PLAN}.0.actuals.hypercareEnd`,
+      `${PLAN}.0.actuals.reconciliationSignedOff`,
+      `${PLAN}.1.actuals.constructor`,
+      `${PLAN}.1.actuals.hypercareEnd`,
+      `${PLAN}.1.actuals.reconciliationSignedOff`,
+      `${PLAN}.2.actuals`,
+      `${PLAN}.3.actuals`,
+      `${PLAN}.3.goNoGo`,
+      `${PLAN}.4.rag`,
+      `${PLAN}.6.actuals`,
+      `${PLAN}.7.actuals`,
+    ])
+    expect(sitePlan(after, siteId(4))).toMatchObject({
+      actuals: { mappingSignedOff: '2027-03-10', constructor: '2027-03-11' },
+      goNoGo: 'go',
+    })
+    expect(appliedTallies(before, after)).toEqual(countsOf(dryRun))
+    // The phases follow the actual days, the early ones too.
+    expect(phases(after, '2027-03-15').slice(0, 8)).toEqual([
+      [siteId(1), 'migrated'],
+      [siteId(2), 'migrated'],
+      [siteId(3), 'preparing'],
+      [siteId(4), 'preparing'],
+      [siteId(5), 'planned'],
+      [siteId(6), 'preparing'],
+      [siteId(7), 'preparing'],
+      [siteId(8), 'preparing'],
+    ])
+    expect(store.history.map((entry) => entry.label)).toEqual([
+      'Updated the actual dates, RAG and go/no-go of 7 sites in “Local data to the central lake”',
+    ])
+    store.undo()
+    expect(toCanonicalJson(store.snapshot())).toBe(toCanonicalJson(before))
+  })
+
+  it('an exported workbook with actual days re-imports to the same model', async () => {
+    const { dryRun, result } = commit(workspace(), await exportedFile())
+    expect(dryRun.problems).toEqual([])
+    expect(result).toBe('unchanged')
+    expect(sitePlan(workspace(), siteId(1))!.actuals).toEqual({
+      mappingSignedOff: '2027-02-12',
+      constructor: '2027-02-15',
+      freezeStart: '2027-03-02',
+    })
+  })
+
+  it('a blank cell, or empty text, clears an actual, a RAG and a decision', async () => {
+    const workbook = await exportedFile()
+    set(workbook, 'SitePlan', siteId(1), 'actual.mappingSignedOff', EMPTY)
+    // Empty text looks like a blank cell on screen, and reads as one (#226).
+    set(workbook, 'SitePlan', siteId(1), 'actual.freezeStart', textCell(''))
+    set(workbook, 'SitePlan', siteId(1), 'goNoGo', textCell(''))
+    set(workbook, 'SitePlan', siteId(2), 'actual.mappingSignedOff', EMPTY)
+    set(workbook, 'SitePlan', siteId(2), 'actual.freezeStart', EMPTY)
+    set(workbook, 'SitePlan', siteId(5), 'rag', textCell(''))
+    set(workbook, 'SitePlan', siteId(6), 'goNoGo', EMPTY)
+    const { dryRun, after } = commit(workspace(), workbook)
+    expect(dryRun.problems).toEqual([])
+    expect(sitePlan(after, siteId(1))!.actuals).toEqual({ constructor: '2027-02-15' })
+    expect(sitePlan(after, siteId(1))).not.toHaveProperty('goNoGo')
+    // Site 2's last actual cleared: no empty record is left behind.
+    expect(sitePlan(after, siteId(2))).not.toHaveProperty('actuals')
+    expect(sitePlan(after, siteId(5))).not.toHaveProperty('rag')
+    expect(sitePlan(after, siteId(6))).not.toHaveProperty('goNoGo')
+  })
+
+  it('a date cell reads as its day', async () => {
+    const workbook = await exportedFile()
+    set(workbook, 'SitePlan', siteId(3), 'actual.mappingSignedOff', dateCell('2027-03-01'))
+    const { dryRun, after } = commit(workspace(), workbook)
+    expect(dryRun.problems).toEqual([])
+    expect(sitePlan(after, siteId(3))!.actuals).toEqual({ mappingSignedOff: '2027-03-01' })
+  })
+
+  it('a malformed day is reported at its cell, never stored, and the actual kept', async () => {
+    const workbook = await exportedFile()
+    const cells = [
+      set(workbook, 'SitePlan', siteId(1), 'actual.mappingSignedOff', textCell('2027-02-30')),
+      set(workbook, 'SitePlan', siteId(1), 'actual.freezeStart', textCell('2027-Q1')),
+      set(workbook, 'SitePlan', siteId(2), 'actual.freezeStart', textCell('03/03/2027')),
+      set(workbook, 'SitePlan', siteId(3), 'actual.mappingSignedOff', numberCell(46447)),
+      set(workbook, 'SitePlan', siteId(3), 'actual.constructor', booleanCell(true)),
+      set(workbook, 'SitePlan', siteId(3), 'actual.freezeStart', textCell(' 2027-03-01')),
+    ]
+    const columns = [
+      'actual.mappingSignedOff',
+      'actual.freezeStart',
+      'actual.freezeStart',
+      'actual.mappingSignedOff',
+      'actual.constructor',
+      'actual.freezeStart',
+    ]
+    const { dryRun, result, after } = commit(workspace(), workbook)
+    expect(dryRun.problems).toEqual(
+      cells.map(({ row, cell }, index) =>
+        at('rollout-workbook.actual-unreadable', 'SitePlan', row, columns[index]!, cell),
+      ),
+    )
+    expect(dryRun.problems.map((p) => p.severity)).toEqual(cells.map(() => 'error'))
+    expect(result).toBe('unchanged')
+    expect(sitePlan(after, siteId(1))!.actuals).toEqual({
+      mappingSignedOff: '2027-02-12',
+      constructor: '2027-02-15',
+      freezeStart: '2027-03-02',
+    })
+    expect(sitePlan(after, siteId(3))).not.toHaveProperty('actuals')
+  })
+
+  it('an unreadable cell leaves the actual as it is', async () => {
+    const workbook = await exportedFile()
+    set(workbook, 'SitePlan', siteId(1), 'actual.freezeStart', { kind: 'unreadable', text: '#N/A' })
+    const { dryRun, after } = commit(workspace(), workbook)
+    expect(dryRun.problems).toEqual([])
+    expect(sitePlan(after, siteId(1))!.actuals!.freezeStart).toBe('2027-03-02')
+  })
+
+  it('a decision that is not go or no-go is reported, and the decision kept', async () => {
+    const workbook = await exportedFile()
+    const { row, cell } = set(workbook, 'SitePlan', siteId(6), 'goNoGo', textCell('maybe'))
+    const { dryRun, after } = commit(workspace(), workbook)
+    expect(dryRun.problems).toEqual([
+      at('rollout-workbook.go-no-go-unknown', 'SitePlan', row, 'goNoGo', cell),
+    ])
+    expect(sitePlan(after, siteId(6))!.goNoGo).toBe('no-go')
+  })
+
+  it('a column of actual days for no milestone of the rollout is reported and not read', async () => {
+    const workbook = await exportedFile()
+    const sheet = sheetOf(workbook, 'SitePlan')
+    const width = sheet.rows[0]!.length
+    sheet.rows[0]!.push(textCell('actual.goLive'))
+    for (const row of sheet.rows.slice(2)) {
+      while (row.length < width) row.push(EMPTY)
+      row.push(textCell('2027-01-01'))
+    }
+    const { dryRun, result } = commit(workspace(), workbook)
+    expect(dryRun.problems).toEqual([
+      expect.objectContaining({
+        code: 'rollout-workbook.column-unknown',
+        sheet: 'SitePlan',
+        column: 'actual.goLive',
+      }),
+    ])
+    expect(result).toBe('unchanged')
+  })
+
+  it('a missing actual column leaves every actual of it as it is (#94)', async () => {
+    const workbook = await exportedFile()
+    dropColumn(workbook, 'SitePlan', 'actual.freezeStart')
+    dropColumn(workbook, 'SitePlan', 'goNoGo')
+    const { dryRun, result } = commit(workspace(), workbook)
+    expect(dryRun.problems).toEqual([])
+    expect(result).toBe('unchanged')
+  })
+
+  it('says, on export, what a date for a milestone the set does not have leaves out; import keeps it', async () => {
+    const model = workspace()
+    const rollout = rolloutPlanOf(element(model, ROLLOUT_ID))!
+    rollout.sites[2]!.actuals = { goLive: '2027-01-04' }
+    rollout.sites[3]!.milestones = {
+      ...rollout.sites[3]!.milestones,
+      goLive: rollout.milestones[0]!.date ?? { date: '2027-01-01', precision: 'month' },
+    }
+    const { problems } = exportRolloutWorkbook(model, ROLLOUT_ID)!
+    expect(problems).toEqual([
+      expect.objectContaining({
+        code: 'rollout-workbook.not-carried',
+      }),
+      expect.objectContaining({
+        severity: 'info',
+        code: 'rollout-workbook.dates-not-carried',
+        message: expect.stringContaining('2 sites have planned or actual dates for milestones'),
+      }),
+    ])
+    const { after } = commit(model, await exportedFile(model))
+    expect(sitePlan(after, siteId(3))!.actuals).toEqual({ goLive: '2027-01-04' })
+    expect(sitePlan(after, siteId(4))!.milestones).toHaveProperty('goLive')
   })
 })
