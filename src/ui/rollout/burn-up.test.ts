@@ -237,6 +237,17 @@ describe('the current wave’s checkpoints (#215, CAF 25/50/75)', () => {
     expect(progress('week', '2027-01-21').current!.checkpoints[2]!.status).toBe('late')
   })
 
+  it('is reached only by a day on or before the time point', () => {
+    // On the 13th, B's actual day (the 14th) has not come: two of four is
+    // not reached, and its planned 12th has passed.
+    expect(progress('week', '2027-01-13').current!.checkpoints[1]).toEqual({
+      percent: 50,
+      target: 2,
+      plannedBy: '2027-01-12',
+      status: 'late',
+    })
+  })
+
   it('is not planned when the plan never migrates that many', () => {
     const sites = SITES.map((plan) =>
       plan.location === 'c' || plan.location === 'd' ? site(plan.location) : plan,
@@ -248,6 +259,8 @@ describe('the current wave’s checkpoints (#215, CAF 25/50/75)', () => {
     delete (w2.plan as { milestones?: unknown }).milestones
     const { current } = progress('week', AT, model)
     expect(current!.wave.element.id).toBe('wp-w2')
+    // Of two sites: a quarter and a half are one site, three quarters both.
+    expect(current!.checkpoints.map((checkpoint) => checkpoint.target)).toEqual([1, 1, 2])
     expect(current!.checkpoints.map((checkpoint) => checkpoint.status)).toEqual([
       'unplanned',
       'unplanned',

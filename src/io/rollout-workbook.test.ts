@@ -1764,6 +1764,21 @@ describe('actual days, RAG and go/no-go from the PMO (#215)', () => {
     expect(sitePlan(after, siteId(6))).not.toHaveProperty('goNoGo')
   })
 
+  it('reads an actual day of a milestone named __proto__ as the site’s own', async () => {
+    const model = workspace()
+    rolloutPlanOf(element(model, ROLLOUT_ID))!.milestones.push({
+      id: '__proto__',
+      label: 'Proto',
+      startsPhase: 'preparing',
+    })
+    const workbook = await exportedFile(model)
+    set(workbook, 'SitePlan', siteId(3), 'actual.__proto__', textCell('2027-03-01'))
+    const { dryRun, after } = commit(model, workbook)
+    expect(dryRun.problems).toEqual([])
+    const actuals = sitePlan(after, siteId(3))!.actuals!
+    expect(Object.getOwnPropertyDescriptor(actuals, '__proto__')!.value).toBe('2027-03-01')
+  })
+
   it('a date cell reads as its day', async () => {
     const workbook = await exportedFile()
     set(workbook, 'SitePlan', siteId(3), 'actual.mappingSignedOff', dateCell('2027-03-01'))

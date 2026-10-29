@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -6,6 +7,7 @@ import { rolloutPlanOf, type Element, type SitePlan, type Workspace } from '@/mo
 import { ModelStore, ModelStoreProvider } from '@/store'
 import { App } from '@/app/App'
 import { renderScreenAs } from '@/test/render'
+import { TakesFocusAsReader } from '@/test/takes-focus-as-reader'
 import { ROLLOUT_ID, rolloutWorkspace, siteId } from '@/test/rollout-fixture'
 import { ElementScreen } from '@/ui/factsheet/ElementScreen'
 
@@ -39,12 +41,18 @@ function sheet(
   id: string,
   query = `?tab=migration&at=${AT}`,
   model = workspace(),
+  beside?: ReactNode,
 ) {
   const store = new ModelStore(model)
   const h = renderScreenAs(role, store, {
     route: `/element/${id}${query}`,
     path: '/element/:id',
-    screen: <ElementScreen />,
+    screen: (
+      <>
+        <ElementScreen />
+        {beside}
+      </>
+    ),
   })
   return { ...h, store, user: userEvent.setup({ advanceTimers: vi.advanceTimersByTime }) }
 }
@@ -227,7 +235,9 @@ describe('the Migration tab for a reader (#215)', () => {
   it.each(['Progress', 'Dates'])(
     'closes the %s dialog when the tab becomes a reader, writes nothing, and does not reopen it',
     async (kind) => {
-      const h = sheet('writer', siteId(4))
+      // A refused save's dialog takes focus in the commit that makes the tab
+      // a reader: no field of this dialog may still be on screen in it.
+      const h = sheet('writer', siteId(4), undefined, undefined, <TakesFocusAsReader />)
       await h.user.click(within(block()).getByRole('button', { name: `${kind} in ${ROLLOUT}` }))
       const dialog = screen.getByRole('dialog', { name: `${kind} of 004` })
       await h.user.selectOptions(
@@ -241,6 +251,7 @@ describe('the Migration tab for a reader (#215)', () => {
       // Present first: the block is there, as a reader's.
       expect(fact('wave')).toHaveTextContent('W1')
       expect(screen.queryByRole('dialog')).toBeNull()
+      expect(screen.getByRole('button', { name: 'Elsewhere' })).toHaveFocus()
       expect(h.store.dirty).toBe(0)
       h.as('writer')
       expect(within(block()).getByRole('button', { name: `${kind} in ${ROLLOUT}` })).toBeVisible()

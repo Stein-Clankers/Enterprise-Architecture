@@ -60,7 +60,6 @@ export function SiteProgressDialog({
       ...(rag !== (plan?.rag ?? '') ? { rag: rag === '' ? null : rag } : {}),
       ...(goNoGo !== (plan?.goNoGo ?? '') ? { goNoGo: goNoGo === '' ? null : goNoGo } : {}),
     }
-    if (!Object.keys(changes).length) return onClose()
     if (setSiteProgress(store, data.rollout.id, location, changes)) onClose()
     else setRefused(true)
   }

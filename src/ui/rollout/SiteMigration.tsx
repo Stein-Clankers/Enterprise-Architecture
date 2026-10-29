@@ -57,12 +57,14 @@ export function SiteMigration({
 
   // A dialog opened as a writer ends when the tab becomes a reader, and does
   // not reopen when it can write again: its Save would be refused (#198).
+  // Neither dialog writes on blur or on unmount, only on Save, so it needs no
+  // render gate for the one commit it stays on screen as a reader's: the test
+  // with `TakesFocusAsReader` is that commit.
   useEffect(() => {
     if (readOnly) setDialog(null)
   }, [readOnly])
 
-  const open =
-    dialog && !readOnly ? rollouts.find((r) => r.rollout.id === dialog.rollout) : undefined
+  const open = dialog ? rollouts.find((r) => r.rollout.id === dialog.rollout) : undefined
   const query = asOf ? `?at=${asOf}` : ''
 
   if (!rollouts.length) {

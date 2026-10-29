@@ -1218,6 +1218,23 @@ describe('a site’s progress: actual days, RAG and go/no-go (#215)', () => {
     expect(state(s)).toEqual(before)
   })
 
+  it('keeps an actual day of a milestone named __proto__ as the site’s own', () => {
+    const model = rolloutWorkspace(8)
+    rolloutPlanOf(model.elements.find((e) => e.id === ROLLOUT_ID))!.milestones.push({
+      id: '__proto__',
+      label: 'Proto',
+      startsPhase: 'preparing',
+    })
+    const s = new ModelStore(model)
+    expect(
+      setSiteProgress(s, ROLLOUT_ID, siteId(4), { actuals: { ['__proto__']: '2027-03-01' } }),
+    ).toBe(true)
+    expect(Object.hasOwn(site(s, 4).actuals!, '__proto__')).toBe(true)
+    expect(Object.getOwnPropertyDescriptor(site(s, 4).actuals, '__proto__')!.value).toBe(
+      '2027-03-01',
+    )
+  })
+
   it('refuses a site not in the rollout, and an id that is no rollout', () => {
     const s = store()
     const before = state(s)
