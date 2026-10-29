@@ -1,4 +1,5 @@
 import {
+  FINDING_SEVERITIES,
   formatPlanDate,
   planChecks,
   rolloutPlanOf,
@@ -338,4 +339,17 @@ export function blockedText(
     )
   }
   return `“${label}” cannot be deleted: ${sentences.join('. ')}, then delete this one.`
+}
+
+/** The plan checks' counts by severity (#214): "2 warnings · 1 advice", or "0 findings". */
+export function checkSummary(findings: readonly Finding[]): string {
+  if (!findings.length) return '0 findings'
+  return FINDING_SEVERITIES.map((severity) => {
+    const count = findings.filter((finding) => finding.severity === severity).length
+    if (severity === 'advice') return `${count} advice`
+    const noun = severity === 'error' ? 'error' : 'warning'
+    return `${count} ${noun}${count === 1 ? '' : 's'}`
+  })
+    .filter((part) => !part.startsWith('0 '))
+    .join(' · ')
 }

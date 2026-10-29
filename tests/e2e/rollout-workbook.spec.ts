@@ -69,7 +69,8 @@ test('export a rollout workbook, change three cells, and see the import count th
   await importWithNothingToReport(page, FIXTURE, COUNTS)
 
   // Export. Two sites have actual dates, which the workbook does not carry,
-  // so the dialog stays to say so after the download.
+  // so the dialog stays to say so after the download. (No site of the eight
+  // has a blackout of its own, which it would not carry either.)
   await runFromPalette(page, 'Export rollout workbook…')
   const exportDialog = page.getByRole('dialog', { name: 'Export rollout workbook' })
   await expect(exportDialog.getByRole('combobox', { name: 'Rollout' })).toHaveValue(
@@ -82,7 +83,9 @@ test('export a rollout workbook, change three cells, and see the import count th
   const exported = testInfo.outputPath(WORKBOOK)
   await download.saveAs(exported)
   await expect(exportDialog).toContainText(`Downloaded ${WORKBOOK}`)
-  await expect(exportDialog).toContainText('2 sites have actual dates or notes')
+  await expect(exportDialog).toContainText(
+    '2 sites have actual dates, notes or blackouts of their own',
+  )
   await exportDialog.getByRole('button', { name: 'Done' }).click()
   await expect(exportDialog).toBeHidden()
 
@@ -111,7 +114,10 @@ test('export a rollout workbook, change three cells, and see the import count th
   await expect(count('waves.unchanged')).toHaveText('4')
   await expect(count('sitePlans.updated')).toHaveText('1')
   await expect(count('sitePlans.unchanged')).toHaveText('7')
-  for (const sheet of ['sites', 'waves', 'sitePlans']) {
+  // Sites 3 and 6's four exceptions and site 6's two dependencies (#214) are read, unchanged.
+  await expect(count('exceptions.unchanged')).toHaveText('4')
+  await expect(count('dependencies.unchanged')).toHaveText('2')
+  for (const sheet of ['sites', 'waves', 'sitePlans', 'exceptions', 'dependencies']) {
     await expect(count(`${sheet}.created`)).toHaveText('0')
     await expect(count(`${sheet}.deleted`)).toHaveText('0')
   }

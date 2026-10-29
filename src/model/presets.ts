@@ -2,8 +2,9 @@ import type { Archetype, Milestone } from './plan'
 
 /**
  * Rollout presets (#213, proposal §4.8, ADR 0013 point 6): a preset is
- * **data**, a milestone set and default durations between its milestones,
- * never code. ERP, network or workplace rollouts are more entries here.
+ * **data**, a milestone set, default durations between its milestones and
+ * the plan checks it adds (#214, `PresetChecks`), never code. ERP, network or
+ * workplace rollouts are more entries here.
  *
  * The milestone sets are the proposal's: the generic one from §4.5's table,
  * where cutover starts Hypercare, and the data-migration one from §4.8's. The

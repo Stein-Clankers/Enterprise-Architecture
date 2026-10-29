@@ -59,9 +59,18 @@ import {
  * **Sheets.** `Sites` (one row per site's Location), `Waves` (with one column
  * per milestone for the date its sites inherit), `SitePlan` (wave, archetype,
  * RAG and one planned column per milestone of the rollout's set: the site's
- * own date, a blank cell making it inherit again, ADR 0016), and `Template`
- * and `Milestones`, written for reference and never read back (R1). Row 1 holds
- * each column's technical key, the file's contract, and row 2 its label.
+ * own date, a blank cell making it inherit again, ADR 0016), `Exceptions`
+ * (one row per site exception, keyed by its id; an `add`'s site-only change is
+ * canonical JSON in one cell) and `Dependencies` (one row per pair of sites),
+ * both #214's, and `Template` and `Milestones`, written for reference and
+ * never read back (R1). Row 1 holds each column's technical key, the file's
+ * contract, and row 2 its label. A site's own blackouts are not carried yet,
+ * and the export says so.
+ *
+ * **Removing a site** in the `Sites` sheet takes its exceptions and its
+ * dependencies with it, and the other sites' dependencies on it: a row of
+ * another sheet that would keep one says so, and each dependency dropped is
+ * said (`rollout-workbook.dependency-dropped`).
  *
  * **Reading a cell.** A blank cell deletes the value it stands for; a column
  * the header does not name leaves every value of it untouched; a cell the

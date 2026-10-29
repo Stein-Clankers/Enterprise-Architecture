@@ -88,6 +88,44 @@ test('the rollout demo opens on its home: 160 sites in 8 waves', async ({ page }
   expect(await dirtyCount(page)).toBe(1)
 })
 
+/**
+ * The demo's five seeded problems (#214), as the plan checks find them at the
+ * as-of day: the subject and code of each, hard-coded from the checked-in
+ * demo. The blackout site's freeze is in the Q1 close too, so the
+ * data-migration preset's freeze check finds it as well.
+ */
+const SEEDED_PROBLEMS = [
+  ['rollout.site-unassigned', 'loc-site-us-06'],
+  ['rollout.wave-over-capacity', 'wp-wave-2'],
+  ['rollout.cutover-in-blackout', 'loc-site-de-12'],
+  ['rollout.dependency-order', 'loc-site-de-09'],
+  ['rollout.freeze-in-blackout', 'loc-site-de-12'],
+  ['rollout.residency', 'loc-site-ch-01'],
+] as const
+
+test('the plan checks find the demo’s five seeded problems, and nothing else (#214)', async ({
+  page,
+}) => {
+  await openDemo(page)
+  // The home has rendered its rollout before anything is asserted of the checks.
+  await expect(page.getByText('160 sites · 8 waves · template v2')).toBeVisible()
+  await expect(page.getByTestId('kpi-plan-warnings')).toHaveText(String(SEEDED_PROBLEMS.length))
+
+  await page.getByRole('button', { name: 'Plan checks' }).click()
+  const checks = page.getByRole('region', { name: 'Plan checks' })
+  await expect(checks.getByTestId('plan-check-summary')).toHaveText('6 warnings')
+  const findings = checks.getByRole('listitem')
+  await expect(findings).toHaveCount(SEEDED_PROBLEMS.length)
+  for (const [index, [code, subject]] of SEEDED_PROBLEMS.entries()) {
+    await expect(findings.nth(index)).toContainText(`${code} · ${subject}`)
+  }
+  await expect(findings.nth(3)).toContainText('depends on')
+
+  // A finding opens its subject: the site that waits for its hub.
+  await findings.nth(3).getByRole('link').click()
+  await expect(page).toHaveURL(/\/element\/loc-site-de-09$/)
+})
+
 test('the demo opens at its as-of day, with the pilot under way', async ({ page }) => {
   await openDemo(page)
   await expect(page).toHaveURL(new RegExp(`\\?at=${AS_OF}$`))

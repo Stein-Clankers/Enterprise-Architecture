@@ -627,8 +627,8 @@ function reconciliation(
  */
 function residency(context: Context, field: string, out: Finding[]): void {
   const unclassed: string[] = []
-  /** Restricted sites moving data to a store no Location aggregates, by store. */
-  const unlocated = new Map<string, string[]>()
+  /** Restricted sites moving data to a store no Location aggregates: names by Location id, by store. */
+  const unlocated = new Map<string, Map<string, string>>()
   for (const site of context.sites) {
     if (!site.element) continue
     const value = site.element.properties[field]
@@ -661,27 +661,36 @@ function residency(context: Context, field: string, out: Finding[]): void {
       )
       continue
     }
+    // One finding per site, naming every move that leaves the area: a site
+    // with two local stores moving to one lake is one problem, not two.
+    const moves: string[] = []
     for (const target of targetsOf(context, site)) {
       const locations = context.locationsAggregating(target.store)
       if (!locations.length) {
-        const sites = unlocated.get(target.store) ?? []
-        sites.push(site.name)
+        const sites = unlocated.get(target.store) ?? new Map<string, string>()
+        sites.set(site.plan.location, site.name)
         unlocated.set(target.store, sites)
         continue
       }
       const outside = locations.filter((location) => !isWithin(context, location, areas))
       if (!outside.length) continue
+      moves.push(
+        `${target.by} moves it to “${nameOf(context, target.store)}”, at ${outside.map((id) => `“${nameOf(context, id)}”`).join(', ')}`,
+      )
+    }
+    if (moves.length) {
       out.push(
         finding(
           'warning',
           'rollout.residency',
-          `Site “${site.name}” keeps its data in its ${value} (${areas.map((id) => nameOf(context, id)).join(', ')}), and ${target.by} moves it to “${nameOf(context, target.store)}”, at ${outside.map((id) => `“${nameOf(context, id)}”`).join(', ')}, outside it.`,
+          `Site “${site.name}” keeps its data in its ${value} (${areas.map((id) => nameOf(context, id)).join(', ')}), and ${moves.join('; ')}, outside it.`,
           site.plan.location,
         ),
       )
     }
   }
-  for (const [store, sites] of unlocated) {
+  for (const [store, byLocation] of unlocated) {
+    const sites = [...byLocation.values()]
     out.push(
       finding(
         'advice',

@@ -49,7 +49,17 @@ import { getKey, setKey } from './records'
  * (`archipelago.plan.milestone.<id>`), and a site's notes as the Work
  * Package's documentation. A wave's milestone dates, which its sites inherit,
  * use the same key family on the wave's Work Package (ADR 0016); a rollout's
- * travel in its milestone set's JSON.
+ * travel in its milestone set's JSON. The preset a rollout was made from is a
+ * property of its own (`archipelago.plan.preset`).
+ *
+ * A site's exceptions, dependencies and own blackouts (#214, ADR 0017) have
+ * no ArchiMate vocabulary either, so each travels as canonical JSON on the
+ * site plan's Work Package (`archipelago.plan.exceptions`, `.dependsOn`,
+ * `.blackouts`), naming model ids in the file's spelling. A dependency is not
+ * drawn as a relationship between two site plans' Work Packages: a site plan
+ * is a record, and such a relationship would have no model to come back to.
+ * Exception ids are unique across a rollout's sites, so a fold drops, and
+ * says, one another site already uses.
  *
  * Site plans are records, not elements (ADR 0013 point 3), so the Work Package
  * each one is written as, and its two relationships, exist only in the file.

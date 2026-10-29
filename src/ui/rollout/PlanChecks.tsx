@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
-import { FINDING_SEVERITIES, type Finding, type FindingSeverity } from '@/model'
+import { FINDING_SEVERITIES, type FindingSeverity } from '@/model'
 import { useModelStoreContext } from '@/store'
-import type { RolloutData } from './rollout-data'
+import { checkSummary, type RolloutData } from './rollout-data'
 import '@/ui/validator/validator.css'
 
 /**
@@ -29,7 +29,7 @@ export function PlanChecks({ data }: { data: RolloutData }) {
   return (
     <section className="rollout-checks" aria-label="Plan checks">
       <p className="rollout-checks__summary mono" data-testid="plan-check-summary">
-        {summary(data.checks)}
+        {checkSummary(data.checks)}
       </p>
       {!sections.length && (
         <p className="validator__empty">No plan check finds anything at this time point.</p>
@@ -79,17 +79,4 @@ export function PlanChecks({ data }: { data: RolloutData }) {
       ))}
     </section>
   )
-}
-
-/** "2 warnings · 1 advice", or "0 findings". */
-export function summary(findings: readonly Finding[]): string {
-  if (!findings.length) return '0 findings'
-  return FINDING_SEVERITIES.map((severity) => {
-    const count = findings.filter((finding) => finding.severity === severity).length
-    if (severity === 'advice') return `${count} advice`
-    const noun = severity === 'error' ? 'error' : 'warning'
-    return `${count} ${noun}${count === 1 ? '' : 's'}`
-  })
-    .filter((part) => !part.startsWith('0 '))
-    .join(' · ')
 }

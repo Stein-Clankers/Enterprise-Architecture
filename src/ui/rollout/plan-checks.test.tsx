@@ -6,7 +6,7 @@ import { ModelStore, createRollout, removeSites } from '@/store'
 import { renderApp, renderScreenAs } from '@/test/render'
 import { ROLLOUT_ID, rolloutWorkspace, siteId } from '@/test/rollout-fixture'
 import { RolloutScreen } from './RolloutScreen'
-import { summary } from './PlanChecks'
+import { checkSummary } from './rollout-data'
 
 /**
  * The rollout's Plan checks tab and its KPI (#214). The 20-site fixture at
@@ -127,8 +127,8 @@ describe('the summary line', () => {
     [['advice'], '1 advice'],
     [['error', 'error'], '2 errors'],
   ] as const)('%o is “%s”', (severities, text) => {
-    expect(summary(severities.map((severity) => ({ severity, code: 'x', message: 'x' })))).toBe(
-      text,
-    )
+    expect(
+      checkSummary(severities.map((severity) => ({ severity, code: 'x', message: 'x' }))),
+    ).toBe(text)
   })
 })

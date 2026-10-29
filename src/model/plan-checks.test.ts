@@ -763,6 +763,40 @@ describe('the data-migration preset’s checks', () => {
       expect(checked(skipped)).toEqual([])
     })
 
+    it('is one finding per site, naming every move out of its area', () => {
+      const ownReplace = (successor: string) =>
+        exception({
+          kind: 'add',
+          change: {
+            id: 'site-a-replace',
+            kind: 'replace',
+            subject: 'sys-legacy',
+            successor,
+            date: { anchor: 'freezeStart', offsetDays: 0 },
+          },
+        })
+      const both = changed((m) => {
+        toGermany(m)
+        element(m, B).properties[RESIDENCY_FIELD] = 'none'
+        element(m, C).properties[RESIDENCY_FIELD] = 'none'
+        siteOf(m, A).exceptions = [ownReplace('sys-cloud-de')]
+      })
+      expect(checked(both)).toEqual([`rollout.residency ${A}`])
+      expect(messages(both)[0]).toBe(
+        'Site “Site A” keeps its data in its country (Austria), and template change "tc-replace" moves it to “Frankfurt cloud store”, at “Frankfurt data centre”; its exception "ex-x" moves it to “Frankfurt cloud store”, at “Frankfurt data centre”, outside it.',
+      )
+      // A store no Location aggregates, reached twice by one site, names the site once.
+      const unlocated = changed((m) => {
+        m.elements.push(store('sys-nowhere', 'Nowhere store'))
+        planOf(m).template[0] = { ...REPLACE, successor: 'sys-nowhere' }
+        element(m, B).properties[RESIDENCY_FIELD] = 'none'
+        element(m, C).properties[RESIDENCY_FIELD] = 'none'
+        siteOf(m, A).exceptions = [ownReplace('sys-nowhere')]
+      })
+      expect(checked(unlocated)).toEqual(['rollout.residency-unchecked sys-nowhere'])
+      expect(messages(unlocated)[0]).toContain('Site “Site A”, whose data must stay')
+    })
+
     it('reads a template replace only at the sites it applies to', () => {
       const model = changed((m) => {
         toGermany(m)
