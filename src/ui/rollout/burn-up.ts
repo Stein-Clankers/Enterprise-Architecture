@@ -1,11 +1,12 @@
 import {
+  DAY_MS,
   actualOnly,
-  addDays,
   dayAfterPeriod,
   dayStart,
   deriveSitePhase,
   formatPlanDate,
   hasMigrated,
+  isoDayOf,
   periodOf,
   phaseInputs,
   plannedOnly,
@@ -34,6 +35,9 @@ import type { RolloutData, WaveColumn } from './rollout-data'
  * A site has reached Migrated in Migrated or Done (`hasMigrated`). The sites in
  * scope are all of the rollout's sites, in a wave or not, so at any time point
  * migrated and not migrated add up to them.
+ *
+ * ADR 0018 records the rules: no stored baseline, the current wave, targets
+ * rounded up, and a checkpoint late from the end of the period its plan shows.
  */
 
 export const BURN_UP_GRAINS = ['week', 'month'] as const
@@ -43,8 +47,6 @@ export const BURN_UP_GRAIN_LABELS: Record<BurnUpGrain, string> = { week: 'Week',
 /** CAF's checkpoints for a wave, as shares of its sites (proposal §6 item 6). */
 export const CHECKPOINTS = [25, 50, 75] as const
 export type CheckpointPercent = (typeof CHECKPOINTS)[number]
-
-const DAY_MS = 86_400_000
 
 /** One site's two views of its milestones. */
 interface SiteLines {
@@ -90,10 +92,6 @@ function firstMigration(
   return instants(inputs).find(migrated)
 }
 
-function isoDayOf(ms: number): string {
-  return new Date(ms).toISOString().slice(0, 10)
-}
-
 export interface BurnUpPoint {
   /** The period as people write it: `2027-W19`, `2027-05`. */
   label: string
@@ -108,7 +106,10 @@ export interface BurnUpPoint {
    * point: nothing has happened in it yet.
    */
   actual?: number
-  /** When `actual` was counted: the period's last day, or the time point. */
+  /**
+   * Where `actual` is drawn: the period's end, as `planned` is, or the time
+   * point in the period that holds it.
+   */
   actualAt?: number
 }
 
@@ -116,15 +117,26 @@ export type CheckpointStatus = 'met' | 'late' | 'due' | 'unplanned'
 
 export interface Checkpoint {
   percent: CheckpointPercent
-  /** Sites of the wave that make up this share, rounded up. */
+  /** Sites of the wave that make up this share, rounded up (ADR 0018). */
   target: number
-  /** The day the plan migrates that many of the wave's sites. */
+  /**
+   * The date the plan migrates that many of the wave's sites, in the period
+   * the plan shows it (`2027-Q4`, `2027-W19`, a day): the planned date of the
+   * milestone that migrates the site making up the share (ADR 0016 points 2
+   * and 5).
+   */
   plannedBy?: string
+  /**
+   * The instant the planned line reaches that many: where the checkpoint is
+   * drawn. A spaced date is reached on its exact day within the period shown.
+   */
+  plannedAt?: number
   /** The day that many were actually migrated, when it is by the time point. */
   reachedOn?: string
   /**
-   * `met` once reached; else `late` once its planned day has passed; else
-   * `due`; `unplanned` when the plan never migrates that many.
+   * `met` once reached; else `late` once the period `plannedBy` shows has
+   * ended, as a milestone is overdue (ADR 0016 point 5), never on a day
+   * inside it; else `due`; `unplanned` when the plan never migrates that many.
    */
   status: CheckpointStatus
 }
@@ -196,9 +208,11 @@ export function burnUp(data: RolloutData, grain: BurnUpGrain): BurnUp {
         planned: sites.filter((site) => plannedMigrated(site, lastDay)).length,
       }
       if (start <= at) {
+        // Every reached instant is a day's start, so counting at the last
+        // day's start counts the whole period.
         const counted = Math.min(lastDay, at)
         point.actual = sites.filter((site) => actuallyMigrated(site, counted)).length
-        point.actualAt = counted
+        point.actualAt = Math.min(end, at)
       }
       points.push(point)
     }
@@ -248,26 +262,52 @@ function checkpoint(
   const reachedTime = instants(sites.flatMap((site) => site.actual)).find(
     (t) => t <= at && sites.filter((site) => actuallyMigrated(site, t)).length >= target,
   )
-  const plannedBy = plannedAt === undefined ? undefined : isoDayOf(plannedAt)
+  const planned =
+    plannedAt === undefined ? undefined : { at: plannedAt, period: plannedPeriod(sites, plannedAt) }
   const reachedOn = reachedTime === undefined ? undefined : isoDayOf(reachedTime)
   const status: CheckpointStatus =
     reachedOn !== undefined
       ? 'met'
-      : plannedBy === undefined
+      : planned === undefined
         ? 'unplanned'
-        : dayStart(addDays(plannedBy, 1)) <= at
+        : dayStart(dayAfterPeriod(planned.period)) <= at
           ? 'late'
           : 'due'
   return {
     percent,
     target,
-    ...(plannedBy === undefined ? {} : { plannedBy }),
+    ...(planned === undefined
+      ? {}
+      : { plannedBy: formatPlanDate(planned.period), plannedAt: planned.at }),
     ...(reachedOn === undefined ? {} : { reachedOn }),
     status,
   }
 }
 
-// ── Colour (ADR 0013 point 9: no new tokens) ─────────────────────────────────
+/**
+ * The period the plan shows for the migrations at instant `t`: of the sites
+ * the plan migrates at `t`, the planned date of the milestone that migrates
+ * each, and of several the one that ends last, so a checkpoint is never late
+ * before every date making it up has ended (ADR 0016 point 5).
+ */
+function plannedPeriod(sites: readonly SiteLines[], t: number): PlanDate {
+  let shown: PlanDate | undefined
+  for (const site of sites) {
+    if (!plannedMigrated(site, t) || plannedMigrated(site, t - DAY_MS)) continue
+    for (const input of site.planned) {
+      if (!input.planned || !hasMigrated(input.startsPhase) || reachedAt(input) !== t) continue
+      if (!shown || dayStart(dayAfterPeriod(input.planned)) > dayStart(dayAfterPeriod(shown))) {
+        shown = input.planned
+      }
+    }
+  }
+  // A site the plan migrates at `t` has reached, at `t`, a planned milestone
+  // that starts Migrated or Done: a planned input without a period is never
+  // reached (`reachedAt`), and every spaced one has its period.
+  return shown!
+}
+
+// ── Colour (ADR 0013 point 9, extended by ADR 0018: no new tokens) ───────────
 
 /**
  * The planned line is drawn in the token of Planned and the actual line in
@@ -302,8 +342,8 @@ export interface BurnUpChart {
   /** `M … L …` paths in the chart's own coordinates. */
   planned: string
   actual: string
-  /** The time point's x, when it is on the axis. */
-  timePoint: number | undefined
+  /** The time point's x: `burnUp` extends the axis to hold it. */
+  timePoint: number
   yTicks: { y: number; label: string }[]
   xTicks: { x: number; label: string }[]
   checkpoints: { x: number; percent: CheckpointPercent; status: CheckpointStatus }[]
@@ -352,22 +392,16 @@ export function burnUpChart(chart: BurnUp): BurnUpChart | undefined {
   }
   if (!xTicks.length) xTicks.push({ x: x(first.start), label: first.label })
 
-  const inRange = (ms: number) => ms >= first.start && ms <= last.end
-  const checkpoints = (chart.current?.checkpoints ?? []).flatMap((checkpoint) =>
-    checkpoint.plannedBy !== undefined && inRange(dayStart(checkpoint.plannedBy))
-      ? [
-          {
-            x: x(dayStart(checkpoint.plannedBy)),
-            percent: checkpoint.percent,
-            status: checkpoint.status,
-          },
-        ]
-      : [],
+  // A checkpoint's instant is one at which a site of the wave first migrates
+  // by the plan, which the axis holds (`burnUp`), as it holds the time point.
+  const checkpoints = (chart.current?.checkpoints ?? []).flatMap(
+    ({ plannedAt, percent, status }) =>
+      plannedAt === undefined ? [] : [{ x: x(plannedAt), percent, status }],
   )
   return {
     planned,
     actual,
-    timePoint: inRange(chart.at) ? x(chart.at) : undefined,
+    timePoint: x(chart.at),
     yTicks,
     xTicks,
     checkpoints,

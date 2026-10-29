@@ -46,7 +46,8 @@ export function isPlanDatePrecision(value: unknown): value is PlanDatePrecision 
 }
 
 const ISO_DAY = /^(\d{4})-(\d{2})-(\d{2})$/
-const DAY_MS = 86_400_000
+/** A day in milliseconds: the plan's days are UTC, so every one is this long. */
+export const DAY_MS = 86_400_000
 
 /** A UTC midnight; `setUTCFullYear` because `Date.UTC` reads 0–99 as 1900–1999. */
 function utcDay(year: number, month: number, day: number): Date {
@@ -59,8 +60,10 @@ function pad(value: number, width = 2): string {
   return String(value).padStart(width, '0')
 }
 
-function isoDayOf(date: Date): string {
-  return `${pad(date.getUTCFullYear(), 4)}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`
+/** The UTC day of `date` (or of UTC ms), written `YYYY-MM-DD`. */
+export function isoDayOf(date: Date | number): string {
+  const day = typeof date === 'number' ? new Date(date) : date
+  return `${pad(day.getUTCFullYear(), 4)}-${pad(day.getUTCMonth() + 1)}-${pad(day.getUTCDate())}`
 }
 
 /** A real calendar day written `YYYY-MM-DD`: `2027-02-30` is not one. */

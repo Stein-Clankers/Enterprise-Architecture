@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { act, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, useLocation, useNavigate, type NavigateFunction } from 'react-router-dom'
@@ -194,6 +194,25 @@ describe('editing from the Migration tab (#215)', () => {
       constructor: '2027-02-15',
     })
     expect(site(h.store, 1)).not.toHaveProperty('goNoGo')
+  })
+
+  it('stays open and says so when the model refuses a day, keeping what was typed', async () => {
+    // A date input takes a five-digit year, a valid date string the store's
+    // ISO day (`YYYY-MM-DD`) is not: the one value typed here that it refuses.
+    const h = sheet('writer', siteId(4))
+    await h.user.click(within(block()).getByRole('button', { name: `Progress in ${ROLLOUT}` }))
+    const dialog = screen.getByRole('dialog', { name: 'Progress of 004' })
+    const field = within(dialog).getByLabelText('Mapping signed off actual day')
+    fireEvent.change(field, { target: { value: '10000-01-01' } })
+    expect(field).toHaveValue('10000-01-01')
+    await h.user.click(within(dialog).getByRole('button', { name: 'Save' }))
+    expect(within(dialog).getByRole('alert')).toHaveTextContent(
+      'Not saved: the model refused these values.',
+    )
+    expect(screen.getByRole('dialog', { name: 'Progress of 004' })).toBe(dialog)
+    expect(field).toHaveValue('10000-01-01')
+    expect(h.store.history).toHaveLength(0)
+    expect(site(h.store, 4)).not.toHaveProperty('actuals')
   })
 
   it('records nothing when nothing changed, and Cancel writes nothing', async () => {

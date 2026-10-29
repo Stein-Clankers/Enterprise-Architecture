@@ -767,9 +767,10 @@ class Row {
    * The day a milestone was actually reached (#215): a date cell, or text
    * written as an ISO day. Empty text is a blank, as for `word`. Anything else,
    * `2027-Q2` or `31/02/2027` among it, is reported and not applied, so a
-   * malformed day is never stored and never dropped unseen.
+   * malformed day is never stored and never dropped unseen. `subject` is the
+   * site, as the RAG's and the decision's problems name it.
    */
-  actualDay(key: string): Field<string> {
+  actualDay(key: string, subject: string): Field<string> {
     const cell = this.cell(key)
     if (cell === undefined || cell.kind === 'unreadable') return undefined
     if (cell.kind === 'empty' || (cell.kind === 'string' && cell.value === '')) return BLANK
@@ -780,6 +781,7 @@ class Row {
       'rollout-workbook.actual-unreadable',
       `the cell holds ${describeCell(cell)}, which is no day: an actual is the day the milestone was reached, written 2027-05-12 or as a date. It was not applied.`,
       key,
+      subject,
     )
     return undefined
   }
@@ -1122,10 +1124,11 @@ function readActualDays(
   row: Row,
   keys: readonly string[],
   actuals: Record<string, string> | undefined,
+  location: string,
 ): Record<string, string> | undefined {
   const out: Record<string, string> = { ...actuals }
   for (const key of keys) {
-    const field = row.actualDay(key)
+    const field = row.actualDay(key, location)
     if (field === undefined) continue
     const milestone = key.slice(ACTUAL_COLUMN_PREFIX.length)
     if (field.value === undefined) delete out[milestone]
@@ -1338,7 +1341,7 @@ function importSitePlans(context: ImportContext, sheet: Sheet<ReadCell>): void {
     const dates = readMilestoneDates(row, milestoneKeys, after.milestones)
     if (dates) after.milestones = dates
     else delete after.milestones
-    const actuals = readActualDays(row, actualKeys, after.actuals)
+    const actuals = readActualDays(row, actualKeys, after.actuals, location)
     if (actuals) after.actuals = actuals
     else delete after.actuals
 

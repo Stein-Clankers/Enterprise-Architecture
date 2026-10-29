@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { ROLLOUT_DEMO_ID, loadRolloutDemoWorkspace } from '@/io'
 import {
   dayStart,
+  rolloutPlanOf,
   type Element,
   type Milestone,
   type PlanDate,
@@ -9,7 +11,7 @@ import {
 } from '@/model'
 import { ModelStore } from '@/store'
 import { smallWorkspace } from '@/test/fixtures'
-import { burnUp, burnUpChart, type BurnUp } from './burn-up'
+import { CHART, burnUp, burnUpChart, type BurnUp } from './burn-up'
 import { rolloutData } from './rollout-data'
 
 /**
@@ -115,13 +117,19 @@ const SITES: SitePlan[] = [
   site('g', { milestones: { stable: day('2027-01-08') }, actuals: { stable: '2027-01-10' } }),
 ]
 
+/** The burn-up at `at`: a day, or an instant in UTC ms. */
 function progress(
   grain: 'week' | 'month' = 'week',
-  at = AT,
+  at: string | number = AT,
   model: Workspace = workspace(),
+  rollout = ROLLOUT,
 ): BurnUp {
-  return burnUp(rolloutData(new ModelStore(model), ROLLOUT, dayStart(at))!, grain)
+  const time = typeof at === 'number' ? at : dayStart(at)
+  return burnUp(rolloutData(new ModelStore(model), rollout, time)!, grain)
 }
+
+const vertices = (path: string) =>
+  [...path.matchAll(/[ML](-?[\d.]+) (-?[\d.]+)/g)].map(([, x, y]) => [Number(x), Number(y)])
 
 const row = (chart: BurnUp, label: string) => {
   const point = chart.points.find((candidate) => candidate.label === label)
@@ -224,17 +232,140 @@ describe('the current wave’s checkpoints (#215, CAF 25/50/75)', () => {
     expect([current!.migrated, current!.sites]).toEqual([2, 4])
     expect(current!.checkpoints).toEqual([
       // One of four, A: planned for the 5th, reached on the 3rd.
-      { percent: 25, target: 1, plannedBy: '2027-01-05', reachedOn: '2027-01-03', status: 'met' },
+      {
+        percent: 25,
+        target: 1,
+        plannedBy: '2027-01-05',
+        plannedAt: dayStart('2027-01-05'),
+        reachedOn: '2027-01-03',
+        status: 'met',
+      },
       // Two of four, A and B: B two days late, and still met.
-      { percent: 50, target: 2, plannedBy: '2027-01-12', reachedOn: '2027-01-14', status: 'met' },
+      {
+        percent: 50,
+        target: 2,
+        plannedBy: '2027-01-12',
+        plannedAt: dayStart('2027-01-12'),
+        reachedOn: '2027-01-14',
+        status: 'met',
+      },
       // Three of four: C, planned for the 20th, is still to come.
-      { percent: 75, target: 3, plannedBy: '2027-01-20', status: 'due' },
+      {
+        percent: 75,
+        target: 3,
+        plannedBy: '2027-01-20',
+        plannedAt: dayStart('2027-01-20'),
+        status: 'due',
+      },
     ])
   })
 
   it('is late once its planned day has passed without it, and not on that day', () => {
     expect(progress('week', '2027-01-20').current!.checkpoints[2]!.status).toBe('due')
+    // Noon of the planned day is still that day: without `?at=` the time
+    // point is now, never a day's start.
+    expect(
+      progress('week', Date.parse('2027-01-20T12:00:00Z')).current!.checkpoints[2]!.status,
+    ).toBe('due')
     expect(progress('week', '2027-01-21').current!.checkpoints[2]!.status).toBe('late')
+  })
+
+  /**
+   * A wave planned to the quarter: its sites migrate, by the derived phase, on
+   * 1 January, but the plan shows `2027-Q1`, so the checkpoint is due until
+   * the quarter ends and late from 1 April, as a milestone is overdue (ADR
+   * 0016 point 5). Site P's own day shares the instant; the quarter, which
+   * ends later, is the one shown.
+   */
+  it('follows the period the plan shows: due all quarter, late once it ends', () => {
+    const quarter: PlanDate = { date: '2027-01-01', precision: 'quarter' }
+    const model = workspace([
+      site('p', { wave: 'wp-w1', milestones: { stable: day('2027-01-01') } }),
+      site('q', { wave: 'wp-w1' }),
+      site('r', { wave: 'wp-w1' }),
+      site('s', { wave: 'wp-w1' }),
+    ])
+    const w1 = model.elements.find((element) => element.id === 'wp-w1')!
+    ;(w1.plan as { milestones: Record<string, PlanDate> }).milestones = { stable: quarter }
+    const at = (time: string | number) => progress('week', time, model).current!.checkpoints
+    expect(
+      at('2027-02-01').map(({ plannedBy, plannedAt, status }) => [plannedBy, plannedAt, status]),
+    ).toEqual([
+      ['2027-Q1', dayStart('2027-01-01'), 'due'],
+      ['2027-Q1', dayStart('2027-01-01'), 'due'],
+      ['2027-Q1', dayStart('2027-01-01'), 'due'],
+    ])
+    expect(at(Date.parse('2027-03-31T12:00:00Z')).map((c) => c.status)).toEqual([
+      'due',
+      'due',
+      'due',
+    ])
+    expect(at('2027-04-01').map((c) => c.status)).toEqual(['late', 'late', 'late'])
+  })
+
+  /**
+   * Only the milestone that migrates the site making up the share names the
+   * period: not one before Migrated that the site reaches on the same day,
+   * and not a later one of a site that had migrated already.
+   */
+  it('takes its period from the milestone that migrates the site making up the share', () => {
+    const q1: PlanDate = { date: '2027-01-01', precision: 'quarter' }
+    const model = workspace([
+      // X migrates on 1 December, and retires in 2027-Q1, from 1 January.
+      site('x', {
+        wave: 'wp-w1',
+        milestones: { stable: day('2026-12-01'), retired: q1 },
+      }),
+      // Y is ready in 2027-Q1 and migrates on 1 January: both reached that day.
+      site('y', {
+        wave: 'wp-w1',
+        milestones: { ready: q1, stable: day('2027-01-01') },
+      }),
+    ])
+    const checkpoints = progress('week', '2026-11-02', model).current!.checkpoints
+    expect(checkpoints.map(({ target, plannedBy }) => [target, plannedBy])).toEqual([
+      [1, '2026-12-01'],
+      [1, '2026-12-01'],
+      [2, '2027-01-01'],
+    ])
+  })
+
+  it('on the demo, a wave anchored to a quarter is not late before the quarter ends', () => {
+    // The pilot and W1 to W3 actually migrated, so W4 is the wave being worked:
+    // its sites' hypercare ends are spaced from its 2027-Q4 freeze, and shown
+    // at that quarter in the register and on the Migration tab.
+    const model = loadRolloutDemoWorkspace()
+    const plan = rolloutPlanOf(model.elements.find((element) => element.id === ROLLOUT_DEMO_ID))!
+    const done = new Set(['wp-wave-pilot', 'wp-wave-1', 'wp-wave-2', 'wp-wave-3'])
+    for (const plannedSite of plan.sites) {
+      if (plannedSite.wave !== undefined && done.has(plannedSite.wave)) {
+        plannedSite.actuals = { ...plannedSite.actuals, hypercareEnd: '2027-01-04' }
+      }
+    }
+    const at = (time: string | number) => progress('week', time, model, ROLLOUT_DEMO_ID).current!
+    expect(at('2027-10-18').wave.element.id).toBe('wp-wave-4')
+    expect(at('2027-10-18').checkpoints.map((c) => [c.plannedBy, c.status])).toEqual([
+      ['2027-Q4', 'due'],
+      ['2027-Q4', 'due'],
+      ['2027-Q4', 'due'],
+    ])
+    expect(at(Date.parse('2027-12-31T12:00:00Z')).checkpoints.map((c) => c.status)).toEqual([
+      'due',
+      'due',
+      'due',
+    ])
+    expect(at('2028-01-01').checkpoints.map((c) => c.status)).toEqual(['late', 'late', 'late'])
+  })
+
+  /** Ceil, not round or floor: 3 and 5 sites are the sizes that tell them apart. */
+  it.each([
+    [3, [1, 2, 3]],
+    [5, [2, 3, 4]],
+  ])('rounds a share of %i sites up', (count, targets) => {
+    const model = workspace(
+      Array.from({ length: count }, (_, index) => site(`s${index}`, { wave: 'wp-w1' })),
+    )
+    expect(progress('week', AT, model).current!.checkpoints.map((c) => c.target)).toEqual(targets)
   })
 
   it('is reached only by a day on or before the time point', () => {
@@ -244,6 +375,7 @@ describe('the current wave’s checkpoints (#215, CAF 25/50/75)', () => {
       percent: 50,
       target: 2,
       plannedBy: '2027-01-12',
+      plannedAt: dayStart('2027-01-12'),
       status: 'late',
     })
   })
@@ -281,8 +413,6 @@ describe('the current wave’s checkpoints (#215, CAF 25/50/75)', () => {
 describe('the burn-up drawn', () => {
   it('starts both lines at zero and ends the actual line at the time point', () => {
     const chart = burnUpChart(progress('month'))!
-    const vertices = (path: string) =>
-      [...path.matchAll(/[ML](-?[\d.]+) (-?[\d.]+)/g)].map(([, x, y]) => [Number(x), Number(y)])
     const planned = vertices(chart.planned)
     const actual = vertices(chart.actual)
     // A start at zero, then one vertex per month; the actual line has one month.
@@ -305,6 +435,35 @@ describe('the burn-up drawn', () => {
     // A rollout planned well ahead: at 2026-01-01 the axis begins at the time point.
     const chart = burnUpChart(progress('month', '2026-01-01'))!
     expect(chart.actual).not.toBe('')
-    expect(chart.timePoint).toBeDefined()
+    expect(chart.timePoint).toBe(CHART.left)
+    expect(vertices(chart.actual).map(([, y]) => y)).toEqual([
+      CHART.height - CHART.bottom,
+      CHART.height - CHART.bottom,
+    ])
+  })
+
+  it('draws a passed period’s actual count where the planned one is, at its end', () => {
+    const chart = burnUpChart(progress('week'))!
+    const planned = vertices(chart.planned)
+    const actual = vertices(chart.actual)
+    // 2026-W53 and 2027-W01 have passed: both lines step at their ends.
+    expect(actual[1]![0]).toBe(planned[1]![0])
+    expect(actual[2]![0]).toBe(planned[2]![0])
+    // The week of the time point is drawn at the time point.
+    expect(actual[3]![0]).toBe(chart.timePoint)
+  })
+
+  it('labels the axis with its first period when no quarter starts on it', () => {
+    // Every date in February 2027: the axis is three weeks inside Q1.
+    const model = workspace([
+      site('a', {
+        wave: 'wp-w1',
+        milestones: { stable: day('2027-02-03') },
+        actuals: { stable: '2027-02-05' },
+      }),
+      site('b', { wave: 'wp-w1', milestones: { stable: day('2027-02-12') } }),
+    ])
+    const chart = burnUpChart(progress('week', '2027-02-10', model))!
+    expect(chart.xTicks).toEqual([{ x: CHART.left, label: '2027-W05' }])
   })
 })

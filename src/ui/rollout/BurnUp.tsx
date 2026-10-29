@@ -63,7 +63,14 @@ export function BurnUp({ data, asOf }: { data: RolloutData; asOf?: string }) {
             <LegendLine label="Planned" token={BURN_UP_TOKENS.planned} dashed />
             <LegendLine label="Actual" token={BURN_UP_TOKENS.actual} />
             <LegendLine label={`Time point (${timePoint})`} token={BURN_UP_TOKENS.timePoint} />
-            <LegendLine label="Checkpoint planned" token={CHECKPOINT_TOKENS.due} dashed />
+            {(['due', 'met', 'late'] as const).map((status) => (
+              <LegendLine
+                key={status}
+                label={`Checkpoint ${CHECKPOINT_STATUS_LABELS[status].toLowerCase()}`}
+                token={CHECKPOINT_TOKENS[status]}
+                dashed
+              />
+            ))}
           </div>
         </div>
       </div>
@@ -154,7 +161,6 @@ export function BurnUp({ data, asOf }: { data: RolloutData; asOf?: string }) {
                   x2={checkpoint.x}
                   y1={CHART.top}
                   y2={CHART.height - CHART.bottom}
-                  className="burn-up__checkpoint"
                   style={{ stroke: CHECKPOINT_TOKENS[checkpoint.status] }}
                   strokeDasharray="2 3"
                 />
@@ -178,16 +184,14 @@ export function BurnUp({ data, asOf }: { data: RolloutData; asOf?: string }) {
                 style={{ stroke: BURN_UP_TOKENS.actual }}
               />
             )}
-            {chart.timePoint !== undefined && (
-              <line
-                x1={chart.timePoint}
-                x2={chart.timePoint}
-                y1={CHART.top}
-                y2={CHART.height - CHART.bottom}
-                data-line="time-point"
-                style={{ stroke: BURN_UP_TOKENS.timePoint }}
-              />
-            )}
+            <line
+              x1={chart.timePoint}
+              x2={chart.timePoint}
+              y1={CHART.top}
+              y2={CHART.height - CHART.bottom}
+              data-line="time-point"
+              style={{ stroke: BURN_UP_TOKENS.timePoint }}
+            />
           </svg>
         )}
 

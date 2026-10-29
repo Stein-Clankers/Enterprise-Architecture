@@ -43,8 +43,10 @@ export function SiteProgressDialog({
   const name = site ? (site.code ?? site.name) : location
 
   const save = () => {
-    // A date input holds a calendar day or nothing, so a draft is a day or a
-    // blank, which clears; the store's guard refuses anything else.
+    // A date input holds a valid date string or nothing, so a draft is a date
+    // or a blank, which clears. A five-digit year (`10000-01-01`) is a valid
+    // date string and no ISO day (`isIsoDay`), so the store refuses it, and
+    // the dialog stays open to say so.
     const changed: Record<string, string | null> = {}
     for (const milestone of data.plan.milestones) {
       const draft = getKey(actuals, milestone.id) ?? ''

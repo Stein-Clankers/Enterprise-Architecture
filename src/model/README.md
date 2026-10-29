@@ -224,7 +224,7 @@ exceptions, dependencies and plan checks are #214.
   a site in a wave (ADR 0016, amended 2026-10-28). The burn-up (#215) reads
   the same derivation twice, from the planned dates alone (`plannedOnly`) and
   from the actual days alone (`actualOnly`), and counts a site as migrated
-  once its phase is Migrated or Done (`hasMigrated`).
+  once its phase is Migrated or Done (`hasMigrated`); ADR 0018 holds its rules.
 - **A site's go/no-go decision** (`SitePlan.goNoGo`, `go` or `no-go`, #215)
   is the PMO's record, beside its RAG; it does not move the phase.
 - **Every record kept by milestone id is read with `getKey`**

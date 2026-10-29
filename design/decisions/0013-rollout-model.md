@@ -49,8 +49,15 @@ The research behind the proposal (`migration-planning-research.md`) found that n
    | Load within capacity | `--lc-in` |
    | Load over capacity | `--lc-eol` |
    | Load none (no capacity) | `--lc-plan` |
+   | Burn-up: planned line | `--lc-plan` |
+   | Burn-up: actual line | `--lc-act` |
+   | Burn-up: time point | `--accent` |
+   | Checkpoint due, or not planned | `--lc-plan` |
+   | Checkpoint met | `--lc-act` |
+   | Checkpoint late | `--lc-eol` |
 
    Extended 2026-10-27 (#223): RAG and load rows, under D7.
+   Extended 2026-10-29 (#215, ADR 0018): burn-up and checkpoint rows, under D7.
 
    No new tokens.
 10. **What the exchange format carries.** Rollout, waves and site plans travel as Work Packages. A wave's end travels as a Plateau. Milestones and plan fields travel as namespaced `archipelago.plan.*` properties. The template and exceptions travel as canonical JSON in a property. Implementation Event and Gap are not used. Anything the exchange cannot carry is reported, never dropped.

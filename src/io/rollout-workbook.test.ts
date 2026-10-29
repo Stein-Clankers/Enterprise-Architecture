@@ -1812,6 +1812,15 @@ describe('actual days, RAG and go/no-go from the PMO (#215)', () => {
       ),
     )
     expect(dryRun.problems.map((p) => p.severity)).toEqual(cells.map(() => 'error'))
+    // Each names its site, as a RAG or decision problem does.
+    expect(dryRun.problems.map((p) => p.subject)).toEqual([
+      siteId(1),
+      siteId(1),
+      siteId(2),
+      siteId(3),
+      siteId(3),
+      siteId(3),
+    ])
     expect(result).toBe('unchanged')
     expect(sitePlan(after, siteId(1))!.actuals).toEqual({
       mappingSignedOff: '2027-02-12',
