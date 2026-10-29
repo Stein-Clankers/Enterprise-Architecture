@@ -387,6 +387,15 @@ describe('a dependency order violated', () => {
       `rollout.dependency-unchecked ${C}`,
     ])
     expect(messages(noWave)[1]).toContain('which is in no wave')
+    // A site in no wave is not placed by the plan, even with a cutover date of its own.
+    const dated = changed((m) => {
+      delete siteOf(m, A).wave
+      setSiteDate(m, A, 'freezeStart', day('2027-01-04'))
+    })
+    expect(checked(dated)).toEqual([
+      `rollout.site-unassigned ${A}`,
+      `rollout.dependency-unchecked ${C}`,
+    ])
     const undated = changed((m) => dropWaveDate(m, W1, 'freezeStart'))
     expect(checked(undated)).toEqual([
       `rollout.site-undated ${A}`,
@@ -815,6 +824,15 @@ describe('the data-migration preset’s checks', () => {
         `rollout.residency ${C}`,
       ])
       expect(messages(model)[0]).toContain('at “Frankfurt data centre”, outside it')
+    })
+
+    it('locates a store by Locations only', () => {
+      // A grouping that aggregates the Vienna store is not where it is.
+      const model = changed((m) => {
+        m.elements.push({ id: 'grp-cloud', type: 'Grouping', name: 'Cloud', properties: {} })
+        m.relationships.push(aggregation('grp-cloud', 'sys-cloud'))
+      })
+      expect(checked(model)).toEqual([])
     })
 
     it('counts Aggregation only, for the areas and for the store', () => {

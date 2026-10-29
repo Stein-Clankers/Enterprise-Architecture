@@ -595,6 +595,17 @@ describe('each unreadable part of a canonical plan is named (#209)', () => {
       `site "${siteId(4)}".exceptions "ex-003-skip", an id another site's exception has`,
     ],
     [
+      'an exception whose id another site’s has, in a file that lists the sites backwards (#214)',
+      // Site 4 comes first in the file, but site 3 first by location, so site 4's is still dropped.
+      (plan) => {
+        plan.sites[3]!.exceptions = [
+          { id: 'ex-003-skip', kind: 'skip', change: 'tc-add-serving', class: 'legal' },
+        ]
+        plan.sites.reverse()
+      },
+      `site "${siteId(4)}".exceptions "ex-003-skip", an id another site's exception has`,
+    ],
+    [
       'dependencies that are not a list (#214)',
       (plan) => (plan.sites[0]!.dependsOn = siteId(2)),
       `site "${siteId(1)}".dependsOn`,
@@ -1007,6 +1018,23 @@ describe('a site’s exceptions, dependencies and blackouts in exchange XML (#21
       }),
     ])
     expect(validate(workspace).findings).toEqual([])
+  })
+
+  it('keeps the first by location, not by the order of the file', () => {
+    const repeat = [{ id: 'ex-003-skip', kind: 'skip', change: 'tc-fit', class: 'legal' }]
+    const xml = setProperty(EXPORTED, SITE_WP(6), PLAN_KEYS.exceptions, quoted(repeat))
+    // Site 6's Work Package moved ahead of every other element: it is read first.
+    const block = new RegExp(`\\s*<element identifier="${SITE_WP(6)}"[\\s\\S]*?</element>`).exec(
+      xml,
+    )![0]
+    const first = xml.indexOf('<element ')
+    const reordered = xml.replace(block, '')
+    const moved = `${reordered.slice(0, first)}${block.trim()}\n    ${reordered.slice(first)}`
+    expect(moved.indexOf(SITE_WP(6))).toBeLessThan(moved.indexOf(SITE_WP(3)))
+    const { workspace, problems } = read(moved)
+    expect(siteOf(workspace, 3).exceptions!.map((e) => e.id)).toContain('ex-003-skip')
+    expect(siteOf(workspace, 6)).not.toHaveProperty('exceptions')
+    expect(codes(problems)).toEqual(['exchange.plan-site-content-dropped'])
   })
 
   it('reports a preset it does not know, and keeps it as a property', () => {
