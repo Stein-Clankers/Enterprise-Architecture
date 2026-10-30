@@ -23,4 +23,4 @@ Product ADRs for Archipelago. Fresh sequence started 2026-08 (the knowledge-base
 | [0017](0017-site-exceptions-dependencies-and-plan-checks.md) | Site exceptions, dependencies and blackouts, and the plan checks | 2026-10-29 | Accepted |
 | [0018](0018-rollout-progress-and-actuals.md) | Rollout progress: the burn-up, its checkpoints, and actuals from the PMO | 2026-10-29 | Accepted |
 | [0019](0019-site-relative-template-subjects.md) | Site-relative template subjects: one template change per data object, resolved for each site | 2026-10-30 | Accepted |
-| [0020](0020-model-at-semantics.md) | modelAt: what ADR 0014 left open about reading a state | 2026-10-30 | Proposed |
+| [0020](0020-model-at-semantics.md) | modelAt: what ADR 0014 left open about reading a state | 2026-10-30 | Accepted |

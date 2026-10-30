@@ -41,9 +41,8 @@
   - each conflict names what caused it.
 - **Budget, under local coverage:** `stateAt` 0.9 ms, a cold `modelAt` 5.4 ms. ADR 0020 points 8–10 record the new rules and the split budget: `stateAt` ≤ 10 ms, asserted at 5 ms; a cold `modelAt` ≤ 30 ms.
 - **Probes:** 42; 41 caught, and the survivor is an equivalent mutant (`break` against `continue` over a sorted list).
+- **Merged and accepted:** the sponsor merged #246 without a re-review, and accepted ADR 0020 as proposed (all 10 points) on 2026-10-30.
 - **Open:**
-  - re-review #246;
-  - the sponsor's call on ADR 0020;
   - #61 part 2, #60 and #64;
   - stale agent worktrees under `.claude/worktrees/` make a local `npm run lint` fail (CI is unaffected) and are worth sweeping.
 

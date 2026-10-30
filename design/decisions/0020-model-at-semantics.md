@@ -2,18 +2,18 @@
 adr: '0020'
 title: 'modelAt: what ADR 0014 left open about reading a state'
 date: 2026-10-30
-status: Proposed
+status: Accepted
 scope: project
 tags: [transformation, time, model]
 ---
 
 # ADR 0020 — modelAt: what ADR 0014 left open about reading a state
 
-Extends ADR 0014 §1, §4 and §6. It reverses nothing ADR 0014 says.
+Extends ADR 0014 §1, §4 and §6. It reverses nothing ADR 0014 says. The sponsor accepted it as proposed on 2026-10-30, with #246.
 
 ## Context
 
-#61 implements `modelAt(workspace, at, scenario?)` (`src/model/model-at.ts`) and `planConflicts`. ADR 0014 fixes the entry kinds, the plan of record, the precedence of entries over stored dates, and the invariant. Writing the function needed more answers, and its review (#246) found three more. Each one changes what a user sees, so each is written down here for the sponsor to accept or change.
+#61 implements `modelAt(workspace, at, scenario?)` (`src/model/model-at.ts`) and `planConflicts`. ADR 0014 fixes the entry kinds, the plan of record, the precedence of entries over stored dates, and the invariant. Writing the function needed more answers, and its review (#246) found three more. Each one changes what a user sees, so each is written down here.
 
 ## Decision
 
