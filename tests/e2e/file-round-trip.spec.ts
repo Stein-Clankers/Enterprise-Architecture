@@ -39,7 +39,7 @@ test('export, reimport and export again produces the same bytes', async ({ page 
   await expect(page.getByRole('status')).toContainText('Downloaded archisurance.json')
 
   const parsed: unknown = JSON.parse(exported)
-  expect(parsed).toMatchObject({ schemaVersion: 6, name: 'ArchiSurance' })
+  expect(parsed).toMatchObject({ schemaVersion: 7, name: 'ArchiSurance' })
   // The demo mints a fresh workspace id on every load (#24), so the value is not
   // fixed — but it must be present and well-formed, because the round trip below
   // depends on the file carrying it.

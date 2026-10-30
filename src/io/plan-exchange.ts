@@ -31,7 +31,7 @@ import { PROFILE_NAMESPACE } from './profile-properties'
 import { getKey, setKey } from './records'
 
 /**
- * Rollouts, waves and site plans in the exchange format (#209). ADR 0015
+ * Rollouts, waves, site plans and initiatives in the exchange format (#209). ADR 0015
  * decides the mapping, amending ADR 0013 point 10: a wave's window travels as
  * two properties, and no Plateau is written for it.
  *
@@ -60,6 +60,11 @@ import { getKey, setKey } from './records'
  * is a record, and such a relationship would have no model to come back to.
  * Exception ids are unique across a rollout's sites, so a fold drops, and
  * says, one another site already uses.
+ *
+ * An initiative (ADR 0014 §2, #61) is its own Work Package. Its status is a
+ * property of its own (`archipelago.plan.status`), and its change entries
+ * travel as canonical JSON in one property (`archipelago.plan.changes`),
+ * naming elements and relationships in the file's spelling.
  *
  * Site plans are records, not elements (ADR 0013 point 3), so the Work Package
  * each one is written as, and its two relationships, exist only in the file.
@@ -96,6 +101,8 @@ export const PLAN_KEYS = {
   exceptions: `${PLAN}.exceptions`,
   dependsOn: `${PLAN}.dependsOn`,
   blackouts: `${PLAN}.blackouts`,
+  status: `${PLAN}.status`,
+  changes: `${PLAN}.changes`,
 } as const
 
 /** A site's planned date of milestone `<id>` is under this prefix, its actual date under the next. */
@@ -154,6 +161,16 @@ export function planToProperties(
     for (const id of Object.keys(plan.milestones ?? {}).sort()) {
       setKey(out, `${MILESTONE_KEY_PREFIX}${id}`, formatPlanDate(getKey(plan.milestones, id)!))
     }
+    return out
+  }
+  if (plan.kind === 'initiative') {
+    out[PLAN_KEYS.status] = plan.status
+    // Its changes name elements and relationships in the file's spelling.
+    const changes = canonicalPlan({
+      ...plan,
+      changes: plan.changes.map((c) => renamedEntry(c, of)),
+    }).changes
+    if (changes !== undefined) out[PLAN_KEYS.changes] = JSON.stringify(changes, sortKeys)
     return out
   }
   out[PLAN_KEYS.templateVersion] = String(plan.templateVersion)
@@ -365,7 +382,7 @@ export function foldPlans(
     const kind = element.properties[PLAN_KEYS.kind]
     if (
       element.type !== PLAN_ELEMENT_TYPE ||
-      (kind !== 'rollout' && kind !== 'wave' && kind !== 'site')
+      (kind !== 'rollout' && kind !== 'wave' && kind !== 'initiative' && kind !== 'site')
     ) {
       warn(
         sink,
@@ -459,7 +476,11 @@ export function foldPlans(
 }
 
 /** A rollout's or a wave's plan, read out of its properties. */
-function readPlanElement(element: Element, kind: 'rollout' | 'wave', sink: PlanSink): Element {
+function readPlanElement(
+  element: Element,
+  kind: 'rollout' | 'wave' | 'initiative',
+  sink: PlanSink,
+): Element {
   const properties = element.properties
   /** Keys whose value landed in `raw`; the rest stay properties. */
   const used = new Set<string>([PLAN_KEYS.kind])
@@ -481,14 +502,17 @@ function readPlanElement(element: Element, kind: 'rollout' | 'wave', sink: PlanS
       used.add(key)
     }
   }
-  read(PLAN_KEYS.templateVersion, 'templateVersion', integer)
+  if (kind === 'initiative') {
+    read(PLAN_KEYS.status, 'status', text)
+    read(PLAN_KEYS.changes, 'changes', json)
+  } else read(PLAN_KEYS.templateVersion, 'templateVersion', integer)
   if (kind === 'rollout') {
     read(PLAN_KEYS.preset, 'preset', text)
     read(PLAN_KEYS.milestones, 'milestones', json)
     read(PLAN_KEYS.template, 'template', json)
     read(PLAN_KEYS.constraints, 'constraints', json)
     read(PLAN_KEYS.archetypes, 'archetypes', json)
-  } else {
+  } else if (kind === 'wave') {
     read(PLAN_KEYS.rollout, 'rollout', text)
     read(PLAN_KEYS.label, 'label', (value) => value)
     read(PLAN_KEYS.order, 'order', integer)

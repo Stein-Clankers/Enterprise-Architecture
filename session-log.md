@@ -1,5 +1,31 @@
 # Session Log
 
+## 2026-10-30 — #61 part 1: initiatives in the model, `modelAt` and its conflicts
+
+- **Started R3 with #61**, because `modelAt` needs a plan of record and #60's initiatives are what make one. The work is split into stacked PRs:
+  1. **This PR:** the model;
+  2. **#61 part 2:** the time point in the shared chrome, the inventory and the graph reading `modelAt`, and an e2e journey;
+  3. **#60:** the initiative fact sheet and its commands;
+  4. **#64:** gap analysis.
+- **Built:**
+  - `InitiativePlan` (kind `initiative`, a status, change entries with plan dates), schema 7;
+  - canonical JSON and the exchange format (`archipelago.plan.status`, `archipelago.plan.changes`), with both readers lenient part by part;
+  - `validate()` reports an initiative's dangling subject or successor;
+  - `modelAt(workspace, at, scenario?)` and `planConflicts` (four of ADR 0014 §6's six).
+- **Tests:**
+  - every rule on both sides of its date;
+  - each status case;
+  - the invariant over 300 seeded random workspaces;
+  - "include, then exclude, returns the original";
+  - the 10 ms budget at 5,000 elements, 15,000 relationships and 1,600 entries, checked against a count made independently of `modelAt`.
+  - **33 mutation probes,** all caught. Two survived on the first run, and their cases were added.
+- **ADR 0020 (Proposed)** records seven choices ADR 0014 left open, among them `validTo` as exclusive, valid only between live endpoints, earliest entry wins, and an open end not being a conflict. The sponsor should accept or change them before part 2 builds UI on them.
+- **Regenerated:** the three rollout fixtures and the demo, for the schema bump only.
+- **Open:**
+  - the sponsor's call on ADR 0020;
+  - #61 part 2, #60 and #64;
+  - stale agent worktrees under `.claude/worktrees/` make a local `npm run lint` fail (CI is unaffected) and are worth sweeping.
+
 ## 2026-10-30 — R2 complete: #214 and #215 merged; ADRs 0017 and 0018 accepted
 
 - **#242 (#214): site exceptions, dependencies, per-site blackouts and plan checks.** It took three review rounds before the sponsor merged it.

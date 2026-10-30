@@ -1,4 +1,10 @@
-import { rolloutPlanOf, wavePlanOf, type ChangeEntry, type ChangeKind } from './plan'
+import {
+  initiativePlanOf,
+  rolloutPlanOf,
+  wavePlanOf,
+  type ChangeEntry,
+  type ChangeKind,
+} from './plan'
 import type { Finding } from './validate'
 import type { Element, Relationship, Workspace } from './workspace'
 
@@ -19,6 +25,10 @@ import type { Element, Relationship, Workspace } from './workspace'
  * element and archetypes, its date's anchor, and the milestones an
  * archetype's durations are keyed by. A site's own changes (`add` exceptions)
  * are change entries too, and are checked the same way.
+ *
+ * **An initiative's changes** (#61) are checked the same way: `modelAt`
+ * leaves out an entry whose subject or successor is not there, so the finding
+ * is the only place it shows.
  *
  * These are integrity findings, not the plan checks of `plan-checks.ts` (a
  * wave over capacity, a cutover in a blackout): those judge a plan at a time
@@ -53,6 +63,28 @@ export function planFindings(
           subjectId: element.id,
           subjectKind: 'element',
         })
+      }
+    }
+
+    // An initiative's changes (#61): what `modelAt` cannot find, it leaves out,
+    // so it is said here.
+    const initiative = initiativePlanOf(element)
+    if (initiative) {
+      const refs: EntryReferences = {
+        elements: elementsById,
+        relationships: relationshipIds,
+        milestones: new Set(),
+      }
+      for (const change of initiative.changes) {
+        for (const [code, message] of entryReferences(change, refs)) {
+          findings.push({
+            severity: 'warning',
+            code: `plan.initiative-${code}`,
+            message: `Change "${change.id}" of initiative “${element.name || element.id}” ${message}`,
+            subjectId: element.id,
+            subjectKind: 'element',
+          })
+        }
       }
     }
 

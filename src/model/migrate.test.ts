@@ -48,6 +48,11 @@ describe('migrating a stored workspace (#75)', () => {
   it('moves a schema-5 workspace to the current version without touching its contents (#209)', () => {
     const v5 = { ...drawnWorkspace(), schemaVersion: 5 }
     expect(migrateWorkspace(v5)).toEqual({ ...v5, schemaVersion: SCHEMA_VERSION })
-    expect(SCHEMA_VERSION).toBe(6)
+  })
+
+  it('moves a schema-6 workspace to the current version without touching its contents (#61)', () => {
+    const v6 = { ...drawnWorkspace(), schemaVersion: 6 }
+    expect(migrateWorkspace(v6)).toEqual({ ...v6, schemaVersion: SCHEMA_VERSION })
+    expect(SCHEMA_VERSION).toBe(7)
   })
 })

@@ -101,7 +101,7 @@ describe('published JSON Schema', () => {
   it('accepts a plan on a Work Package, and rejects the same plan on any other element', () => {
     const validate = validator()
     const workspace = (type: string) => ({
-      schemaVersion: 6,
+      schemaVersion: 7,
       id: 'ws',
       name: 'W',
       elements: [

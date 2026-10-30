@@ -5,6 +5,7 @@ import {
   DISPOSITIONS,
   EXCEPTION_CLASSES,
   EXCEPTION_KINDS,
+  INITIATIVE_STATUSES,
   MILESTONE_PHASES,
   ROLLOUT_PRESET_IDS,
   PLAN_DATE_PRECISIONS,
@@ -433,7 +434,7 @@ export function buildWorkspaceJsonSchema(): Record<string, unknown> {
 }
 
 /**
- * Rollouts, waves and site plans (#209, ADR 0013). Each object is closed
+ * Rollouts, waves, site plans (#209, ADR 0013) and initiatives (#61, ADR 0014). Each object is closed
  * (`additionalProperties: false`), as the model's guards are strict.
  */
 function planDefinitions(): Record<string, unknown> {
@@ -471,8 +472,12 @@ function planDefinitions(): Record<string, unknown> {
   return {
     plan: {
       description:
-        "A Work Package's plan profile: a rollout with its site plans, or one of its waves. Only a Work Package carries one.",
-      oneOf: [{ $ref: '#/$defs/rolloutPlan' }, { $ref: '#/$defs/wavePlan' }],
+        "A Work Package's plan profile: a rollout with its site plans, one of its waves, or an initiative. Only a Work Package carries one.",
+      oneOf: [
+        { $ref: '#/$defs/rolloutPlan' },
+        { $ref: '#/$defs/wavePlan' },
+        { $ref: '#/$defs/initiativePlan' },
+      ],
     },
     planDate: {
       type: 'object',
@@ -550,6 +555,28 @@ function planDefinitions(): Record<string, unknown> {
           description:
             "The dates the wave's sites inherit when they set none of their own, by milestone id.",
           additionalProperties: { $ref: '#/$defs/planDate' },
+        },
+      },
+    },
+    initiativePlan: {
+      type: 'object',
+      description:
+        'An initiative (ADR 0014): the thing that changes the architecture. Its changes are in the plan of record while its status is approved, inProgress or done.',
+      required: ['kind', 'status'],
+      additionalProperties: false,
+      properties: {
+        kind: { const: 'initiative' },
+        status: { enum: [...INITIATIVE_STATUSES] },
+        changes: {
+          type: 'array',
+          description: 'The change entries it owns, in order. Each date is a plan date.',
+          items: {
+            type: 'object',
+            required: ['id', 'kind', 'subject', 'date'],
+            additionalProperties: false,
+            properties: { ...entryProperties, date: { $ref: '#/$defs/planDate' } },
+            allOf: entryRules,
+          },
         },
       },
     },
