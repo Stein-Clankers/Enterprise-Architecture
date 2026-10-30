@@ -1450,7 +1450,8 @@ const EXCEPTION_KEYS = new Set(EXCEPTION_COLUMNS.map((column) => column.key))
 
 /**
  * The Exceptions sheet (#214): one row per exception, keyed by its id, which
- * is unique in the rollout. A blank id is a new exception, given an id; a row
+ * is unique in the rollout. A blank id is a new exception, given an id, and an
+ * id the rollout does not have is refused, as the Sites sheet refuses one; a row
  * that names another site moves the exception there; `remove` in the action
  * column deletes it. A row is applied whole or not at all: an exception half
  * changed may not be one (`isSiteException`), so a cell that cannot be
@@ -1539,12 +1540,21 @@ function importExceptions(context: ImportContext, sheet: Sheet<ReadCell>): void 
       tallies.deleted++
       continue
     }
+    if (id !== '' && !before) {
+      // As the Sites sheet does: a typo in an id must not add a second exception.
+      row.report(
+        'error',
+        'rollout-workbook.exception-unknown',
+        `${JSON.stringify(id)} is not an exception of this rollout, so the row was not read. Leave the id blank to add an exception.`,
+        'id',
+        id,
+      )
+      continue
+    }
 
     // The exception as the row leaves it: the cells it reads replace the
     // exception's fields, a blank deletes one, a missing column keeps it.
-    const draft: Record<string, unknown> = before
-      ? { ...before }
-      : { id: id === '' ? context.newId('ex') : id }
+    const draft: Record<string, unknown> = before ? { ...before } : { id: context.newId('ex') }
     const set = (field: string, value: { value: unknown } | undefined) => {
       if (value === undefined) return
       if (value.value === undefined) delete draft[field]
@@ -1807,12 +1817,6 @@ function importDependencies(context: ImportContext, sheet: Sheet<ReadCell>): voi
 }
 
 /**
- * A site the Sites sheet removes takes the other sites' dependencies on it
- * with it: a dependency on a site that is not in the rollout is no plan
- * (`plan.site-dependency-unknown`). Each one dropped is said, with the site
- * that loses it, and counted as a dependency deleted.
- */
-/**
  * A site the Sites sheet removes takes its exceptions with it: each is said,
  * and counted as deleted, whether or not the Exceptions sheet lists it.
  */
@@ -1832,8 +1836,27 @@ function dropExceptionsOfRemoved(context: ImportContext): void {
   }
 }
 
+/**
+ * A site the Sites sheet removes takes its own dependencies with it, and the
+ * other sites' dependencies on it: a dependency on a site that is not in the
+ * rollout is no plan (`plan.site-dependency-unknown`). Each one dropped is
+ * said, with the site that loses it, and counted as a dependency deleted,
+ * whether or not the Dependencies sheet lists it (ADR 0017 point 11).
+ */
 function dropDependenciesOnRemoved(context: ImportContext): void {
   if (!context.removed.size) return
+  for (const site of context.plan.sites) {
+    if (!context.removed.has(site.location)) continue
+    for (const id of [...(site.dependsOn ?? [])].sort(byCodeUnit)) {
+      context.result.tallies.dependencies.deleted++
+      context.report(
+        'info',
+        'rollout-workbook.dependency-dropped',
+        `the Sites sheet takes ${JSON.stringify(site.location)} out of the rollout, and its dependency on ${JSON.stringify(id)} with it.`,
+        { sheet: SHEET_NAMES.sites, subject: site.location },
+      )
+    }
+  }
   for (const [location, plan] of context.sites) {
     const dropped = (plan.dependsOn ?? []).filter((id) => context.removed.has(id))
     if (!dropped.length) continue

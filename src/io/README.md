@@ -453,10 +453,11 @@ nothing, and any other replaces them; a view drawing a removed relationship
 loses it in the same command. Waves are updated, never created, from the
 workbook, and a site created in Sites cannot be planned in the same import,
 since SitePlan names sites by id. An Exceptions row is applied whole or not at
-all, since a half-changed exception may be none: a row with no id adds one, a
+all, since a half-changed exception may be none: a row with no id adds one, an id the
+rollout does not have is refused (`rollout-workbook.exception-unknown`), a
 row naming another site moves it there, and `remove` deletes it. A
 Dependencies row adds its pair, and `remove` deletes it. A site removed in
-Sites takes its exceptions and dependencies with it, and the other sites'
+Sites takes its exceptions and its own dependencies with it, and the other sites'
 dependencies on it, each one said and counted as deleted. An `add` row's
 change is checked as `validate()` checks a template change, and refused when
 its anchor, subject or successor is not there

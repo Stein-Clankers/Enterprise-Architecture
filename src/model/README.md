@@ -275,7 +275,9 @@ still at quarter precision in the next wave or a wave under way, a template
 change made at no site, and a site that lacks what a change retires; a rollout made from a preset (`RolloutPlan.preset`)
 runs that preset's checks too, which `presets.ts` holds as data. An order
 compares the days the phase is derived from (`reachedAt`); an overlap with a
-blackout compares the whole period a date is shown at. No check is silent on
+blackout compares the whole period a date is shown at. A coarse date in an
+order counts from its period's first day, so an order check does not flag a
+coarse order; the next-wave check keeps the near waves precise. No check is silent on
 input it lacks: it says, as an `advice`, what it could not judge and why.
 Checks are independent: one site may be reported by several, and none yields
 to another. A `preference` exception with no expiry is advice; a `legal` or

@@ -1884,6 +1884,17 @@ describe('the Exceptions sheet (#214)', () => {
     },
   )
 
+  it('an id the rollout does not have is refused, not added beside the one it misspells', async () => {
+    const workbook = await exportedFile()
+    const where = set(workbook, 'Exceptions', 'ex-003-skip', 'id', textCell('ex-003-skp'))
+    const { dryRun, before, after } = commit(workspace(), workbook)
+    expect(dryRun.problems).toEqual([
+      at('rollout-workbook.exception-unknown', 'Exceptions', where.row, 'id', where.cell),
+    ])
+    expect(dryRun.tallies.exceptions).toEqual(tallied({ unchanged: 3 }))
+    expect(toCanonicalJson(after)).toBe(toCanonicalJson(before))
+  })
+
   it('a new add whose change names a relationship the model has is added', async () => {
     const workbook = await exportedFile()
     const relationship = workspace().relationships[0]!
@@ -2131,10 +2142,22 @@ describe('the Dependencies sheet (#214)', () => {
     })
     addRow(workbook, 'Dependencies', { site: textCell(siteId(5)), dependsOn: textCell(siteId(4)) })
     const { dryRun, after } = commit(workspace(), workbook)
+    // Site 6's own pairs leave with it, each said and counted (ADR 0017 point 11).
+    const ownDropped = (id: string) => ({
+      severity: 'info',
+      code: 'rollout-workbook.dependency-dropped',
+      file: FILE,
+      sheet: 'Sites',
+      subject: siteId(6),
+      message: `Sheet “Sites”: the Sites sheet takes "${siteId(6)}" out of the rollout, and its dependency on "${id}" with it.`,
+    })
     expect(dryRun.problems).toEqual([
       at('rollout-workbook.site-removed', 'Dependencies', added, 'dependsOn', `B${added}`),
       ...exceptionsDropped(6, 'ex-006-modify'),
+      ownDropped(siteId(2)),
+      ownDropped(siteId(5)),
     ])
+    expect(dryRun.tallies.dependencies).toEqual(tallied({ created: 1, deleted: 2 }))
     expect(dependsOnOf(after, siteId(9))).toBeUndefined()
     expect(dependsOnOf(after, siteId(5))).toEqual([siteId(4)])
   })

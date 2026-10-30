@@ -32,6 +32,7 @@ import { emptyWorkspace, type Element, type Relationship, type Workspace } from 
 const ROLLOUT = 'wp-r'
 const W1 = 'wp-w1'
 const W2 = 'wp-w2'
+const W3 = 'wp-w3'
 const A = 'loc-a'
 const B = 'loc-b'
 const C = 'loc-c'
@@ -398,6 +399,42 @@ describe('a dependency order violated', () => {
     expect(checked(spokeEarly)).toEqual([`rollout.dependency-order ${B}`])
   })
 
+  it('reads a coarse date from its period’s first day, as the phase does, on either side', () => {
+    // Without the preset or the summer blackout, so only the order is judged.
+    const order = (hub: PlanDate, spoke: PlanDate) =>
+      checked(
+        changed((m) => {
+          withoutPreset(m)
+          planOf(m).constraints!.blackouts = []
+          siteOf(m, B).dependsOn = [A]
+          setSiteDate(m, A, 'freezeStart', hub)
+          setSiteDate(m, B, 'freezeStart', spoke)
+        }),
+      ).filter((found) => found.startsWith('rollout.dependency'))
+    const q3 = { date: '2027-07-01', precision: 'quarter' } as const
+    // The hub is reached on 1 July, before the spoke's 15 August: no violation (sponsor, 2026-10-30).
+    expect(order(q3, day('2027-08-15'))).toEqual([])
+    // The spoke is reached on 1 July, before the hub's 15 August.
+    expect(order(day('2027-08-15'), q3)).toEqual([`rollout.dependency-order ${B}`])
+  })
+
+  it('reads a spaced date at the day the chain reaches, not its period’s first day', () => {
+    // A third wave dated only at go/no-go, to the month: a Standard site's
+    // cutover is spaced 3 days on, to 4 July, and shown as July.
+    const model = changed((m) => {
+      withoutPreset(m)
+      m.elements.push(
+        wave(W3, 'W3', 3, { milestones: { goNoGo: { date: '2027-07-01', precision: 'month' } } }),
+      )
+      siteOf(m, A).wave = W3
+      siteOf(m, A).archetype = 'standard'
+      siteOf(m, B).dependsOn = [A]
+      setSiteDate(m, B, 'freezeStart', day('2027-07-02'))
+    })
+    expect(checked(model)).toEqual([`rollout.dependency-order ${B}`])
+    expect(messages(model)[0]).toContain('not after “Site A” (2027-07)')
+  })
+
   it('says it cannot judge a dependency on a site in no wave, or with no cutover date', () => {
     const noWave = changed((m) => delete siteOf(m, A).wave)
     expect(checked(noWave)).toEqual([
@@ -752,6 +789,14 @@ describe('the data-migration preset’s checks', () => {
       expect(checked(lateLoad)).toEqual([`rollout.mock-loads ${A}`])
     })
 
+    it('reads a coarse mock load from its period’s first day', () => {
+      // Mock load 2 planned for March is reached on 1 March, before the 11 March cutover.
+      const model = changed((m) =>
+        setSiteDate(m, A, 'mockLoad2', { date: '2027-03-01', precision: 'month' }),
+      )
+      expect(checked(model)).toEqual([])
+    })
+
     it('counts the mock loads the milestone set still has', () => {
       const model = changed((m) => {
         planOf(m).milestones = planOf(m).milestones.filter((x) => x.id !== 'mockLoad2')
@@ -836,6 +881,14 @@ describe('the data-migration preset’s checks', () => {
       ).toEqual([])
     })
 
+    it('reads a coarse end from its period’s first day to tell an inverted freeze', () => {
+      // Reconciliation planned for March is reached on 1 March, before the freeze starts on the 11th.
+      const model = changed((m) =>
+        setSiteDate(m, A, 'reconciliationSignedOff', { date: '2027-03-01', precision: 'month' }),
+      )
+      expect(checked(model)).toEqual([`rollout.freeze-unchecked ${A}`])
+    })
+
     it('reads a site’s own blackouts for that site only', () => {
       const model = changed((m) => (siteOf(m, B).blackouts = [blackout('2027-03-13')]))
       expect(checked(model)).toEqual([`rollout.freeze-in-blackout ${B}`])
@@ -867,6 +920,14 @@ describe('the data-migration preset’s checks', () => {
         (m) => (siteOf(m, A).actuals = { reconciliationSignedOff: '2027-04-12' }),
       )
       expect(checked(late)).toEqual([`rollout.reconciliation-late ${A}`])
+    })
+
+    it('reads a coarse sign-off from its period’s first day', () => {
+      // Signed off in April is reached on 1 April, before hypercare ends on the 12th.
+      const model = changed((m) =>
+        setSiteDate(m, A, 'reconciliationSignedOff', { date: '2027-04-01', precision: 'month' }),
+      )
+      expect(checked(model)).toEqual([])
     })
 
     it('says it cannot judge a site whose hypercare has no end date', () => {
