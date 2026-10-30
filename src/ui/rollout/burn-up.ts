@@ -121,9 +121,9 @@ export interface Checkpoint {
   target: number
   /**
    * The date the plan migrates that many of the wave's sites, in the period
-   * the plan shows it (`2027-Q4`, `2027-W19`, a day): the planned date of the
-   * milestone that migrates the site making up the share (ADR 0016 points 2
-   * and 5).
+   * the plan shows it (`2027-Q4`, `2027-W19`, a day): of every site counted
+   * toward the share, the period that ends last (`plannedPeriod`, ADR 0018
+   * point 4).
    */
   plannedBy?: string
   /**
@@ -176,14 +176,20 @@ export function burnUp(data: RolloutData, grain: BurnUpGrain): BurnUp {
   const plannedNow = sites.filter((site) => plannedMigrated(site, at)).length
   const migrates = data.plan.milestones.some((milestone) => hasMigrated(milestone.startsPhase))
 
+  const current = currentWave(data, sites, at)
+
   // The axis runs from the first migration to the last, planned or actual,
-  // and always holds the time point.
-  const firsts = sites.flatMap((site) =>
-    [
+  // and always holds the time point and the current wave's checkpoints. A
+  // checkpoint's instant is a site's first migration when the set's phases
+  // ascend, but nothing requires that: a set that goes from Migrated back to
+  // Hypercare can migrate a site a second time.
+  const firsts = [
+    ...sites.flatMap((site) => [
       firstMigration(site.planned, (t) => plannedMigrated(site, t)),
       firstMigration(site.actual, (t) => actuallyMigrated(site, t)),
-    ].filter((t): t is number => t !== undefined),
-  )
+    ]),
+    ...(current?.checkpoints ?? []).map((checkpoint) => checkpoint.plannedAt),
+  ].filter((t): t is number => t !== undefined)
   const points: BurnUpPoint[] = []
   if (firsts.length) {
     // A loop, not `Math.min(...)`: a rollout can have more sites than a call takes arguments.
@@ -225,7 +231,7 @@ export function burnUp(data: RolloutData, grain: BurnUpGrain): BurnUp {
     notMigrated: sites.length - migrated,
     plannedMigrated: plannedNow,
     points,
-    current: currentWave(data, sites, at),
+    current,
     migrates,
     at,
   }
@@ -285,25 +291,29 @@ function checkpoint(
 }
 
 /**
- * The period the plan shows for the migrations at instant `t`: of the sites
- * the plan migrates at `t`, the planned date of the milestone that migrates
- * each, and of several the one that ends last, so a checkpoint is never late
- * before every date making it up has ended (ADR 0016 point 5).
+ * The period the plan shows for a share it makes up at instant `t`: for every
+ * site counted toward it (migrated by the plan at `t`), the planned date of
+ * the first milestone in the set that gives it Migrated or Done and is
+ * reached by `t`, shown at its precision (ADR 0016 point 2); and of those the
+ * period that ends last, so a checkpoint is never late before every date
+ * making it up has ended (ADR 0016 point 5, ADR 0018 point 4).
  */
 function plannedPeriod(sites: readonly SiteLines[], t: number): PlanDate {
+  const end = (period: PlanDate) => dayStart(dayAfterPeriod(period))
   let shown: PlanDate | undefined
   for (const site of sites) {
-    if (!plannedMigrated(site, t) || plannedMigrated(site, t - DAY_MS)) continue
-    for (const input of site.planned) {
-      if (!input.planned || !hasMigrated(input.startsPhase) || reachedAt(input) !== t) continue
-      if (!shown || dayStart(dayAfterPeriod(input.planned)) > dayStart(dayAfterPeriod(shown))) {
-        shown = input.planned
-      }
-    }
+    if (!plannedMigrated(site, t)) continue
+    const migrating = site.planned.find(
+      (input) =>
+        hasMigrated(input.startsPhase) && (reachedAt(input) ?? Number.POSITIVE_INFINITY) <= t,
+    )
+    // A site migrated by the plan at `t` has reached, by `t`, a milestone that
+    // starts Migrated or Done; a planned input is reached only by its period
+    // (`reachedAt`), and every spaced one has its period.
+    const period = migrating!.planned!
+    if (!shown || end(period) > end(shown)) shown = period
   }
-  // A site the plan migrates at `t` has reached, at `t`, a planned milestone
-  // that starts Migrated or Done: a planned input without a period is never
-  // reached (`reachedAt`), and every spaced one has its period.
+  // A share is planned only once a site counts toward it.
   return shown!
 }
 
@@ -392,8 +402,7 @@ export function burnUpChart(chart: BurnUp): BurnUpChart | undefined {
   }
   if (!xTicks.length) xTicks.push({ x: x(first.start), label: first.label })
 
-  // A checkpoint's instant is one at which a site of the wave first migrates
-  // by the plan, which the axis holds (`burnUp`), as it holds the time point.
+  // The axis holds every checkpoint's instant and the time point (`burnUp`).
   const checkpoints = (chart.current?.checkpoints ?? []).flatMap(
     ({ plannedAt, percent, status }) =>
       plannedAt === undefined ? [] : [{ x: x(plannedAt), percent, status }],

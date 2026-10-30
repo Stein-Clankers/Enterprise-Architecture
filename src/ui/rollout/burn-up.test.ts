@@ -275,32 +275,94 @@ describe('the current wave’s checkpoints (#215, CAF 25/50/75)', () => {
    * 1 January, but the plan shows `2027-Q1`, so the checkpoint is due until
    * the quarter ends and late from 1 April, as a milestone is overdue (ADR
    * 0016 point 5). Site P's own day shares the instant; the quarter, which
-   * ends later, is the one shown.
+   * ends later, is the one shown, whether P comes first or last.
    */
-  it('follows the period the plan shows: due all quarter, late once it ends', () => {
-    const quarter: PlanDate = { date: '2027-01-01', precision: 'quarter' }
+  it.each(['first', 'last'])(
+    'follows the period the plan shows: due all quarter, late once it ends (the day site %s)',
+    (order) => {
+      const quarter: PlanDate = { date: '2027-01-01', precision: 'quarter' }
+      const daySite = site('p', { wave: 'wp-w1', milestones: { stable: day('2027-01-01') } })
+      const quarterSites = ['q', 'r', 's'].map((location) => site(location, { wave: 'wp-w1' }))
+      const model = workspace(
+        order === 'first' ? [daySite, ...quarterSites] : [...quarterSites, daySite],
+      )
+      const w1 = model.elements.find((element) => element.id === 'wp-w1')!
+      ;(w1.plan as { milestones: Record<string, PlanDate> }).milestones = { stable: quarter }
+      const at = (time: string | number) => progress('week', time, model).current!.checkpoints
+      expect(
+        at('2027-02-01').map(({ plannedBy, plannedAt, status }) => [plannedBy, plannedAt, status]),
+      ).toEqual([
+        ['2027-Q1', dayStart('2027-01-01'), 'due'],
+        ['2027-Q1', dayStart('2027-01-01'), 'due'],
+        ['2027-Q1', dayStart('2027-01-01'), 'due'],
+      ])
+      expect(at(Date.parse('2027-03-31T12:00:00Z')).map((c) => c.status)).toEqual([
+        'due',
+        'due',
+        'due',
+      ])
+      expect(at('2027-04-01').map((c) => c.status)).toEqual(['late', 'late', 'late'])
+    },
+  )
+
+  /**
+   * A wave that mixes precisions: X is planned for 2027-Q1, from 1 January by
+   * the phase, and Y for the day 15 January. Every share counts X, so every
+   * checkpoint is due until X's quarter has ended, though Y's day has passed
+   * (ADR 0018 point 4). The share is never late before a site counted in it
+   * is overdue.
+   */
+  it('is due while any site counted toward the share has a period still running', () => {
     const model = workspace([
-      site('p', { wave: 'wp-w1', milestones: { stable: day('2027-01-01') } }),
-      site('q', { wave: 'wp-w1' }),
-      site('r', { wave: 'wp-w1' }),
-      site('s', { wave: 'wp-w1' }),
+      site('x', {
+        wave: 'wp-w1',
+        milestones: { stable: { date: '2027-01-01', precision: 'quarter' } },
+      }),
+      site('y', { wave: 'wp-w1', milestones: { stable: day('2027-01-15') } }),
     ])
-    const w1 = model.elements.find((element) => element.id === 'wp-w1')!
-    ;(w1.plan as { milestones: Record<string, PlanDate> }).milestones = { stable: quarter }
-    const at = (time: string | number) => progress('week', time, model).current!.checkpoints
+    const rows = (time: string) =>
+      progress('week', time, model).current!.checkpoints.map(({ target, plannedBy, status }) => [
+        target,
+        plannedBy,
+        status,
+      ])
+    expect(rows('2027-01-16')).toEqual([
+      [1, '2027-Q1', 'due'],
+      [1, '2027-Q1', 'due'],
+      [2, '2027-Q1', 'due'],
+    ])
+    expect(rows('2027-04-01')).toEqual([
+      [1, '2027-Q1', 'late'],
+      [1, '2027-Q1', 'late'],
+      [2, '2027-Q1', 'late'],
+    ])
+  })
+
+  /**
+   * One site whose Stable is the day 1 January and whose Retired is 2027-Q1,
+   * both reached that day: Stable migrates it, so the checkpoint is late from
+   * 2 January, when the register flags the site overdue.
+   */
+  it('names the first milestone that migrates a site, and agrees with the register', () => {
+    const model = workspace([
+      site('z', {
+        wave: 'wp-w1',
+        milestones: {
+          stable: day('2027-01-01'),
+          retired: { date: '2027-01-01', precision: 'quarter' },
+        },
+      }),
+    ])
+    const store = new ModelStore(model)
+    const data = rolloutData(store, ROLLOUT, dayStart('2027-02-01'))!
+    expect(data.sites.find((row) => row.location === 'z')!.overdue).toBe(true)
     expect(
-      at('2027-02-01').map(({ plannedBy, plannedAt, status }) => [plannedBy, plannedAt, status]),
+      burnUp(data, 'week').current!.checkpoints.map(({ plannedBy, status }) => [plannedBy, status]),
     ).toEqual([
-      ['2027-Q1', dayStart('2027-01-01'), 'due'],
-      ['2027-Q1', dayStart('2027-01-01'), 'due'],
-      ['2027-Q1', dayStart('2027-01-01'), 'due'],
+      ['2027-01-01', 'late'],
+      ['2027-01-01', 'late'],
+      ['2027-01-01', 'late'],
     ])
-    expect(at(Date.parse('2027-03-31T12:00:00Z')).map((c) => c.status)).toEqual([
-      'due',
-      'due',
-      'due',
-    ])
-    expect(at('2027-04-01').map((c) => c.status)).toEqual(['late', 'late', 'late'])
   })
 
   /**
@@ -344,17 +406,76 @@ describe('the current wave’s checkpoints (#215, CAF 25/50/75)', () => {
     }
     const at = (time: string | number) => progress('week', time, model, ROLLOUT_DEMO_ID).current!
     expect(at('2027-10-18').wave.element.id).toBe('wp-wave-4')
-    expect(at('2027-10-18').checkpoints.map((c) => [c.plannedBy, c.status])).toEqual([
-      ['2027-Q4', 'due'],
-      ['2027-Q4', 'due'],
-      ['2027-Q4', 'due'],
+    // Shown at the quarter, reached on the spaced days inside it: the
+    // instants are not the quarter's first day, so the two are told apart.
+    expect(at('2027-10-18').checkpoints.map((c) => [c.plannedBy, c.plannedAt, c.status])).toEqual([
+      ['2027-Q4', dayStart('2027-10-17'), 'due'],
+      ['2027-Q4', dayStart('2027-10-25'), 'due'],
+      ['2027-Q4', dayStart('2027-11-02'), 'due'],
     ])
+    // Drawn at those instants, inside the quarter, not on its first tick.
+    const progressAt = progress('week', '2027-10-18', model, ROLLOUT_DEMO_ID)
+    const chart = burnUpChart(progressAt)!
+    const first = progressAt.points[0]!
+    const last = progressAt.points.at(-1)!
+    const x = (ms: number) =>
+      Math.round(
+        (CHART.left +
+          ((ms - first.start) / (last.end - first.start)) *
+            (CHART.width - CHART.left - CHART.right)) *
+          10,
+      ) / 10
+    const q4 = chart.xTicks.find((tick) => tick.label === '2027-Q4')!
+    expect(q4.x).toBe(x(dayStart('2027-10-01')))
+    expect(chart.checkpoints.map((checkpoint) => checkpoint.x)).toEqual([
+      x(dayStart('2027-10-17')),
+      x(dayStart('2027-10-25')),
+      x(dayStart('2027-11-02')),
+    ])
+    expect(chart.checkpoints[0]!.x).toBeGreaterThan(q4.x)
     expect(at(Date.parse('2027-12-31T12:00:00Z')).checkpoints.map((c) => c.status)).toEqual([
       'due',
       'due',
       'due',
     ])
     expect(at('2028-01-01').checkpoints.map((c) => c.status)).toEqual(['late', 'late', 'late'])
+  })
+
+  /**
+   * A set whose phases do not ascend: Back starts Hypercare after Stable has
+   * started Migrated. A's second migration, at Retired on 1 March, makes up
+   * the 75% share after every first migration and the time point; the axis
+   * still holds it, so the checkpoint is drawn on the plot.
+   */
+  it('keeps a checkpoint on the axis when the set goes back from Migrated', () => {
+    const milestones: Milestone[] = [
+      { id: 'stable', label: 'Stable', startsPhase: 'migrated' },
+      { id: 'back', label: 'Back', startsPhase: 'hypercare' },
+      { id: 'retired', label: 'Retired', startsPhase: 'done' },
+    ]
+    const model = workspace(
+      [
+        site('a', {
+          wave: 'wp-w1',
+          milestones: {
+            stable: day('2027-01-05'),
+            back: day('2027-01-10'),
+            retired: day('2027-03-01'),
+          },
+        }),
+        site('b', { wave: 'wp-w1', milestones: { stable: day('2027-02-01') } }),
+      ],
+      milestones,
+    )
+    const result = progress('week', AT, model)
+    expect(result.current!.checkpoints[2]!.plannedAt).toBe(dayStart('2027-03-01'))
+    expect(result.points.at(-1)!.end).toBeGreaterThan(dayStart('2027-03-01'))
+    const chart = burnUpChart(result)!
+    expect(chart.checkpoints).toHaveLength(3)
+    for (const checkpoint of chart.checkpoints) {
+      expect(checkpoint.x).toBeGreaterThanOrEqual(CHART.left)
+      expect(checkpoint.x).toBeLessThanOrEqual(CHART.width - CHART.right)
+    }
   })
 
   /** Ceil, not round or floor: 3 and 5 sites are the sizes that tell them apart. */
