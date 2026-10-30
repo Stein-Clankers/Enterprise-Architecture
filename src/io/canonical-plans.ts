@@ -1,5 +1,6 @@
 import {
   PLAN_ELEMENT_TYPE,
+  byCodeUnit,
   byLocation,
   isArchetype,
   isBlackout,
@@ -8,6 +9,8 @@ import {
   isPlanDate,
   isPositiveInteger,
   isGoNoGo,
+  isRolloutPresetId,
+  isSiteException,
   isSiteRag,
   isTemplateChange,
   type Archetype,
@@ -16,6 +19,7 @@ import {
   type PlanProfile,
   type RolloutConstraints,
   type RolloutPlan,
+  type SiteException,
   type SitePlan,
   type TemplateChange,
   type WavePlan,
@@ -56,6 +60,7 @@ export function canonicalPlan(plan: PlanProfile): Record<string, unknown> {
   }
   return prune({
     kind: plan.kind,
+    preset: plan.preset,
     templateVersion: plan.templateVersion,
     milestones: plan.milestones.map((milestone) => ({ ...milestone })),
     template: plan.template.map((change) => ({ ...change })),
@@ -79,7 +84,24 @@ function canonicalBlackout(blackout: Blackout): Record<string, unknown> {
 
 export function canonicalSitePlan(site: SitePlan): Record<string, unknown> {
   // Empty notes and no notes are one model, so they write one file (ADR 0004).
-  return prune({ ...site, notes: site.notes || undefined })
+  // Exceptions and blackouts are sorted by id and dependencies by code unit
+  // (proposal §8), and `prune` leaves an empty list out.
+  return prune({
+    ...site,
+    notes: site.notes || undefined,
+    exceptions: site.exceptions && [...site.exceptions].sort(byId).map(canonicalException),
+    dependsOn: site.dependsOn && [...site.dependsOn].sort(byCodeUnit),
+    blackouts: site.blackouts && [...site.blackouts].sort(byId).map(canonicalBlackout),
+  })
+}
+
+/** An exception in canonical shape; an `add`'s change entry is pruned too. */
+export function canonicalException(exception: SiteException): Record<string, unknown> {
+  return prune({
+    ...exception,
+    change:
+      typeof exception.change === 'string' ? exception.change : prune({ ...exception.change }),
+  })
 }
 
 // ── Reading ──────────────────────────────────────────────────────────────────
@@ -114,13 +136,27 @@ function readRolloutPlan(raw: Record<string, unknown>): PlanRead<RolloutPlan> {
     archetypes: readPlanList<Archetype>(raw.archetypes, isArchetype, 'archetypes', dropped),
     sites: readSitePlans(raw.sites, dropped),
   }
+  dropRepeatedExceptionIds(plan.sites, dropped)
+  if (raw.preset !== undefined) {
+    if (isRolloutPresetId(raw.preset)) plan.preset = raw.preset
+    else dropped.push(`preset ${JSON.stringify(raw.preset)}`)
+  }
   if (raw.constraints !== undefined) {
     const constraints = readConstraints(raw.constraints, dropped)
     if (constraints) plan.constraints = constraints
   }
   unknownKeys(
     raw,
-    ['kind', 'templateVersion', 'milestones', 'template', 'constraints', 'archetypes', 'sites'],
+    [
+      'kind',
+      'preset',
+      'templateVersion',
+      'milestones',
+      'template',
+      'constraints',
+      'archetypes',
+      'sites',
+    ],
     '',
     dropped,
   )
@@ -301,11 +337,75 @@ export function readSitePlan(raw: unknown, path: string, dropped: string[]): Sit
           if (value !== '') site.notes = value
         } else dropped.push(`${at}.notes`)
         break
+      case 'exceptions': {
+        const exceptions = readPlanList<SiteException>(
+          value,
+          isSiteException,
+          `${at}.exceptions`,
+          dropped,
+        )
+        if (exceptions.length) site.exceptions = exceptions
+        break
+      }
+      case 'dependsOn': {
+        const dependsOn = readIdSet(value, `${at}.dependsOn`, dropped)
+        if (dependsOn.length) site.dependsOn = dependsOn
+        break
+      }
+      case 'blackouts': {
+        const blackouts = readPlanList<Blackout>(value, isBlackout, `${at}.blackouts`, dropped)
+        if (blackouts.length) site.blackouts = blackouts
+        break
+      }
       default:
         dropped.push(`${at}.${key}`)
     }
   }
   return site
+}
+
+/**
+ * A list of ids, each once, as a site's dependencies are: an entry that is
+ * not a non-empty string, or repeats one already read, is dropped and named.
+ */
+function readIdSet(raw: unknown, path: string, dropped: string[]): string[] {
+  if (!Array.isArray(raw)) {
+    dropped.push(path)
+    return []
+  }
+  const out: string[] = []
+  for (const [index, item] of raw.entries()) {
+    if (typeof item !== 'string' || item === '') dropped.push(`${path}[${index}]`)
+    else if (out.includes(item)) dropped.push(`${path}[${index}], a second "${item}"`)
+    else out.push(item)
+  }
+  return out
+}
+
+/**
+ * Exception ids are unique across a rollout's sites (the workbook's
+ * Exceptions sheet is keyed by them), so a second exception with an id an
+ * earlier site already holds is dropped and named. Sites are taken in
+ * location order, so which one is kept does not depend on the file's order.
+ * Both readers call this once a rollout's sites are all read.
+ */
+export function dropRepeatedExceptionIds(sites: SitePlan[], dropped: string[]): void {
+  const seen = new Set<string>()
+  for (const site of [...sites].sort(byLocation)) {
+    if (!site.exceptions) continue
+    const kept = site.exceptions.filter((exception) => {
+      if (!seen.has(exception.id)) {
+        seen.add(exception.id)
+        return true
+      }
+      dropped.push(
+        `site "${site.location}".exceptions "${exception.id}", an id another site's exception has`,
+      )
+      return false
+    })
+    if (kept.length) site.exceptions = kept
+    else delete site.exceptions
+  }
 }
 
 function readRecord<T>(

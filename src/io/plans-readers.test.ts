@@ -578,11 +578,75 @@ describe('each unreadable part of a canonical plan is named (#209)', () => {
       `site "${siteId(1)}".actuals.cutover`,
     ],
     ['notes that are not text', (plan) => (plan.sites[0]!.notes = 3), `site "${siteId(1)}".notes`],
+    ['an unknown site key', (plan) => (plan.sites[0]!.budget = []), `site "${siteId(1)}".budget`],
     [
-      'an unknown site key',
-      (plan) => (plan.sites[0]!.exceptions = []),
+      'exceptions that are not a list (#214)',
+      (plan) => (plan.sites[0]!.exceptions = {}),
       `site "${siteId(1)}".exceptions`,
     ],
+    [
+      'an exception of no class (#214)',
+      (plan) => (plan.sites[0]!.exceptions = [{ id: 'x', kind: 'skip', change: 'tc-fit' }]),
+      `site "${siteId(1)}".exceptions[0]`,
+    ],
+    [
+      'a modify exception that modifies nothing (#214)',
+      (plan) =>
+        (plan.sites[0]!.exceptions = [
+          { id: 'x', kind: 'modify', change: 'tc-fit', class: 'legal' },
+        ]),
+      `site "${siteId(1)}".exceptions[0]`,
+    ],
+    [
+      'a second exception of one id at a site (#214)',
+      (plan) =>
+        (plan.sites[0]!.exceptions = [
+          { id: 'x', kind: 'skip', change: 'tc-fit', class: 'legal' },
+          { id: 'x', kind: 'skip', change: 'tc-add-serving', class: 'legal' },
+        ]),
+      `site "${siteId(1)}".exceptions[1], a second "x"`,
+    ],
+    [
+      'an exception whose id another site’s has (#214)',
+      // Site 3 holds ex-003-skip; site 4 sorts after it, so its copy is the one dropped.
+      (plan) =>
+        (plan.sites[3]!.exceptions = [
+          { id: 'ex-003-skip', kind: 'skip', change: 'tc-add-serving', class: 'legal' },
+        ]),
+      `site "${siteId(4)}".exceptions "ex-003-skip", an id another site's exception has`,
+    ],
+    [
+      'an exception whose id another site’s has, in a file that lists the sites backwards (#214)',
+      // Site 4 comes first in the file, but site 3 first by location, so site 4's is still dropped.
+      (plan) => {
+        plan.sites[3]!.exceptions = [
+          { id: 'ex-003-skip', kind: 'skip', change: 'tc-add-serving', class: 'legal' },
+        ]
+        plan.sites.reverse()
+      },
+      `site "${siteId(4)}".exceptions "ex-003-skip", an id another site's exception has`,
+    ],
+    [
+      'dependencies that are not a list (#214)',
+      (plan) => (plan.sites[0]!.dependsOn = siteId(2)),
+      `site "${siteId(1)}".dependsOn`,
+    ],
+    [
+      'a dependency that is no id (#214)',
+      (plan) => (plan.sites[0]!.dependsOn = [siteId(2), '']),
+      `site "${siteId(1)}".dependsOn[1]`,
+    ],
+    [
+      'a dependency given twice (#214)',
+      (plan) => (plan.sites[0]!.dependsOn = [siteId(2), siteId(2)]),
+      `site "${siteId(1)}".dependsOn[1], a second "${siteId(2)}"`,
+    ],
+    [
+      'a site blackout that ends first (#214)',
+      (plan) => (plan.sites[0]!.blackouts = [{ id: 'b', start: '2027-02-01', end: '2027-01-01' }]),
+      `site "${siteId(1)}".blackouts[0]`,
+    ],
+    ['a preset this build does not know (#214)', (plan) => (plan.preset = 'erp'), 'preset "erp"'],
     ['constraints not an object', (plan) => (plan.constraints = []), 'constraints'],
     [
       'a blackout that ends first',
@@ -893,5 +957,152 @@ describe('each exchange plan value that cannot be read is said (#209)', () => {
         message: expect.stringContaining('r-hub'),
       }),
     ])
+  })
+})
+
+describe('a site’s exceptions, dependencies and blackouts in exchange XML (#214)', () => {
+  const quoted = (value: unknown) => JSON.stringify(value).replace(/"/g, '&quot;')
+  const siteOf = (workspace: Workspace, n: number) =>
+    rolloutOf(workspace)!.sites.find((site) => site.location === siteId(n))!
+
+  it('carries them, and the preset, with no problems', () => {
+    const { workspace, problems } = read(EXPORTED)
+    expect(problems).toEqual([])
+    expect(rolloutOf(workspace)!.preset).toBe('dataMigration')
+    expect(siteOf(workspace, 3).exceptions!.map((e) => e.id)).toEqual([
+      'ex-003-add',
+      'ex-003-modify',
+      'ex-003-skip',
+    ])
+    expect(siteOf(workspace, 6).dependsOn).toEqual([siteId(2), siteId(5)])
+    expect(siteOf(workspace, 12).blackouts!.map((b) => b.id)).toEqual([
+      'bo-site-012-audit',
+      'bo-site-012-stocktake',
+    ])
+  })
+
+  it.each([
+    [3, PLAN_KEYS.exceptions, 'exceptions'],
+    [6, PLAN_KEYS.dependsOn, 'dependsOn'],
+    [12, PLAN_KEYS.blackouts, 'blackouts'],
+  ] as const)('drops site %i’s %s that is not JSON, and says so', (n, key, part) => {
+    const { workspace, problems } = read(setProperty(EXPORTED, SITE_WP(n), key, 'one, two'))
+    expect(siteOf(workspace, n)).not.toHaveProperty(part)
+    expect(siteOf(workspace, n).wave).toBeDefined()
+    expect(problems).toEqual([
+      expect.objectContaining({
+        code: 'exchange.plan-site-content-dropped',
+        subject: ROLLOUT_ID,
+        message: expect.stringContaining(`${key} = "one, two"`),
+      }),
+    ])
+  })
+
+  it('names an exception it cannot keep, and keeps the others', () => {
+    const exceptions = [
+      { id: 'ex-a', kind: 'skip', change: 'tc-fit', class: 'legal' },
+      { id: 'ex-b', kind: 'skip', change: 'tc-fit' },
+    ]
+    const { workspace, problems } = read(
+      setProperty(EXPORTED, SITE_WP(3), PLAN_KEYS.exceptions, quoted(exceptions)),
+    )
+    expect(siteOf(workspace, 3).exceptions!.map((e) => e.id)).toEqual(['ex-a'])
+    expect(problems).toEqual([
+      expect.objectContaining({
+        code: 'exchange.plan-site-content-dropped',
+        message: expect.stringContaining('exceptions[1]'),
+      }),
+    ])
+  })
+
+  it('names a dependency it cannot keep', () => {
+    const { workspace, problems } = read(
+      setProperty(EXPORTED, SITE_WP(6), PLAN_KEYS.dependsOn, quoted([siteId(2), siteId(2)])),
+    )
+    expect(siteOf(workspace, 6).dependsOn).toEqual([siteId(2)])
+    expect(codes(problems)).toEqual(['exchange.plan-site-content-dropped'])
+  })
+
+  it('drops an exception whose id another site’s exception has, and says so', () => {
+    const repeat = [{ id: 'ex-003-skip', kind: 'skip', change: 'tc-fit', class: 'legal' }]
+    const { workspace, problems } = read(
+      setProperty(EXPORTED, SITE_WP(6), PLAN_KEYS.exceptions, quoted(repeat)),
+    )
+    // Site 3 is read first, by location: it keeps the id.
+    expect(siteOf(workspace, 3).exceptions!.map((e) => e.id)).toContain('ex-003-skip')
+    expect(siteOf(workspace, 6)).not.toHaveProperty('exceptions')
+    expect(problems).toEqual([
+      expect.objectContaining({
+        code: 'exchange.plan-site-content-dropped',
+        subject: ROLLOUT_ID,
+        message: expect.stringContaining('ex-003-skip'),
+      }),
+    ])
+    expect(validate(workspace).findings).toEqual([])
+  })
+
+  it('keeps the first by location, not by the order of the file', () => {
+    const repeat = [{ id: 'ex-003-skip', kind: 'skip', change: 'tc-fit', class: 'legal' }]
+    const xml = setProperty(EXPORTED, SITE_WP(6), PLAN_KEYS.exceptions, quoted(repeat))
+    // Site 6's Work Package moved ahead of every other element: it is read first.
+    const block = new RegExp(`\\s*<element identifier="${SITE_WP(6)}"[\\s\\S]*?</element>`).exec(
+      xml,
+    )![0]
+    const first = xml.indexOf('<element ')
+    const reordered = xml.replace(block, '')
+    const moved = `${reordered.slice(0, first)}${block.trim()}\n    ${reordered.slice(first)}`
+    expect(moved.indexOf(SITE_WP(6))).toBeLessThan(moved.indexOf(SITE_WP(3)))
+    const { workspace, problems } = read(moved)
+    expect(siteOf(workspace, 3).exceptions!.map((e) => e.id)).toContain('ex-003-skip')
+    expect(siteOf(workspace, 6)).not.toHaveProperty('exceptions')
+    expect(codes(problems)).toEqual(['exchange.plan-site-content-dropped'])
+  })
+
+  it('reports a preset it does not know, and keeps it as a property', () => {
+    const { workspace, problems } = read(setProperty(EXPORTED, ROLLOUT_ID, PLAN_KEYS.preset, 'erp'))
+    expect(rolloutOf(workspace)).not.toHaveProperty('preset')
+    expect(codes(problems)).toEqual(['exchange.plan-unreadable'])
+  })
+
+  it('writes the file’s ids into a dependency and a site’s own change', () => {
+    const workspace = rolloutWorkspace(6)
+    const rename = (id: string) =>
+      id === 'sys-local-store' ? '9 local store' : id === siteId(2) ? '2 site' : id
+    workspace.elements = workspace.elements.map((candidate) => ({
+      ...candidate,
+      id: rename(candidate.id),
+    }))
+    workspace.relationships = workspace.relationships.map((r) => ({
+      ...r,
+      source: rename(r.source),
+      target: rename(r.target),
+    }))
+    const plan = rolloutOf(workspace)!
+    plan.template = plan.template.map((change) => ({
+      ...change,
+      subject: rename(change.subject),
+      ...(change.kind === 'replace' ? { successor: rename(change.successor) } : {}),
+      applicability:
+        change.applicability.kind === 'aggregating'
+          ? { ...change.applicability, element: rename(change.applicability.element) }
+          : change.applicability,
+    }))
+    for (const site of plan.sites) {
+      site.location = rename(site.location)
+      if (site.dependsOn) site.dependsOn = site.dependsOn.map(rename)
+      for (const exception of site.exceptions ?? []) {
+        if (exception.kind === 'add') exception.change.subject = rename(exception.change.subject)
+      }
+    }
+    const { xml } = exportExchange(workspace)
+    const back = read(xml).workspace
+    const local = back.elements.find((candidate) => candidate.name === 'Local file store')!
+    const two = back.elements.find((candidate) => candidate.name === 'Site 002')!
+    expect([local.id, two.id]).not.toContain('9 local store')
+    expect(two.id).not.toBe('2 site')
+    expect(siteOf(back, 6).dependsOn).toContain(two.id)
+    const add = siteOf(back, 3).exceptions!.find((e) => e.id === 'ex-003-add')!
+    expect(add.kind === 'add' && add.change.subject).toBe(local.id)
+    expect(validate(back).findings).toEqual([])
   })
 })

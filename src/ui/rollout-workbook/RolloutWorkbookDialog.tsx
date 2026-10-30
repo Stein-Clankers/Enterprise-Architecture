@@ -146,8 +146,9 @@ function ExportBody({ rolloutId, onClose }: { rolloutId: string; onClose: () => 
   return (
     <>
       <p className="dialog__help">
-        One sheet each for the sites, the waves and the site plan, and the template for reference.
-        Edit it in Excel and import it again: row 1 holds the keys the import reads.
+        One sheet each for the sites, the waves, the site plan, the site exceptions and the
+        dependencies between sites, and the milestones and template for reference. Edit it in Excel
+        and import it again: row 1 holds the keys the import reads.
       </p>
       {outcome && (
         <ProblemReport
@@ -177,6 +178,8 @@ const SHEETS: { key: keyof RolloutImportPlan['tallies']; label: string }[] = [
   { key: 'sites', label: 'Sites' },
   { key: 'waves', label: 'Waves' },
   { key: 'sitePlans', label: 'SitePlan' },
+  { key: 'exceptions', label: 'Exceptions' },
+  { key: 'dependencies', label: 'Dependencies' },
 ]
 const COUNTS: (keyof Tally)[] = ['created', 'updated', 'deleted', 'unchanged']
 

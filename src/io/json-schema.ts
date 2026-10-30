@@ -2,7 +2,11 @@ import {
   ACCESS_TYPES,
   BUSINESS_CRITICALITY_LABELS,
   CHANGE_KINDS,
+  DISPOSITIONS,
+  EXCEPTION_CLASSES,
+  EXCEPTION_KINDS,
   MILESTONE_PHASES,
+  ROLLOUT_PRESET_IDS,
   PLAN_DATE_PRECISIONS,
   GO_NO_GO_DECISIONS,
   SITE_RAGS,
@@ -436,6 +440,34 @@ function planDefinitions(): Record<string, unknown> {
   const id = { type: 'string', minLength: 1 }
   const positive = { type: 'integer', minimum: 1 }
   const isoDay = { type: 'string', format: 'date', pattern: '^\\d{4}-\\d{2}-\\d{2}$' }
+  /** A change entry's own fields, which a template change adds its applicability to. */
+  const entryProperties = {
+    id,
+    kind: { enum: [...CHANGE_KINDS] },
+    subject: { ...id, description: 'id of the element or relationship it dates' },
+    successor: {
+      ...id,
+      description: "kind 'replace': id of the element that replaces subject",
+    },
+    field: { enum: ['functionalFit', 'technicalFit', 'timeClassification'] },
+    value: {
+      description: "kind 'modify': the planned value of field",
+      oneOf: [{ type: 'integer', minimum: 1, maximum: 4 }, { enum: [...TIME_CLASSIFICATIONS] }],
+    },
+    date: { oneOf: [{ $ref: '#/$defs/planDate' }, { $ref: '#/$defs/anchoredDate' }] },
+  }
+  const entryRules = [
+    {
+      if: { properties: { kind: { const: 'replace' } } },
+      then: { required: ['successor'] },
+      else: { not: { required: ['successor'] } },
+    },
+    {
+      if: { properties: { kind: { const: 'modify' } } },
+      then: { required: ['field', 'value'] },
+      else: { not: { anyOf: [{ required: ['field'] }, { required: ['value'] }] } },
+    },
+  ]
   return {
     plan: {
       description:
@@ -463,6 +495,10 @@ function planDefinitions(): Record<string, unknown> {
       additionalProperties: false,
       properties: {
         kind: { const: 'rollout' },
+        preset: {
+          enum: [...ROLLOUT_PRESET_IDS],
+          description: 'The preset the rollout was made from, for the checks it adds.',
+        },
         templateVersion: positive,
         milestones: {
           type: 'array',
@@ -532,6 +568,15 @@ function planDefinitions(): Record<string, unknown> {
         },
       },
     },
+    changeEntry: {
+      type: 'object',
+      description:
+        "A change entry (ADR 0014): it dates something in the model. A site's own change, in an 'add' exception.",
+      required: ['id', 'kind', 'subject', 'date'],
+      additionalProperties: false,
+      properties: entryProperties,
+      allOf: entryRules,
+    },
     templateChange: {
       type: 'object',
       description:
@@ -539,19 +584,7 @@ function planDefinitions(): Record<string, unknown> {
       required: ['id', 'kind', 'subject', 'date', 'applicability'],
       additionalProperties: false,
       properties: {
-        id,
-        kind: { enum: [...CHANGE_KINDS] },
-        subject: { ...id, description: 'id of the element or relationship it dates' },
-        successor: {
-          ...id,
-          description: "kind 'replace': id of the element that replaces subject",
-        },
-        field: { enum: ['functionalFit', 'technicalFit', 'timeClassification'] },
-        value: {
-          description: "kind 'modify': the planned value of field",
-          oneOf: [{ type: 'integer', minimum: 1, maximum: 4 }, { enum: [...TIME_CLASSIFICATIONS] }],
-        },
-        date: { oneOf: [{ $ref: '#/$defs/planDate' }, { $ref: '#/$defs/anchoredDate' }] },
+        ...entryProperties,
         applicability: {
           oneOf: [
             {
@@ -578,18 +611,7 @@ function planDefinitions(): Record<string, unknown> {
           ],
         },
       },
-      allOf: [
-        {
-          if: { properties: { kind: { const: 'replace' } } },
-          then: { required: ['successor'] },
-          else: { not: { required: ['successor'] } },
-        },
-        {
-          if: { properties: { kind: { const: 'modify' } } },
-          then: { required: ['field', 'value'] },
-          else: { not: { anyOf: [{ required: ['field'] }, { required: ['value'] }] } },
-        },
-      ],
+      allOf: entryRules,
     },
     archetype: {
       type: 'object',
@@ -637,7 +659,65 @@ function planDefinitions(): Record<string, unknown> {
           description: 'The decision taken at the go/no-go gate; absent is not decided yet.',
         },
         notes: { type: 'string', minLength: 1 },
+        exceptions: {
+          type: 'array',
+          description:
+            'Its deviations from the template, sorted by id; ids are unique in the rollout.',
+          items: { $ref: '#/$defs/siteException' },
+        },
+        dependsOn: {
+          type: 'array',
+          description:
+            'Location ids of the sites of the same rollout that cut over before it, sorted.',
+          uniqueItems: true,
+          items: id,
+        },
+        blackouts: {
+          type: 'array',
+          description: "Its own blackouts, besides the rollout's, sorted by id.",
+          items: { $ref: '#/$defs/blackout' },
+        },
       },
+    },
+    siteException: {
+      type: 'object',
+      description:
+        "A site's deviation from the template: 'skip' a template change, 'modify' its offset or disposition, or 'add' a change of the site's own.",
+      required: ['id', 'kind', 'change', 'class'],
+      additionalProperties: false,
+      properties: {
+        id,
+        kind: { enum: [...EXCEPTION_KINDS] },
+        change: {
+          description:
+            "kinds 'skip' and 'modify': the id of a template change; kind 'add': the site's own change entry",
+          oneOf: [id, { $ref: '#/$defs/changeEntry' }],
+        },
+        class: { enum: [...EXCEPTION_CLASSES] },
+        owner: { type: 'string' },
+        expires: { ...isoDay, description: 'The last day it holds.' },
+        rationale: { type: 'string' },
+        offsetDays: {
+          type: 'integer',
+          description: "kind 'modify': whole days from the change's anchor at this site",
+        },
+        disposition: {
+          enum: [...DISPOSITIONS],
+          description: "kind 'modify': what becomes of the data at this site",
+        },
+      },
+      allOf: [
+        {
+          if: { properties: { kind: { const: 'add' } } },
+          then: { properties: { change: { $ref: '#/$defs/changeEntry' } } },
+          else: { properties: { change: id } },
+        },
+        {
+          if: { properties: { kind: { const: 'modify' } } },
+          then: { anyOf: [{ required: ['offsetDays'] }, { required: ['disposition'] }] },
+          else: { not: { anyOf: [{ required: ['offsetDays'] }, { required: ['disposition'] }] } },
+        },
+      ],
     },
   }
 }

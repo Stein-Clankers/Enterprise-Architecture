@@ -5,6 +5,7 @@ import { dayStart, isIsoDay, type Milestone } from '@/model'
 import { AddSitesDialog, WaveDialog } from './RolloutDialogs'
 import { BurnUp } from './BurnUp'
 import { MilestoneDialog, MilestoneSet } from './MilestoneSet'
+import { PlanChecks } from './PlanChecks'
 import { SiteDatesDialog } from './SiteDatesDialog'
 import { SiteRegister } from './SiteRegister'
 import { WaveBoard } from './WaveBoard'
@@ -19,8 +20,8 @@ import './rollout.css'
 
 /**
  * A rollout's home (#211, proposal §6 item 1) at `/rollout/:id`: its KPIs,
- * then the register, the board, the timeline, the progress burn-up (#215) and
- * the milestone set as tabs.
+ * then the register, the board, the timeline, the progress burn-up (#215),
+ * the milestone set and the plan checks (#214) as tabs.
  * The register derives each site's phase at today, taken once as the screen
  * mounts, so a phase does not change under the user between two renders. A
  * time point in the URL, `?at=2026-10-23`, takes its place, on every tab: the
@@ -33,7 +34,7 @@ import './rollout.css'
  * The tab is in the URL, so a tab is a link.
  */
 
-export const TABS = ['register', 'board', 'timeline', 'progress', 'milestones'] as const
+export const TABS = ['register', 'board', 'timeline', 'progress', 'milestones', 'checks'] as const
 
 /** The search parameter holding the screen's time point, an ISO day. */
 export const TIME_POINT_PARAM = 'at'
@@ -44,6 +45,7 @@ const TAB_LABELS: Record<Tab, string> = {
   timeline: 'Timeline',
   progress: 'Progress',
   milestones: 'Milestones',
+  checks: 'Plan checks',
 }
 
 type Dialog =
@@ -196,6 +198,7 @@ export function RolloutScreen() {
         )}
         {tab === 'timeline' && <WaveTimeline data={data} {...(asOf ? { asOf } : {})} />}
         {tab === 'progress' && <BurnUp data={data} {...(asOf ? { asOf } : {})} />}
+        {tab === 'checks' && <PlanChecks data={data} />}
         {tab === 'milestones' && (
           <MilestoneSet
             data={data}
@@ -242,9 +245,10 @@ export function RolloutScreen() {
   )
 }
 
-/** Sites per wave, unassigned, and sites per region: counts, in mono (proposal §6). */
+/** Sites per wave, unassigned, plan-check warnings and sites per region: counts, in mono (proposal §6). */
 function Kpis({ data }: { data: RolloutData }) {
   const over = data.waves.filter((wave) => wave.over).length
+  const warnings = data.checks.filter((finding) => finding.severity !== 'advice').length
   return (
     <section className="kpis" aria-label="Rollout KPIs">
       <div className="kpi">
@@ -260,6 +264,15 @@ function Kpis({ data }: { data: RolloutData }) {
       <div className="kpi">
         <span className="section-label">Over capacity</span>
         <span className={`kpi__value mono${over ? ' kpi__value--alert' : ''}`}>{over}</span>
+      </div>
+      <div className="kpi">
+        <span className="section-label">Plan warnings</span>
+        <span
+          className={`kpi__value mono${warnings ? ' kpi__value--alert' : ''}`}
+          data-testid="kpi-plan-warnings"
+        >
+          {warnings}
+        </span>
       </div>
       <div className="kpi kpi--list">
         <span className="section-label">Sites per wave</span>

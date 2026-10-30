@@ -375,7 +375,9 @@ refuses the comma form for anything the reader would take as JSON.
 **Canonical JSON.** A rollout's or wave's plan is the element's `plan`. The
 milestone set and the template keep their author's order, because the order
 means something; archetypes and blackouts are sorted by id and site plans by
-location id (proposal §8). A plan is read part by part: a malformed milestone
+location id (proposal §8), and within a site plan its exceptions and own
+blackouts by id and its dependencies by code unit (#214). Exception ids are
+unique across a rollout's sites: a reader drops, and names, a repeat. A plan is read part by part: a malformed milestone
 must not cost a rollout its 160 site plans, so each unreadable part is dropped
 and named in one `json.invalid-plan` problem. Only a field the plan cannot
 exist without (a rollout's template version, a wave's rollout, label, order or
@@ -386,9 +388,9 @@ window travels as two properties, and no Plateau is written for it):
 
 | Plan object | Written as |
 |---|---|
-| Rollout | its own Work Package; `archipelago.plan.kind` and `templateVersion` as properties, the milestone set, template, constraints and archetypes as canonical JSON, one property each |
+| Rollout | its own Work Package; `archipelago.plan.kind`, `templateVersion` and `preset` as properties, the milestone set, template, constraints and archetypes as canonical JSON, one property each |
 | Wave | its own Work Package; label, order, window, capacity and template version as properties, a window end as `2027-Q2` or `2027-W19`; each milestone date its sites inherit under `archipelago.plan.milestone.<id>` (ADR 0016) |
-| Site plan | a Work Package only the file holds, aggregated by its wave (or by the rollout when unassigned) and associated with its Location; each field a property, each milestone under `archipelago.plan.milestone.<id>`, each actual under `archipelago.plan.actual.<id>`, the notes as its documentation |
+| Site plan | a Work Package only the file holds, aggregated by its wave (or by the rollout when unassigned) and associated with its Location; each field a property, each milestone under `archipelago.plan.milestone.<id>`, each actual under `archipelago.plan.actual.<id>`, the notes as its documentation; its exceptions, dependencies and own blackouts as canonical JSON, one property each (#214, ADR 0017) |
 
 A site plan's Work Package and its two relationships get ids derived from the
 rollout's and the Location's, claimed like every other xs:ID, so the same model
@@ -430,6 +432,9 @@ command.
 | Sites | `id`, `name`, `parent`, `archipelago.site.code`, every other `archipelago.site.*` property the rollout's Locations hold, `action` |
 | Waves | `id`, `label`, `order`, `windowStart`, `windowEnd`, `capacity`, `templateVersion` |
 | SitePlan | `location`, `name` (read only), `wave`, `archetype`, `rag`, `goNoGo`, and per milestone its planned `milestone.<id>` followed by its `actual.<id>` day |
+| Exceptions | `id`, `location`, `kind`, `change` (a template change's id), `entry` (an `add`'s own change, as canonical JSON), `offsetDays`, `disposition`, `class`, `owner`, `expires`, `rationale`, `action` (#214) |
+| Dependencies | `site`, `dependsOn`, `action`: one row per pair, the second cutting over first (#214) |
+| Milestones | the milestone set, for reference; read only |
 | Template | the template's changes, for reference; read only |
 
 A site's fields are the Location's `archipelago.site.*` properties, and a cell
@@ -447,7 +452,17 @@ blank parent removes the Location's parents, a parent it already has changes
 nothing, and any other replaces them; a view drawing a removed relationship
 loses it in the same command. Waves are updated, never created, from the
 workbook, and a site created in Sites cannot be planned in the same import,
-since SitePlan names sites by id.
+since SitePlan names sites by id. An Exceptions row is applied whole or not at
+all, since a half-changed exception may be none: a row with no id adds one, an id the
+rollout does not have is refused (`rollout-workbook.exception-unknown`), a
+row naming another site moves it there, and `remove` deletes it. A
+Dependencies row adds its pair, and `remove` deletes it. A site removed in
+Sites takes its exceptions and its own dependencies with it, and the other sites'
+dependencies on it, each one said and counted as deleted. An `add` row's
+change is checked as `validate()` checks a template change, and refused when
+its anchor, subject or successor is not there
+(`rollout-workbook.entry-reference-unknown`). A site's own blackouts are not
+carried yet, and the export says so.
 
 **Every problem names its sheet, row and column**, as an `ImportProblem` with
 `row` and `column` and a message that starts with them. A row whose identity
@@ -473,8 +488,8 @@ any other value is `rollout-workbook.go-no-go-unknown`. Actuals, RAG and
 go/no-go change nothing else of the site's plan, and the derived phase follows
 them (ADR 0016).
 
-**What the workbook does not carry yet:** notes. An export says how many sites
-have them, and an import leaves them as they are. A planned or actual date for
+**What the workbook does not carry yet:** notes and a site's own blackouts. An
+export says how many sites have them, and an import leaves them as they are. A planned or actual date for
 a milestone the set no longer has has no column either; the export says so as
 `rollout-workbook.dates-not-carried`, and an import leaves it.
 

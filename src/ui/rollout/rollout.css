@@ -47,7 +47,7 @@
 
 .kpis {
   display: grid;
-  grid-template-columns: repeat(3, minmax(96px, 120px)) repeat(2, minmax(180px, 1fr));
+  grid-template-columns: repeat(4, minmax(96px, 120px)) repeat(2, minmax(180px, 1fr));
   border-bottom: 1px solid var(--bd);
   background: var(--surface);
 }
@@ -970,4 +970,27 @@ button.register__name:hover {
 
 .migration__milestones td {
   font-size: 11px;
+}
+
+/* ── Plan checks (#214) ─────────────────────────────────────────────────── */
+
+/* The validator's list (validator.css), in a scrolling pane of the screen. */
+.rollout-checks {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 20px 32px;
+  max-width: 1080px;
+}
+
+.rollout-checks :focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.rollout-checks__summary {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ink2);
+  margin: 0;
 }

@@ -13,6 +13,7 @@ import {
   isMilestone,
   isPlanDate,
   isRolloutPlan,
+  isSiteException,
   isSitePlan,
   isTemplateChange,
   isWavePlan,
@@ -205,6 +206,67 @@ describe('the plan guards (#209)', () => {
       expect(isGoNoGo(value)).toBe(false)
       expect(isSitePlan({ location: 'l', goNoGo: value })).toBe(false)
     }
+  })
+})
+
+describe('the guards on exceptions and dependencies (#214)', () => {
+  const workspace = rolloutWorkspace(12)
+  const rollout = rolloutPlanOf(workspace.elements.find((element) => element.id === ROLLOUT_ID))!
+  const base = { id: 'ex', class: 'legal' }
+  const entry = {
+    id: 'own',
+    kind: 'introduce',
+    subject: 'e',
+    date: { anchor: 'cutover', offsetDays: 0 },
+  }
+
+  it('accept each kind with only its own keys', () => {
+    expect(isSiteException({ ...base, kind: 'skip', change: 'tc' })).toBe(true)
+    expect(isSiteException({ ...base, kind: 'modify', change: 'tc', offsetDays: 3 })).toBe(true)
+    expect(isSiteException({ ...base, kind: 'modify', change: 'tc', disposition: 'purge' })).toBe(
+      true,
+    )
+    expect(isSiteException({ ...base, kind: 'add', change: entry })).toBe(true)
+  })
+
+  it.each([
+    ['a skip with an offset', { kind: 'skip', change: 'tc', offsetDays: 3 }],
+    ['a skip with a disposition', { kind: 'skip', change: 'tc', disposition: 'purge' }],
+    ['an add with an offset', { kind: 'add', change: entry, offsetDays: 3 }],
+    ['an add with a disposition', { kind: 'add', change: entry, disposition: 'purge' }],
+    ['a modify with a key of no kind', { kind: 'modify', change: 'tc', offsetDays: 3, x: 1 }],
+    ['a skip with a key of no kind', { kind: 'skip', change: 'tc', x: 1 }],
+    ['an add with a key of no kind', { kind: 'add', change: entry, x: 1 }],
+    ['a modify that sets neither an offset nor a disposition', { kind: 'modify', change: 'tc' }],
+    ['a modify with a fractional offset', { kind: 'modify', change: 'tc', offsetDays: 1.5 }],
+    ['a modify with no such disposition', { kind: 'modify', change: 'tc', disposition: 'burn' }],
+    ['an add whose change is no change entry', { kind: 'add', change: 'tc' }],
+    ['a skip of no change', { kind: 'skip', change: '' }],
+    ['an exception of no kind', { kind: 'replace', change: 'tc' }],
+  ])('refuse %s', (_, fields) => {
+    expect(isSiteException({ ...base, ...fields })).toBe(false)
+  })
+
+  it('refuse an exception id another site of the rollout has', () => {
+    const exceptions = (id: string) => [{ ...base, id, kind: 'skip', change: 'tc' }]
+    const sites = (second: string) =>
+      rollout.sites.map((site, index) => {
+        const { exceptions: _, ...rest } = site
+        if (index === 0) return { ...rest, exceptions: exceptions('ex-1') }
+        if (index === 1) return { ...rest, exceptions: exceptions(second) }
+        return rest
+      })
+    expect(isRolloutPlan({ ...rollout, sites: sites('ex-2') })).toBe(true)
+    expect(isRolloutPlan({ ...rollout, sites: sites('ex-1') })).toBe(false)
+  })
+
+  it('take a site’s dependencies as a list of ids, each once', () => {
+    expect(isSitePlan({ location: 'l', dependsOn: ['a', 'b'] })).toBe(true)
+    expect(isSitePlan({ location: 'l', dependsOn: [] })).toBe(true)
+    expect(isSitePlan({ location: 'l', dependsOn: ['a', 'a'] })).toBe(false)
+    expect(isSitePlan({ location: 'l', dependsOn: ['a', ''] })).toBe(false)
+    expect(isSitePlan({ location: 'l', dependsOn: 'a' })).toBe(false)
+    expect(isSitePlan({ location: 'l', dependsOn: { a: true } })).toBe(false)
   })
 })
 

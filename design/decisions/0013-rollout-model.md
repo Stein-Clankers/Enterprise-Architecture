@@ -13,6 +13,8 @@ Points 5 and 10 are amended by [ADR 0015](0015-plan-dates-and-rollout-exchange-m
 
 Points 5, 6 and 9 are extended by [ADR 0016](0016-milestone-dates-and-site-phase.md): where the rollout's and a wave's dates live, how a site's date resolves and is spaced, when a milestone counts as reached or overdue, and the colour of Unplanned.
 
+Points 4 and 10 are extended by [ADR 0017](0017-site-exceptions-dependencies-and-plan-checks.md) (proposed): what a site exception holds, a site's dependencies and own blackouts, the plan checks, and how exceptions and dependencies travel in the exchange format.
+
 Points 6 and 9 are extended by [ADR 0018](0018-rollout-progress-and-actuals.md) (Proposed): the burn-up and its checkpoints read the derived phase, a go/no-go decision does not move it, and the burn-up's colours.
 
 ## Context

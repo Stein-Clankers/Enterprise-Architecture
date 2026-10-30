@@ -142,6 +142,8 @@ describe('exporting', () => {
       'Sites',
       'Waves',
       'SitePlan',
+      'Exceptions',
+      'Dependencies',
       'Milestones',
       'Template',
     ])
@@ -151,7 +153,7 @@ describe('exporting', () => {
 
   it('stays open to say what the workbook cannot carry', async () => {
     const downloads = stubDownloads()
-    // Actual dates are carried since #215; notes are not yet.
+    // Actual dates are carried since #215; notes and blackouts are not yet.
     const model = rolloutWorkspace(SITES)
     rolloutPlanOf(model.elements.find((e) => e.id === ROLLOUT_ID))!.sites[2]!.notes = 'Noted'
     const { user } = open('writer', model)
@@ -161,7 +163,7 @@ describe('exporting', () => {
     expect(exportDialog()).toHaveTextContent(
       'Downloaded local-data-to-the-central-lake-workbook.xlsx',
     )
-    expect(exportDialog()).toHaveTextContent('1 site has notes')
+    expect(exportDialog()).toHaveTextContent('1 site has notes or blackouts of its own')
     await user.click(within(exportDialog()).getByRole('button', { name: 'Done' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
@@ -227,6 +229,8 @@ describe('importing', () => {
     ])
     expect(count('sites.unchanged')).toBe(String(SITES - 1))
     expect(count('sites.created')).toBe('0')
+    // Sites 3 and 6's exceptions and site 6's dependencies (#214) are read and unchanged.
+    expect([count('exceptions.unchanged'), count('dependencies.unchanged')]).toEqual(['4', '2'])
     expect(within(importDialog()).getByText('rollout.xlsx')).toBeInTheDocument()
     // Nothing has changed yet.
     expect(toCanonicalJson(store.snapshot())).toBe(before)

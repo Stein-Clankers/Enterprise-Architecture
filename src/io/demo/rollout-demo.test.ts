@@ -115,7 +115,8 @@ function touchesBlackout(
 /**
  * The sites whose data may not leave their country but whose migration
  * target, the successor of a `replace` that applies to them, is located in
- * another country. Worked out from the model, as #214's check will be.
+ * another country. Worked out from the model here, apart from the plan
+ * check (#214), so the two agree on the demo by being written twice.
  */
 function residencyViolations(workspace: Workspace): string[] {
   const plan = planOf(workspace)
@@ -433,7 +434,7 @@ describe('what the rollout demo holds (#212)', () => {
   })
 })
 
-describe.each(SEEDS)('the seeded problems, with seed %i (#212, for #214)', (seed) => {
+describe.each(SEEDS)('the seeded problems, with seed %i (#212, #214)', (seed) => {
   const workspace = rolloutDemoWorkspace(seed)
   const plan = planOf(workspace)
   const data = rolloutData(
@@ -526,14 +527,83 @@ describe.each(SEEDS)('the seeded problems, with seed %i (#212, for #214)', (seed
     expect(violations[0]).toMatch(new RegExp(`^loc-site-${SEEDED.residencyCountry}-`))
   })
 
+  /** The site that waits for a hub of a later wave: the one dependency the plan breaks. */
+  const spokes = inWave.filter(
+    (site) =>
+      site.wave === SEEDED.dependency.spokeWave &&
+      (site.dependsOn ?? []).some(
+        (id) =>
+          plan.sites.find((other) => other.location === id)?.wave === SEEDED.dependency.hubWave,
+      ),
+  )
+
+  it('has exactly one dependency order violated: a W1 site waiting for a W2 hub', () => {
+    expect(spokes).toHaveLength(1)
+    const spoke = resolved(workspace, spokes[0]!).get('freezeStart')!
+    const hubPlan = plan.sites.find((site) => site.location === spokes[0]!.dependsOn![0])!
+    const hub = resolved(workspace, hubPlan).get('freezeStart')!
+    // Every W1 window day is before every W2 one, so the spoke goes first.
+    expect(dayAfterPeriod(spoke.planned!) <= hub.planned!.date).toBe(true)
+  })
+
+  it('finds six findings for the five seeded problems, and nothing else (#214)', () => {
+    const found = data.checks.map((finding) => `${finding.code} ${finding.subjectId}`)
+    expect(found.sort()).toEqual(
+      [
+        `rollout.site-unassigned ${data.unassigned[0]!.location}`,
+        `rollout.wave-over-capacity ${SEEDED.overCapacityWave}`,
+        `rollout.cutover-in-blackout ${seededSite.location}`,
+        // The data-migration preset's freeze, cutover to reconciliation, is in it too.
+        `rollout.freeze-in-blackout ${seededSite.location}`,
+        `rollout.dependency-order ${spokes[0]!.location}`,
+        ...residencyViolations(workspace).map((site) => `rollout.residency ${site}`),
+      ].sort(),
+    )
+  })
+
   it('puts each seeded site problem on a site of its own', () => {
     const seeded = [
       data.unassigned[0]!.location,
       seededSite.location,
       ...residencyViolations(workspace),
+      ...spokes.map((site) => site.location),
     ]
-    expect(seeded).toHaveLength(3)
-    expect(new Set(seeded).size).toBe(3)
+    expect(seeded).toHaveLength(4)
+    expect(new Set(seeded).size).toBe(4)
+  })
+
+  it('has dependencies that hold: each pilot site a hub for a later site of its region', () => {
+    const pilot = new Set(data.waves[0]!.sites.map((site) => site.location))
+    const followers = plan.sites.filter((site) =>
+      (site.dependsOn ?? []).some((id) => pilot.has(id)),
+    )
+    expect(followers.length).toBeGreaterThan(0)
+    for (const follower of followers) {
+      const cutover = resolved(workspace, follower).get('freezeStart')!
+      const hubPlan = plan.sites.find((site) => site.location === follower.dependsOn![0])!
+      const hub = resolved(workspace, hubPlan).get('freezeStart')!
+      expect(cutover.planned!.date > hub.planned!.date, follower.location).toBe(true)
+    }
+    // Every dependency is one of these or the seeded violation.
+    expect(plan.sites.filter((site) => site.dependsOn).length).toBe(followers.length + 1)
+  })
+
+  it('has one exception of each kind, on sites of their own, none expired at the as-of day', () => {
+    const exceptions = plan.sites.flatMap((site) => site.exceptions ?? [])
+    expect(exceptions.map((exception) => exception.kind).sort()).toEqual(['add', 'modify', 'skip'])
+    expect(plan.sites.filter((site) => site.exceptions).length).toBe(3)
+    for (const exception of exceptions) {
+      expect(exception.owner).toBeDefined()
+      expect(exception.expires! > ROLLOUT_DEMO_AS_OF).toBe(true)
+    }
+  })
+
+  it('has one site with a blackout of its own, clear of its freeze', () => {
+    const own = plan.sites.filter((site) => site.blackouts)
+    expect(own).toHaveLength(1)
+    const milestones = resolved(workspace, own[0]!)
+    const freezeEnd = dayAfterPeriod(milestones.get('reconciliationSignedOff')!.planned!)
+    expect(own[0]!.blackouts![0]!.start > freezeEnd).toBe(true)
   })
 
   it('pilots one site in each of four regions, of every archetype, none bound to its country', () => {

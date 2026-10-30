@@ -109,7 +109,10 @@ test('export a rollout workbook, change three cells, and see the import count th
   await expect(count('waves.unchanged')).toHaveText('4')
   await expect(count('sitePlans.updated')).toHaveText('1')
   await expect(count('sitePlans.unchanged')).toHaveText('7')
-  for (const sheet of ['sites', 'waves', 'sitePlans']) {
+  // Sites 3 and 6's four exceptions and site 6's two dependencies (#214) are read, unchanged.
+  await expect(count('exceptions.unchanged')).toHaveText('4')
+  await expect(count('dependencies.unchanged')).toHaveText('2')
+  for (const sheet of ['sites', 'waves', 'sitePlans', 'exceptions', 'dependencies']) {
     await expect(count(`${sheet}.created`)).toHaveText('0')
     await expect(count(`${sheet}.deleted`)).toHaveText('0')
   }

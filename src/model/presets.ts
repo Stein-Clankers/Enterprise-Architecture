@@ -2,8 +2,9 @@ import type { Archetype, Milestone } from './plan'
 
 /**
  * Rollout presets (#213, proposal §4.8, ADR 0013 point 6): a preset is
- * **data**, a milestone set and default durations between its milestones,
- * never code. ERP, network or workplace rollouts are more entries here.
+ * **data**, a milestone set, default durations between its milestones and
+ * the plan checks it adds (#214, `PresetChecks`), never code. ERP, network or
+ * workplace rollouts are more entries here.
  *
  * The milestone sets are the proposal's: the generic one from §4.5's table,
  * where cutover starts Hypercare, and the data-migration one from §4.8's. The
@@ -21,6 +22,36 @@ import type { Archetype, Milestone } from './plan'
 export const ROLLOUT_PRESET_IDS = ['generic', 'dataMigration'] as const
 export type RolloutPresetId = (typeof ROLLOUT_PRESET_IDS)[number]
 
+/**
+ * A site's data residency (proposal §4.8): its data may go anywhere, must
+ * stay in its region, or must stay in its country.
+ */
+export const RESIDENCY_CLASSES = ['none', 'region', 'country'] as const
+export type ResidencyClass = (typeof RESIDENCY_CLASSES)[number]
+
+export function isResidencyClass(value: unknown): value is ResidencyClass {
+  return (RESIDENCY_CLASSES as readonly unknown[]).includes(value)
+}
+
+/** The site field a site's residency class is kept in, until #70's custom fields (ADR 0013 point 8). */
+export const RESIDENCY_FIELD = 'archipelago.site.residency'
+
+/**
+ * The checks a preset adds to every rollout's (proposal §4.8, `plan-checks.ts`),
+ * as data: each names the milestones it reads by id. A rollout made from the
+ * preset may since have deleted one; the check then says it cannot run.
+ */
+export interface PresetChecks {
+  /** Mock loads: each of these milestones is reached before cutover. */
+  mockLoads?: readonly string[]
+  /** The freeze runs from `start` to `end` and must stay clear of every blackout. */
+  freeze?: { start: string; end: string }
+  /** Reconciliation: `signedOff` is reached before `before`. */
+  reconciliation?: { signedOff: string; before: string }
+  /** Residency: a site's class is its `field`; its data moves to each `replace`'s successor. */
+  residency?: { field: string }
+}
+
 export interface RolloutPreset {
   id: RolloutPresetId
   label: string
@@ -28,6 +59,7 @@ export interface RolloutPreset {
   milestones: Milestone[]
   /** Days from the previous milestone, by milestone id: ours, not sourced. */
   durations: Record<string, number>
+  checks: PresetChecks
 }
 
 export const ROLLOUT_PRESETS: Record<RolloutPresetId, RolloutPreset> = {
@@ -43,6 +75,7 @@ export const ROLLOUT_PRESETS: Record<RolloutPresetId, RolloutPreset> = {
       { id: 'legacyRetired', label: 'Legacy retired', startsPhase: 'done' },
     ],
     durations: { goNoGo: 28, cutover: 7, hypercareEnd: 28, legacyRetired: 90 },
+    checks: {},
   },
   dataMigration: {
     id: 'dataMigration',
@@ -76,6 +109,14 @@ export const ROLLOUT_PRESETS: Record<RolloutPresetId, RolloutPreset> = {
       legacyReadOnly: 1,
       legacyDecommissioned: 90,
     },
+    // Proposal §4.8, "Checks only this preset adds": the freeze runs from its
+    // start to reconciliation, which signs the migrated data off.
+    checks: {
+      mockLoads: ['mockLoad1', 'mockLoad2'],
+      freeze: { start: 'freezeStart', end: 'reconciliationSignedOff' },
+      reconciliation: { signedOff: 'reconciliationSignedOff', before: 'hypercareEnd' },
+      residency: { field: RESIDENCY_FIELD },
+    },
   },
 }
 
@@ -95,12 +136,17 @@ export const STANDARD_ARCHETYPE_ID = 'standard'
  */
 export const STANDARD_ARCHETYPE_LABEL = 'Standard (placeholder)'
 
-/** What a rollout made from `preset` starts with: fresh copies, so no edit reaches the preset. */
+/**
+ * What a rollout made from `preset` starts with: fresh copies, so no edit
+ * reaches the preset, and the preset's id, for the checks it adds (#214).
+ */
 export function presetPlan(preset: RolloutPreset): {
+  preset: RolloutPresetId
   milestones: Milestone[]
   archetypes: Archetype[]
 } {
   return {
+    preset: preset.id,
     milestones: preset.milestones.map((milestone) => ({ ...milestone })),
     archetypes: [
       {
