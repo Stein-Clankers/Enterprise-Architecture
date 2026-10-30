@@ -97,6 +97,35 @@ Deriving rather than storing is what makes the time dimension free: the inventor
 evaluates at today, the graph at its slider year, the roadmap will read the same
 dates, and nothing can drift.
 
+## The state at a date (#61)
+
+`modelAt(workspace, at, scenario?)` in `model-at.ts` is the one way to read
+the architecture at a time point under a plan (ADR 0014 §4). It returns each
+present element's state (`planned`, `live` or `retired`), the relationships
+valid at that time, the planned values that have taken effect, and the
+successor links of the `replace` entries reached. The plan is the change
+entries of every initiative (`InitiativePlan`, a Work Package's plan of kind
+`initiative`) whose status is approved, in progress or done, with a
+`Scenario`'s inclusions and exclusions on top. Exclusion wins.
+
+- **The baseline is the stored dates**: an element's lifecycle, mapped from the
+  derived phase (`stateOfPhase`), and a relationship's `[validFrom, validTo)`.
+- **An included entry wins over a stored date**; of several, the earliest.
+- **Something dated only by entries is absent without them**: an element some
+  initiative introduces with no lifecycle date of its own, or a relationship
+  some initiative adds with no `validFrom`.
+- **A relationship is valid only while both endpoints are live.**
+
+A screen that moves its time point prepares once per model version and
+scenario (`preparePlan`) and evaluates with `stateAt`; `modelAt` does both.
+Which entries count is decided once, in the plan reader both functions share.
+
+`planConflicts(workspace, scenario?)` lists what ADR 0014 §6 calls conflicts,
+without refusing the plan. ADR 0020 records the choices ADR 0014 left open.
+`model-at.test.ts` pins every rule on both sides of its date, holds the
+invariant over 300 random workspaces, and asserts the budgets of ADR 0020
+point 9 at 5,000 elements and 15,000 relationships.
+
 ## Completeness scoring
 
 *(UI spec open question 4 — resolved here.)*

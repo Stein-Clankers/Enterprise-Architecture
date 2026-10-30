@@ -9,12 +9,16 @@ import {
   isPlanDate,
   isPositiveInteger,
   isGoNoGo,
+  isInitiativeChange,
+  isInitiativeStatus,
   isRolloutPresetId,
   isSiteException,
   isSiteRag,
   isTemplateChange,
   type Archetype,
   type Blackout,
+  type InitiativeChange,
+  type InitiativePlan,
   type Milestone,
   type PlanProfile,
   type RolloutConstraints,
@@ -31,11 +35,11 @@ import { byId, isRecord, prune } from './json-helpers'
 import { listed } from './exchange-xml'
 
 /**
- * Rollout and wave plan profiles in the native format (#209), and the lenient
- * readers both formats share.
+ * Rollout, wave and initiative plan profiles in the native format (#209, #61),
+ * and the lenient readers both formats share.
  *
- * Writing: the milestone set and the template keep the order their author
- * gave them, because the order means something (phases are derived walking the
+ * Writing: the milestone set, the template and an initiative's changes keep
+ * the order their author gave them, because the order means something (phases are derived walking the
  * milestones in order). Everything else is sorted by a stable key: archetypes
  * and blackouts by id, site plans by location id (proposal §8), and every
  * record's keys by `sortKeys` at every depth. An empty record or list is left
@@ -56,6 +60,13 @@ export function canonicalPlan(plan: PlanProfile): Record<string, unknown> {
       ...plan,
       window: plan.window && prune({ ...plan.window }),
       milestones: plan.milestones && prune({ ...plan.milestones }),
+    })
+  }
+  if (plan.kind === 'initiative') {
+    return prune({
+      kind: plan.kind,
+      status: plan.status,
+      changes: plan.changes.map((change) => prune({ ...change })),
     })
   }
   return prune({
@@ -119,6 +130,7 @@ export function readPlanProfile(raw: unknown): PlanRead<PlanProfile> {
   if (!isRecord(raw)) return { value: undefined, dropped: ['the plan, which is not an object'] }
   if (raw.kind === 'rollout') return readRolloutPlan(raw)
   if (raw.kind === 'wave') return readWavePlan(raw)
+  if (raw.kind === 'initiative') return readInitiativePlan(raw)
   return { value: undefined, dropped: [`kind ${JSON.stringify(raw.kind)}`] }
 }
 
@@ -203,6 +215,24 @@ function readWavePlan(raw: Record<string, unknown>): PlanRead<WavePlan> {
     '',
     dropped,
   )
+  return { value: plan, dropped }
+}
+
+/**
+ * An initiative's plan. Without a status it is in no plan at all, so it is
+ * dropped whole; a change that fails its guard is dropped and named.
+ */
+function readInitiativePlan(raw: Record<string, unknown>): PlanRead<InitiativePlan> {
+  if (!isInitiativeStatus(raw.status)) {
+    return { value: undefined, dropped: [`status ${JSON.stringify(raw.status)}`] }
+  }
+  const dropped: string[] = []
+  const plan: InitiativePlan = {
+    kind: 'initiative',
+    status: raw.status,
+    changes: readPlanList<InitiativeChange>(raw.changes, isInitiativeChange, 'changes', dropped),
+  }
+  unknownKeys(raw, ['kind', 'status', 'changes'], '', dropped)
   return { value: plan, dropped }
 }
 

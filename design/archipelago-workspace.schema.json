@@ -16,7 +16,7 @@
     "schemaVersion": {
       "type": "integer",
       "minimum": 1,
-      "description": "Format version. This build writes 6."
+      "description": "Format version. This build writes 7."
     },
     "id": {
       "type": "string",
@@ -211,13 +211,16 @@
       ]
     },
     "plan": {
-      "description": "A Work Package's plan profile: a rollout with its site plans, or one of its waves. Only a Work Package carries one.",
+      "description": "A Work Package's plan profile: a rollout with its site plans, one of its waves, or an initiative. Only a Work Package carries one.",
       "oneOf": [
         {
           "$ref": "#/$defs/rolloutPlan"
         },
         {
           "$ref": "#/$defs/wavePlan"
+        },
+        {
+          "$ref": "#/$defs/initiativePlan"
         }
       ]
     },
@@ -382,6 +385,152 @@
           "description": "The dates the wave's sites inherit when they set none of their own, by milestone id.",
           "additionalProperties": {
             "$ref": "#/$defs/planDate"
+          }
+        }
+      }
+    },
+    "initiativePlan": {
+      "type": "object",
+      "description": "An initiative (ADR 0014): the thing that changes the architecture. Its changes are in the plan of record while its status is approved, inProgress or done.",
+      "required": [
+        "kind",
+        "status"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "initiative"
+        },
+        "status": {
+          "enum": [
+            "idea",
+            "proposed",
+            "approved",
+            "inProgress",
+            "done",
+            "cancelled"
+          ]
+        },
+        "changes": {
+          "type": "array",
+          "description": "The change entries it owns, in order. Each date is a plan date.",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "kind",
+              "subject",
+              "date"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "kind": {
+                "enum": [
+                  "introduce",
+                  "retire",
+                  "replace",
+                  "add",
+                  "remove",
+                  "modify"
+                ]
+              },
+              "subject": {
+                "type": "string",
+                "minLength": 1,
+                "description": "id of the element or relationship it dates"
+              },
+              "successor": {
+                "type": "string",
+                "minLength": 1,
+                "description": "kind 'replace': id of the element that replaces subject"
+              },
+              "field": {
+                "enum": [
+                  "functionalFit",
+                  "technicalFit",
+                  "timeClassification"
+                ]
+              },
+              "value": {
+                "description": "kind 'modify': the planned value of field",
+                "oneOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 4
+                  },
+                  {
+                    "enum": [
+                      "Tolerate",
+                      "Invest",
+                      "Migrate",
+                      "Eliminate"
+                    ]
+                  }
+                ]
+              },
+              "date": {
+                "$ref": "#/$defs/planDate"
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "kind": {
+                      "const": "replace"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "successor"
+                  ]
+                },
+                "else": {
+                  "not": {
+                    "required": [
+                      "successor"
+                    ]
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "kind": {
+                      "const": "modify"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "field",
+                    "value"
+                  ]
+                },
+                "else": {
+                  "not": {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "field"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "value"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
           }
         }
       }

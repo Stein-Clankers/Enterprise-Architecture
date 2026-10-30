@@ -1,5 +1,52 @@
 # Session Log
 
+## 2026-10-30 — #61 part 1: initiatives in the model, `modelAt` and its conflicts
+
+- **Started R3 with #61**, because `modelAt` needs a plan of record and #60's initiatives are what make one. The work is split into stacked PRs:
+  1. **This PR:** the model;
+  2. **#61 part 2:** the time point in the shared chrome, the inventory and the graph reading `modelAt`, and an e2e journey;
+  3. **#60:** the initiative fact sheet and its commands;
+  4. **#64:** gap analysis.
+- **Built:**
+  - `InitiativePlan` (kind `initiative`, a status, change entries with plan dates), schema 7;
+  - canonical JSON and the exchange format (`archipelago.plan.status`, `archipelago.plan.changes`), with both readers lenient part by part;
+  - `validate()` reports an initiative's dangling subject or successor;
+  - `modelAt(workspace, at, scenario?)` and `planConflicts` (four of ADR 0014 §6's six).
+- **Tests:**
+  - every rule on both sides of its date;
+  - each status case;
+  - the invariant over 300 seeded random workspaces;
+  - "include, then exclude, returns the original";
+  - the 10 ms budget at 5,000 elements, 15,000 relationships and 1,600 entries, checked against a count made independently of `modelAt`.
+  - **33 mutation probes,** all caught. Two survived on the first run, and their cases were added.
+- **ADR 0020 (Proposed)** records seven choices ADR 0014 left open, among them `validTo` as exclusive, valid only between live endpoints, earliest entry wins, and an open end not being a conflict. The sponsor should accept or change them before part 2 builds UI on them.
+- **Regenerated:** the three rollout fixtures and the demo, for the schema bump only.
+- **Reviewed (`/review-pr 246 high`), and changes requested.** The review ran in the authoring session, and a fresh agent did the generic pass. Findings:
+  - **CI is red:** the budget test runs under `test:coverage`, where the median is 21 ms against 3.8 ms locally. The "all passed" in the PR body was a local result.
+  - **Silent data behaviour:**
+    - a `replace` with a missing subject makes its successor vanish;
+    - `retired-twice` names a date `modelAt` ignores;
+    - an unparseable `validTo` opens the window for ever.
+  - **Test gaps:** 13 of the agent's 46 mutants survived.
+
+  **Harvested:**
+  - **CLAUDE.md:** budgets measured under coverage; green means CI is green.
+  - **Review skill:** one filter per list; the first PR to give a stored field meaning checks what the readers accept.
+- **Fixed on #246:**
+  - `modelAt` is now `preparePlan` plus `stateAt`, over flat arrays;
+  - which entries count is decided once, in `readPlan`;
+  - a retirement never revives an element;
+  - `relationship.unparseable-date` and `plan.initiative-replace-self` are new findings;
+  - the year-0–99 date bug is fixed;
+  - each conflict names what caused it.
+- **Budget, under local coverage:** `stateAt` 0.9 ms, a cold `modelAt` 5.4 ms. ADR 0020 points 8–10 record the new rules and the split budget: `stateAt` ≤ 10 ms, asserted at 5 ms; a cold `modelAt` ≤ 30 ms.
+- **Probes:** 42; 41 caught, and the survivor is an equivalent mutant (`break` against `continue` over a sorted list).
+- **Open:**
+  - re-review #246;
+  - the sponsor's call on ADR 0020;
+  - #61 part 2, #60 and #64;
+  - stale agent worktrees under `.claude/worktrees/` make a local `npm run lint` fail (CI is unaffected) and are worth sweeping.
+
 ## 2026-10-30 — R2 complete: #214 and #215 merged; ADRs 0017 and 0018 accepted
 
 - **#242 (#214): site exceptions, dependencies, per-site blackouts and plan checks.** It took three review rounds before the sponsor merged it.

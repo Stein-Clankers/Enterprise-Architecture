@@ -26,8 +26,11 @@ import type { Layer } from './layers'
  *   shape change for older data either.
  * - 6: `Element.plan`: rollouts, waves and their site plans (#209). No shape
  *   change for older data either; a schema-5 build warns that it drops them.
+ * - 7: initiatives, an `Element.plan` of kind `initiative` with its change
+ *   entries (#61, ADR 0014). No shape change for older data either; a schema-6
+ *   build reads such a plan as one it cannot read, and says so.
  */
-export const SCHEMA_VERSION = 6
+export const SCHEMA_VERSION = 7
 
 /** ArchiMate properties are string-valued in the exchange format; numbers and
  *  booleans are allowed here and serialise as their string form. */
@@ -41,8 +44,9 @@ export interface Element {
   properties: Record<string, PropertyValue>
   profile?: PortfolioProfile
   /**
-   * A Work Package's plan profile: a rollout with its site plans, or one of its
-   * waves (#209, ADR 0013). Absent on every other element.
+   * A Work Package's plan profile: a rollout with its site plans, one of its
+   * waves (#209, ADR 0013), or an initiative (#61, ADR 0014). Absent on every
+   * other element.
    */
   plan?: PlanProfile
   /**

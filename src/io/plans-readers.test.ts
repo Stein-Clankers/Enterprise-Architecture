@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { rolloutPlanOf, validate, wavePlanOf, type Element, type Workspace } from '@/model'
+import {
+  SCHEMA_VERSION,
+  rolloutPlanOf,
+  validate,
+  wavePlanOf,
+  type Element,
+  type Workspace,
+} from '@/model'
 import { ROLLOUT_ID, rolloutWorkspace, siteId, waveId } from '@/test/rollout-fixture'
 import { importArchimate } from './archimate-native'
 import { fromCanonicalJson, toCanonicalJson } from './canonical-json'
@@ -155,7 +162,7 @@ describe('reading plans from canonical JSON (#209)', () => {
       JSON.stringify({ schemaVersion: 5, id: 'ws', name: 'Old', elements: [], relationships: [] }),
     )
     expect(codes(problems)).toEqual(['json.schema-upgraded'])
-    expect(workspace?.schemaVersion).toBe(6)
+    expect(workspace?.schemaVersion).toBe(SCHEMA_VERSION)
   })
 })
 
@@ -729,8 +736,8 @@ describe('each unreadable part of a canonical plan is named (#209)', () => {
     [
       'a plan of an unknown kind',
       waveId(1),
-      (plan) => (plan.kind = 'initiative'),
-      'kind "initiative"',
+      (plan) => (plan.kind = 'programme'),
+      'kind "programme"',
     ],
   ]
 

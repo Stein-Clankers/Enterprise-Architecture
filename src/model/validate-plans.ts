@@ -1,4 +1,10 @@
-import { rolloutPlanOf, wavePlanOf, type ChangeEntry, type ChangeKind } from './plan'
+import {
+  initiativePlanOf,
+  rolloutPlanOf,
+  wavePlanOf,
+  type ChangeEntry,
+  type ChangeKind,
+} from './plan'
 import type { Finding } from './validate'
 import type { Element, Relationship, Workspace } from './workspace'
 
@@ -19,6 +25,10 @@ import type { Element, Relationship, Workspace } from './workspace'
  * element and archetypes, its date's anchor, and the milestones an
  * archetype's durations are keyed by. A site's own changes (`add` exceptions)
  * are change entries too, and are checked the same way.
+ *
+ * **An initiative's changes** (#61) are checked the same way: `modelAt`
+ * leaves out an entry whose subject or successor is not there, so the finding
+ * is the only place it shows.
  *
  * These are integrity findings, not the plan checks of `plan-checks.ts` (a
  * wave over capacity, a cutover in a blackout): those judge a plan at a time
@@ -53,6 +63,28 @@ export function planFindings(
           subjectId: element.id,
           subjectKind: 'element',
         })
+      }
+    }
+
+    // An initiative's changes (#61): what `modelAt` cannot find, it leaves out,
+    // so it is said here.
+    const initiative = initiativePlanOf(element)
+    if (initiative) {
+      const refs: EntryReferences = {
+        elements: elementsById,
+        relationships: relationshipIds,
+        milestones: new Set(),
+      }
+      for (const change of initiative.changes) {
+        for (const [code, message] of entryReferences(change, refs)) {
+          findings.push({
+            severity: 'warning',
+            code: `plan.initiative-${code}`,
+            message: `Change "${change.id}" of initiative “${element.name || element.id}” ${message}`,
+            subjectId: element.id,
+            subjectKind: 'element',
+          })
+        }
       }
     }
 
@@ -241,7 +273,8 @@ export interface EntryReferences {
 /**
  * The references of a change entry that do not hold, each as a code suffix
  * and the end of a sentence. An `add` or `remove` dates a relationship, every
- * other kind an element (ADR 0014 §2); `replace` names its successor; an
+ * other kind an element (ADR 0014 §2); `replace` names its successor, which
+ * is not its subject; an
  * anchored date names a milestone of the rollout.
  */
 export function entryReferences(entry: ChangeEntry, refs: EntryReferences): [string, string][] {
@@ -256,7 +289,12 @@ export function entryReferences(entry: ChangeEntry, refs: EntryReferences): [str
       `${VERBS[entry.kind]} "${entry.subject}", which is not ${datesRelationship ? 'a relationship' : 'an element'} in the model.`,
     ])
   }
-  if (entry.kind === 'replace' && !refs.elements.has(entry.successor)) {
+  if (entry.kind === 'replace' && entry.successor === entry.subject) {
+    out.push([
+      'replace-self',
+      `replaces "${entry.subject}" with itself, which dates nothing, so it is left out of every state.`,
+    ])
+  } else if (entry.kind === 'replace' && !refs.elements.has(entry.successor)) {
     out.push([
       'successor-unknown',
       `replaces its subject with "${entry.successor}", which is not an element in the model.`,

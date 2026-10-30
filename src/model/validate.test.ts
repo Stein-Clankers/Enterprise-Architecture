@@ -121,6 +121,17 @@ describe('workspace validation', () => {
     expect(report.valid).toBe(true)
   })
 
+  it('warns about a relationship bound that will not parse, on each side, and not about a real one (#246)', () => {
+    const bounds = (profile: { validFrom?: string; validTo?: string }) =>
+      validate(workspace({ relationships: [relationship({ profile })] })).warnings.map((f) => [
+        f.code,
+        f.message.includes(Object.keys(profile)[0]!),
+      ])
+    expect(bounds({ validFrom: '2027-13-01' })).toEqual([['relationship.unparseable-date', true]])
+    expect(bounds({ validTo: 'soon' })).toEqual([['relationship.unparseable-date', true]])
+    expect(bounds({ validFrom: '2026-01-01', validTo: '2027-01-01' })).toEqual([])
+  })
+
   it('warns about self-referencing relationships except association', () => {
     const selfServe = validate(
       workspace({ relationships: [relationship({ source: 'app-crm', target: 'app-crm' })] }),

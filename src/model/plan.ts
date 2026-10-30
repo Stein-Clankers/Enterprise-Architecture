@@ -723,7 +723,67 @@ export interface WavePlan {
   milestones?: Record<string, PlanDate>
 }
 
-export type PlanProfile = RolloutPlan | WavePlan
+// ── Initiatives (ADR 0014 §2, #60) ───────────────────────────────────────────
+
+/**
+ * An initiative's status, in the order it normally runs (ADR 0014 §2). `inProgress`
+ * is "in progress"; the label is the screen's to spell.
+ */
+export const INITIATIVE_STATUSES = [
+  'idea',
+  'proposed',
+  'approved',
+  'inProgress',
+  'done',
+  'cancelled',
+] as const
+export type InitiativeStatus = (typeof INITIATIVE_STATUSES)[number]
+
+export function isInitiativeStatus(value: unknown): value is InitiativeStatus {
+  return (INITIATIVE_STATUSES as readonly unknown[]).includes(value)
+}
+
+/** The statuses whose entries make up the plan of record (ADR 0014 §3). */
+export const PLAN_OF_RECORD_STATUSES: readonly InitiativeStatus[] = [
+  'approved',
+  'inProgress',
+  'done',
+]
+
+/**
+ * A change entry an initiative owns. Its date is a plan date: an initiative has
+ * no milestones for an anchored date to name, and ADR 0019 keeps its subjects
+ * fixed.
+ */
+export type InitiativeChange = ChangeEntry & { date: PlanDate }
+
+export function isInitiativeChange(value: unknown): value is InitiativeChange {
+  return isChangeEntry(value) && isPlanDate(value.date)
+}
+
+/**
+ * The plan profile of an initiative Work Package: the thing that changes the
+ * architecture (ADR 0014 §2). This is the part `modelAt` reads (#61); the
+ * initiative's dates, owner, budget and dependencies are #60's to add.
+ */
+export interface InitiativePlan {
+  kind: 'initiative'
+  status: InitiativeStatus
+  /** Ordered, as the author wrote them. */
+  changes: InitiativeChange[]
+}
+
+export function isInitiativePlan(value: unknown): value is InitiativePlan {
+  return (
+    isRecord(value) &&
+    hasOnlyKeys(value, ['kind', 'status', 'changes']) &&
+    value.kind === 'initiative' &&
+    isInitiativeStatus(value.status) &&
+    isUniqueList(value.changes, isInitiativeChange)
+  )
+}
+
+export type PlanProfile = RolloutPlan | WavePlan | InitiativePlan
 
 /** Only a Work Package carries a plan profile (ADR 0013 points 1 and 2). */
 export const PLAN_ELEMENT_TYPE = 'WorkPackage' as const
@@ -795,7 +855,7 @@ export function isWavePlan(value: unknown): value is WavePlan {
 }
 
 export function isPlanProfile(value: unknown): value is PlanProfile {
-  return isRolloutPlan(value) || isWavePlan(value)
+  return isRolloutPlan(value) || isWavePlan(value) || isInitiativePlan(value)
 }
 
 // ── Reading plans off the model ──────────────────────────────────────────────
@@ -808,6 +868,11 @@ export function rolloutPlanOf(element: Element | undefined): RolloutPlan | undef
 /** The wave plan of `element`, when it is a wave. */
 export function wavePlanOf(element: Element | undefined): WavePlan | undefined {
   return element?.plan?.kind === 'wave' ? element.plan : undefined
+}
+
+/** The initiative plan of `element`, when it is an initiative. */
+export function initiativePlanOf(element: Element | undefined): InitiativePlan | undefined {
+  return element?.plan?.kind === 'initiative' ? element.plan : undefined
 }
 
 /** The waves of a rollout, by order and then id, so ties cannot reorder between runs. */
