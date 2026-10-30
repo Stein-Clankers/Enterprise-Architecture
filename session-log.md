@@ -1,5 +1,52 @@
 # Session Log
 
+## 2026-10-30 — R2 complete: #214 and #215 merged; ADRs 0017 and 0018 accepted
+
+- **#242 (#214): site exceptions, dependencies, per-site blackouts and plan checks.** It took three review rounds before the sponsor merged it.
+  - **Built:** `planChecks()` runs the 8 general checks and the data-migration preset's 4. Missing input gives advice rather than silence, and `validate()` now checks template and exception references. It also adds the workbook's Exceptions and Dependencies sheets and a Plan checks tab.
+  - **Demo:** it now seeds all five problems, which give six findings.
+  - **Review rounds:**
+    - **Round 1:** precedence was tested on the late side only, "next wave" only on waves whose sites agree, and three guards had no tests.
+    - **Round 2:** the order checks were tested only at day precision, and a removed site's own dependencies were dropped without a word.
+    - **Round 3:** the coordinator probed it, and the coarse-order test fails as it should.
+  - **Sponsor decisions, now in ADR 0017:**
+    - **2026-10-29:**
+      - checks are independent;
+      - "next wave" runs up to the first wholly Planned wave;
+      - expiry advice is for `preference` exceptions only;
+      - residency skips `purge` and `retain`.
+    - **2026-10-30:** in an order check, a coarse date counts from its period's first day, as the phase does.
+  - **Accepted:** ADR 0017, and the ADR 0016 point 8 amendment, which keeps the refusal and extends it to `add` exceptions.
+- **#241 (#215): actuals through the workbook, the burn-up with 25/50/75% checkpoints, and the site fact sheet's Migration tab.**
+  - **Review rounds:**
+    - **Round 1:** checkpoints went late on the exact day rather than at the end of the shown period.
+    - **Round 2:** in a mixed-precision wave, a checkpoint took its period only from the sites that were transitioning.
+  - **Reconciled with #242:** 14 adjacent conflicts. The generated files were regenerated rather than merged, and the Migration tab now shows exceptions, dependencies and the site's findings.
+  - **Checked by the coordinator:** the regenerated demo is byte-identical, and the latest-ending-period probe fails.
+  - **Accepted:** ADR 0018 (no baseline, the current-wave rule, `ceil` targets, late from the period's end, go/no-go not moving the phase, no schema bump), and ADR 0013 point 9 gains six burn-up rows.
+- **Harvested:**
+  - **CLAUDE.md:**
+    - every check that reads a precedence pins both sides itself;
+    - a set predicate needs members that disagree;
+    - a date comparison needs disagreeing precisions.
+  - **Review skill:**
+    - when two checks read one input, say whether one yields;
+    - flags follow the shown period;
+    - a rounding needs set sizes that separate it;
+    - a rule over a share covers every member counted;
+    - an instant asserted beside its period must not be the period's first day.
+- **Filed:**
+  - #243: a half-typed date clears the value in both site dialogs;
+  - #244: `planChecks` runs on every change;
+  - #245: an `add` subject created by the same import;
+  - #222 gains the `removeSites` cascade of `dependsOn`.
+- **The session limit** interrupted two agents. Both were resumed with their work intact.
+- **Open:**
+  - **R3 waits on the sponsor's decision on #230:** how a template replaces a site's realization, the double retire, and per-site stores.
+  - Switch the older rollout journeys and fixtures to the demo.
+  - Visible follow-ups: #236 (the register scrolls sideways at 1280 px) and #243 (a half-typed date clears the value).
+  - #208 and #210 still lack a LibreOffice-saved fixture.
+
 ## 2026-10-29 — #235 merged: the #229 review's fixes, ADR 0016 amended, #233 closed
 
 - **#235**, the fixes from the #229 review, took three review rounds and was merged by the sponsor. It closes #233.

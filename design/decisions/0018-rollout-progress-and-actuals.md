@@ -2,7 +2,7 @@
 adr: '0018'
 title: 'Rollout progress: the burn-up, its checkpoints, and actuals from the PMO'
 date: 2026-10-29
-status: Proposed
+status: Accepted
 scope: project
 tags: [transformation, rollout, model, workbook]
 ---
@@ -53,4 +53,4 @@ The phase rules exist already (ADR 0016). What the burn-up counts, which wave it
 
 ## Status
 
-Proposed with #241. The sponsor accepts or amends it before #215 closes.
+Proposed with #241. The sponsor accepted it on 2026-10-30.
