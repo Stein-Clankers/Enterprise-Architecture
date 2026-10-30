@@ -54,6 +54,8 @@ Where the diff touches them, verify the CLAUDE.md invariants:
 
   **A flag a screen derives from a plan date follows the date's shown period, never the instant the phase uses.** ADR 0016 points 4 and 5 are two different days on purpose. #241's burn-up flagged W4's checkpoints Late from 18 October, while the register showed `2027-Q4` and no site was overdue until 1 January, and no test put a period-precision wave in the current slot. **A rounding that is a decision needs set sizes that separate it from its neighbours:** waves of 2 and 4 sites cannot tell `ceil` from `round`, and #241 probed only `floor`.
 
+  **When two checks read one input, the ADR says whether one yields to the other.** #242's demo reported one cutover twice, as cutover-in-blackout and as freeze-in-blackout, and only the review asked whether that was intended (the sponsor ruled: checks are independent).
+
   **When a test's expected list repeats one value, ask what the consumer does with the equal values.** #229's own spacing test expected `Q1, Q1, Q1, Q1, Q2`, and nobody asked which phase four milestones in one quarter yield: since a date is reached on its period's first day, the site read Migrated before any cutover.
 
   **When a PR body ships a guard-removal table, re-run the rows whose guard has more than one predicate, and narrow rather than delete.** Deleting is what the author already did, and it proves only the weakest predicate. #228's table said `!touchesBlackout(d, addDays(d, freeze))` was caught, because deleting the call put a cutover *day* in a blackout. Narrowing it to `touchesBlackout(d, d)` left all 42 seeded-problem tests green on all seven seeds, so nothing pinned the freeze window.
