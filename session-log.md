@@ -41,8 +41,16 @@
   - #245: an `add` subject created by the same import;
   - #222 gains the `removeSites` cascade of `dependsOn`.
 - **The session limit** interrupted two agents. Both were resumed with their work intact.
+- **#230 decided** (sponsor, 2026-10-30), and recorded as ADR 0019 (Accepted), which amends ADR 0013 point 4 and ADR 0014 §2:
+  - **Site-relative template slots.**
+  - **Two entries per data object:** `remove` the Realization at cutover, and `replace` the store at decommission. Each store retires once.
+  - **A disposition per data object** on the template.
+  - **A shared store moves with its last site.**
+  - **One store per site in the demo.**
+
+  The code lands with R3's derivation (#60, #61, #64), and #230 stays open until then.
 - **Open:**
-  - **R3 waits on the sponsor's decision on #230:** how a template replaces a site's realization, the double retire, and per-site stores.
+  - **R3:** #60, #61 and #64, which carry ADR 0019's slots and regenerate the demo.
   - Switch the older rollout journeys and fixtures to the demo.
   - Visible follow-ups: #236 (the register scrolls sideways at 1280 px) and #243 (a half-typed date clears the value).
   - #208 and #210 still lack a LibreOffice-saved fixture.
