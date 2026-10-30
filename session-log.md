@@ -32,8 +32,17 @@
   **Harvested:**
   - **CLAUDE.md:** budgets measured under coverage; green means CI is green.
   - **Review skill:** one filter per list; the first PR to give a stored field meaning checks what the readers accept.
+- **Fixed on #246:**
+  - `modelAt` is now `preparePlan` plus `stateAt`, over flat arrays;
+  - which entries count is decided once, in `readPlan`;
+  - a retirement never revives an element;
+  - `relationship.unparseable-date` and `plan.initiative-replace-self` are new findings;
+  - the year-0–99 date bug is fixed;
+  - each conflict names what caused it.
+- **Budget, under local coverage:** `stateAt` 0.9 ms, a cold `modelAt` 5.4 ms. ADR 0020 points 8–10 record the new rules and the split budget: `stateAt` ≤ 10 ms, asserted at 5 ms; a cold `modelAt` ≤ 30 ms.
+- **Probes:** 42; 41 caught, and the survivor is an equivalent mutant (`break` against `continue` over a sorted list).
 - **Open:**
-  - fix the six blocking findings on #246;
+  - re-review #246;
   - the sponsor's call on ADR 0020;
   - #61 part 2, #60 and #64;
   - stale agent worktrees under `.claude/worktrees/` make a local `npm run lint` fail (CI is unaffected) and are worth sweeping.

@@ -189,6 +189,21 @@ export function integrityFindings(
       })
     }
 
+    // A bound that is no date is read as no bound by `modelAt`, which opens the
+    // window: say so, as for an element's lifecycle dates (#61).
+    for (const key of ['validFrom', 'validTo'] as const) {
+      const raw = relationship.profile?.[key]
+      if (raw !== undefined && Number.isNaN(parseLifecycleDate(raw))) {
+        findings.push({
+          severity: 'warning',
+          code: 'relationship.unparseable-date',
+          message: `"${raw}" is not a usable date for ${key} of relationship ${relationship.id}, so it is read as unset: the relationship is not bounded on that side.`,
+          subjectId: relationship.id,
+          subjectKind: 'relationship',
+        })
+      }
+    }
+
     const source = elementsById.get(relationship.source)
     const target = elementsById.get(relationship.target)
 

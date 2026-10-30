@@ -36,6 +36,14 @@ const CHANGES: InitiativeChange[] = [
     successor: 'app-new',
     date: { date: '2027-04-01', precision: 'quarter' },
   },
+  // The legacy id is a successor here, so a rewrite must reach successors too.
+  {
+    id: 'n-replace',
+    kind: 'replace',
+    subject: 'app-portal',
+    successor: LEGACY,
+    date: day('2029-01-01'),
+  },
   { id: 'b-add', kind: 'add', subject: 'rel-new', date: day('2027-01-04') },
   { id: 'c-remove', kind: 'remove', subject: 'rel-old', date: day('2027-06-01') },
   {
@@ -102,9 +110,11 @@ function initiativesWorkspace(legacy = LEGACY): Workspace {
   }
 }
 
+/** `changes` with every reference to `from`, subject or successor, renamed `to`. */
 function renameSubject(changes: InitiativeChange[], from: string, to: string): InitiativeChange[] {
   return structuredClone(changes).map((change) => {
     if (change.subject === from) change.subject = to
+    if (change.kind === 'replace' && change.successor === from) change.successor = to
     return change
   })
 }
@@ -282,6 +292,20 @@ describe('validate() on an initiative’s references (#61)', () => {
     expect(
       codes([{ id: 'x', kind: 'retire', subject: 'rel-old', date: day('2027-01-04') }]),
     ).toEqual(['plan.initiative-subject-unknown'])
+  })
+
+  it('reports a replace of an element by itself, and not as a missing successor', () => {
+    expect(
+      codes([
+        {
+          id: 'x',
+          kind: 'replace',
+          subject: 'app-new',
+          successor: 'app-new',
+          date: day('2027-01-04'),
+        },
+      ]),
+    ).toEqual(['plan.initiative-replace-self'])
   })
 
   it('reports a successor that is not there', () => {

@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { deriveLifecyclePhase } from './lifecycle'
 import {
   modelAt,
+  preparePlan,
+  stateAt,
   planConflicts,
   stateOfPhase,
   valueAt,
@@ -165,6 +167,22 @@ describe('modelAt on stored dates alone (ADR 0014 §1)', () => {
     expect(valid(ws, 'to', '1990-01-01')).toBe(true)
     expect(valid(ws, 'to', '2026-01-01')).toBe(false)
     expect(valid(ws, 'none', '1990-01-01')).toBe(true)
+  })
+
+  it('reads a bound that is no date as unset, on each side, and counts it no validFrom', () => {
+    const ws = workspace(
+      [app('a'), app('b'), initiative('i', 'idea', [add('e', 'added', '2027-01-01')])],
+      [
+        rel('to', 'a', 'b', { validTo: 'soon' }),
+        rel('from', 'a', 'b', { validFrom: '2027-13-01' }),
+        rel('added', 'a', 'b', { validFrom: 'later' }),
+      ],
+    )
+    expect(valid(ws, 'to', '2099-01-01')).toBe(true)
+    expect(valid(ws, 'from', '1990-01-01')).toBe(true)
+    // Its only real introduction is the excluded add: absent, as with no validFrom.
+    expect(valid(ws, 'added', '2030-01-01')).toBe(false)
+    expect(valid(ws, 'added', '2030-01-01', { include: ['i'] })).toBe(true)
   })
 
   it('holds a relationship valid only while both endpoints are live (ADR 0014 §4)', () => {
@@ -338,6 +356,81 @@ describe('change entries in the plan of record (ADR 0014 §2, §3)', () => {
     expect(state.elements.get('a')).toBe('live')
     expect(state.relationships.has('r')).toBe(true)
     expect(state.successors).toEqual([])
+  })
+
+  it('leaves out an introduce or a modify that names a relationship', () => {
+    const ws = workspace(
+      [
+        app('a'),
+        app('b'),
+        initiative('i', 'idea', [introduce('wrong-kind', 'r', '2027-01-01')]),
+        initiative('j', 'approved', [
+          {
+            id: 'm',
+            kind: 'modify',
+            subject: 'r',
+            field: 'technicalFit',
+            value: 4,
+            date: on('2027-01-01'),
+          },
+        ]),
+      ],
+      [rel('r', 'a', 'b')],
+    )
+    // An undated relationship an introduce names is not "dated only by entries".
+    expect(valid(ws, 'r', '2030-01-01')).toBe(true)
+    expect(modelAt(ws, day('2030-01-01')).values.size).toBe(0)
+  })
+
+  it('keeps a successor present when its replace names a missing subject (#246)', () => {
+    // The replace dates nothing, so it does not make `b` an element only entries date.
+    const ws = workspace([
+      app('b'),
+      initiative('i', 'approved', [replace('e', 'ghost', 'b', '2027-01-01')]),
+    ])
+    expect(stateOf(ws, 'b', '2020-01-01')).toBe('live')
+    expect(stateOf(ws, 'b', '2030-01-01')).toBe('live')
+  })
+
+  it('leaves out a replace of an element by itself', () => {
+    const ws = workspace([
+      app('a'),
+      initiative('i', 'approved', [replace('e', 'a', 'a', '2027-01-01')]),
+    ])
+    expect(stateOf(ws, 'a', '2030-01-01')).toBe('live')
+    expect(modelAt(ws, day('2030-01-01')).successors).toEqual([])
+  })
+
+  it('reads a year before 100 as that year, not as 19xx', () => {
+    const ws = workspace([app('a'), initiative('i', 'approved', [retire('e', 'a', '0050-01-01')])])
+    expect(stateOf(ws, 'a', '1960-06-01')).toBe('retired')
+    const at = new Date(0)
+    at.setUTCFullYear(49, 11, 31)
+    expect(modelAt(ws, at.getTime()).elements.get('a')).toBe('live')
+  })
+
+  it('never makes live, by a retirement, an element nothing introduces and its dates never make live', () => {
+    // Planned from 2020, end of life 2024, and no phase-in: never live by its
+    // dates. A later retire moves its end, and must not revive it.
+    const ws = workspace([
+      app('a', { plan: '2020-01-01', endOfLife: '2024-01-01' }),
+      initiative('i', 'approved', [retire('e', 'a', '2027-01-01')]),
+    ])
+    expect(stateOf(ws, 'a', '2025-06-01')).toBe('planned')
+    expect(stateOf(ws, 'a', '2027-06-01')).toBe('retired')
+  })
+
+  it('reads a retirement dated before its introduction as retired from the earlier date', () => {
+    const ws = workspace([
+      app('a'),
+      initiative('i', 'approved', [
+        introduce('in', 'a', '2028-01-01'),
+        retire('out', 'a', '2027-01-01'),
+      ]),
+    ])
+    expect(stateOf(ws, 'a', '2026-06-01')).toBe('planned')
+    expect(stateOf(ws, 'a', '2027-06-01')).toBe('retired')
+    expect(stateOf(ws, 'a', '2028-06-01')).toBe('retired')
   })
 })
 
@@ -535,6 +628,41 @@ describe('planConflicts (ADR 0014 §6)', () => {
     expect(codes(covered)).toEqual(['change.retired-twice'])
   })
 
+  it('lists no gap for a replace on its own, and names the retire that makes one', () => {
+    const plain = workspace([
+      app('a'),
+      app('b'),
+      initiative('i', 'approved', [replace('e1', 'a', 'b', '2028-01-01')]),
+    ])
+    expect(planConflicts(plain)).toEqual([])
+    const gap = workspace([
+      app('a'),
+      app('b'),
+      initiative('i', 'approved', [
+        replace('e1', 'a', 'b', '2028-01-01'),
+        retire('e2', 'a', '2027-01-01'),
+      ]),
+    ])
+    expect(planConflicts(gap).find((c) => c.code === 'change.successor-gap')?.entries).toEqual([
+      { initiative: 'i', entry: 'e1' },
+      { initiative: 'i', entry: 'e2' },
+    ])
+  })
+
+  it('does not count a replace without its successor as a retirement (#246)', () => {
+    // `modelAt` leaves the replace out, so `a` is live until 2028; no conflict
+    // may name the replace's 2026 date.
+    const ws = workspace([
+      app('a'),
+      initiative('i', 'approved', [
+        replace('e1', 'a', 'ghost', '2026-01-01'),
+        retire('e2', 'a', '2028-01-01'),
+      ]),
+    ])
+    expect(stateOf(ws, 'a', '2027-01-01')).toBe('live')
+    expect(planConflicts(ws)).toEqual([])
+  })
+
   it('lists a stored date that disagrees with an entry, early or late', () => {
     const at = (lifecycle: LifecycleDates, change: InitiativeChange) =>
       codes(workspace([app('a', lifecycle), initiative('i', 'approved', [change])]))
@@ -560,6 +688,41 @@ describe('planConflicts (ADR 0014 §6)', () => {
     expect(at({ active: '2020-01-01' }, introduce('e', 'a', '2027-01-01'))).toEqual([
       'change.stored-date-disagrees',
     ])
+  })
+
+  it('names the entries a stored date disagrees with, a replace among them', () => {
+    const ws = workspace([
+      app('a'),
+      app('b', { phaseIn: '2029-01-01' }),
+      initiative('i', 'approved', [replace('e', 'a', 'b', '2027-01-01')]),
+    ])
+    expect(planConflicts(ws)).toEqual([
+      expect.objectContaining({
+        code: 'change.stored-date-disagrees',
+        subject: 'b',
+        entries: [{ initiative: 'i', entry: 'e' }],
+      }),
+    ])
+  })
+
+  it('reads a lifecycle planned, then active with no phase-in, as live from its active date', () => {
+    const at = (date: string) =>
+      planConflicts(
+        workspace([
+          app('a', { plan: '2025-01-01', active: '2027-01-01' }),
+          initiative('i', 'approved', [introduce('e', 'a', date)]),
+        ]),
+      ).map((conflict) => conflict.code)
+    expect(at('2027-01-01')).toEqual([])
+    expect(at('2026-01-01')).toEqual(['change.stored-date-disagrees'])
+  })
+
+  it('compares a lifecycle timestamp with an entry by its day', () => {
+    const ws = workspace([
+      app('a', { phaseIn: '2027-01-01T12:00:00Z' }),
+      initiative('i', 'approved', [introduce('e', 'a', '2027-01-01')]),
+    ])
+    expect(planConflicts(ws)).toEqual([])
   })
 
   it('lists a validFrom or validTo that disagrees with an add or remove', () => {
@@ -592,6 +755,36 @@ describe('planConflicts (ADR 0014 §6)', () => {
     expect(at(rel('r', 'a', 'old', { validTo: '2027-01-01' }))).toEqual([])
     // An open end says nothing about the endpoint: not a conflict.
     expect(at(rel('r', 'a', 'old'))).toEqual([])
+  })
+
+  it('lists one conflict for a relationship that outlives both its endpoints', () => {
+    const ws = workspace(
+      [app('a', { endOfLife: '2026-01-01' }), app('b', { endOfLife: '2027-01-01' })],
+      [rel('r', 'a', 'b', { validTo: '2028-01-01' })],
+    )
+    expect(planConflicts(ws).map((c) => [c.code, c.subject])).toEqual([
+      ['change.relationship-outlives-endpoint', 'r'],
+    ])
+  })
+
+  it('lists nothing for a relationship, or an endpoint, the scenario leaves absent', () => {
+    const ws = workspace(
+      [
+        app('a'),
+        app('old', { endOfLife: '2027-01-01' }),
+        app('new'),
+        initiative('i', 'proposed', [
+          add('e1', 'r', '2026-01-01'),
+          introduce('e2', 'new', '2026-01-01'),
+        ]),
+      ],
+      [
+        rel('r', 'a', 'old', { validTo: '2029-01-01' }),
+        rel('s', 'new', 'old', { validTo: '2029-01-01' }),
+      ],
+    )
+    expect(planConflicts(ws)).toEqual([])
+    expect(planConflicts(ws, { include: ['i'] }).map((c) => c.subject)).toEqual(['r', 's'])
   })
 
   it('reads an endpoint retirement from an entry as well as from a lifecycle', () => {
@@ -780,11 +973,14 @@ function withoutIntroducedBy(
     if (element.plan?.kind !== 'initiative') continue
     for (const change of element.plan.changes) {
       if (change.kind === 'introduce' || change.kind === 'add') already.add(change.subject)
-      if (change.kind === 'replace') already.add(change.successor)
+      // A replace of an element by itself dates nothing (ADR 0020 point 4).
+      if (change.kind === 'replace' && change.subject !== change.successor)
+        already.add(change.successor)
     }
   }
   const newlyIntroduced = new Set<string>()
   for (const change of changes) {
+    if (change.kind === 'replace' && change.subject === change.successor) continue
     const id = change.kind === 'replace' ? change.successor : change.subject
     if (
       (change.kind === 'introduce' || change.kind === 'add' || change.kind === 'replace') &&
@@ -819,101 +1015,189 @@ function withoutIntroducedBy(
 describe('the modelAt budget (ADR 0014, Consequences)', () => {
   /**
    * 5,000 elements and 15,000 relationships, with the plan the rollout demo
-   * brings at full scale: 1,600 entries (proposal §4.6). The budget is 10 ms
-   * on the CI runner. The median of nine runs is asserted, after a warm-up,
-   * so one descheduled run does not fail it and a regression still does.
+   * brings at full scale: 1,600 entries (proposal §4.6), of every kind.
+   *
+   * The budget is 10 ms on the CI runner, which runs the suite under
+   * coverage (ADR 0020 point 9). Moving a screen's time point evaluates a
+   * prepared plan (`stateAt`): that is held to half the budget, the margin.
+   * An edit prepares again, once (ADR 0014's remedy), and the whole of a cold
+   * `modelAt` is held to `COLD_BUDGET_MS`. Each is the median of nine runs
+   * after a warm-up, so one descheduled run does not fail it and a regression
+   * still does.
    */
-  function scaleWorkspace(): Workspace {
-    const elements: Element[] = []
-    for (let i = 0; i < 5_000; i++) {
-      elements.push(
-        app(
-          `a${i}`,
-          i % 3 === 0
-            ? {
-                phaseIn: '2025-01-01',
-                active: '2026-01-01',
-                phaseOut: '2029-01-01',
-                endOfLife: '2031-01-01',
-              }
-            : undefined,
-        ),
-      )
-    }
-    const relationships: Relationship[] = []
-    for (let i = 0; i < 15_000; i++) {
-      relationships.push(
-        rel(
-          `r${i}`,
-          `a${i % 5_000}`,
-          `a${(i * 7 + 1) % 5_000}`,
-          i % 4 === 0 ? { validFrom: '2026-01-01' } : undefined,
-        ),
-      )
-    }
-    const statuses: InitiativeStatus[] = ['approved', 'inProgress', 'idea', 'done']
-    for (let i = 0; i < 16; i++) {
-      const changes: InitiativeChange[] = []
-      for (let j = 0; j < 100; j++) {
-        const n = i * 100 + j
-        const date = `${2026 + (n % 4)}-0${1 + (n % 9)}-01`
-        if (n % 2) changes.push(retire(`c${n}`, `a${n}`, date))
-        else changes.push(remove(`c${n}`, `r${n}`, date))
-      }
-      elements.push(initiative(`i${i}`, statuses[i % 4]!, changes))
-    }
-    return workspace(elements, relationships)
-  }
-
-  it('evaluates 5,000 elements and 15,000 relationships in 10 ms or less', () => {
+  it('evaluates 5,000 elements and 15,000 relationships within the budget', () => {
     const ws = scaleWorkspace()
     const at = day('2028-06-01')
-    let state = modelAt(ws, at)
-    const runs: number[] = []
-    for (let run = 0; run < 9; run++) {
-      const start = performance.now()
-      state = modelAt(ws, at)
-      runs.push(performance.now() - start)
+    const median = (work: () => void) => {
+      work()
+      const runs: number[] = []
+      for (let run = 0; run < 9; run++) {
+        const start = performance.now()
+        work()
+        runs.push(performance.now() - start)
+      }
+      runs.sort((a, b) => a - b)
+      return { median: runs[4]!, runs: runs.map((ms) => ms.toFixed(1)).join(', ') }
     }
-    runs.sort((a, b) => a - b)
-    // The work was done: every element is in the state, and the entries took
-    // effect. A budget met by evaluating nothing proves nothing.
-    expect(state.elements.size).toBe(5_016)
+    const prepared = preparePlan(ws)
+    let state = stateAt(prepared, at)
+    const moving = median(() => (state = stateAt(prepared, at)))
+    const cold = median(() => (state = modelAt(ws, at)))
+
+    // The work was done, and every kind of entry took effect: counted from
+    // how the fixture is built, not read off modelAt. A budget met by
+    // evaluating nothing proves nothing.
     const expected = expectedAtScale()
-    expect(expected.retired).toBe(300)
-    expect([...state.elements.values()].filter((s) => s === 'retired').length).toBe(
-      expected.retired,
-    )
+    expect(state.elements.size).toBe(expected.present)
+    const count = (wanted: ElementState) =>
+      [...state.elements.values()].filter((value) => value === wanted).length
+    expect([count('retired'), count('planned')]).toEqual([expected.retired, expected.planned])
     expect(state.relationships.size).toBe(expected.valid)
-    expect(runs[4], `runs: ${runs.map((ms) => ms.toFixed(1)).join(', ')} ms`).toBeLessThanOrEqual(
-      10,
-    )
+    expect([state.values.size, state.successors.length]).toEqual([
+      expected.modified,
+      expected.replaced,
+    ])
+    expect(Math.min(expected.retired, expected.planned, expected.modified)).toBeGreaterThan(100)
+
+    expect(moving.median, `stateAt runs: ${moving.runs} ms`).toBeLessThanOrEqual(5)
+    expect(cold.median, `modelAt runs: ${cold.runs} ms`).toBeLessThanOrEqual(COLD_BUDGET_MS)
   })
 })
 
 /**
- * What the scale plan does at 2028-06-01, counted straight from how
- * `scaleWorkspace` builds it rather than read off `modelAt`: initiatives
- * `i2`, `i6`, `i10` and `i14` are ideas and left out; every other entry whose
- * date is reached takes effect.
+ * A cold `modelAt`, which an edit pays once: preparing reads every element's
+ * and relationship's dates. ADR 0020 point 9 proposes this bound.
  */
-function expectedAtScale(): { retired: number; valid: number } {
+const COLD_BUDGET_MS = 30
+const SCALE_ELEMENTS = 5_000
+const SCALE_RELATIONSHIPS = 15_000
+const SCALE_ENTRIES = 1_600
+/** A replace's successor: an element no other entry names. */
+const successorOf = (n: number) => n + 2_000
+
+/** The entry `n` of the scale plan: its kind cycles through all six, and its date through four years. */
+function scaleEntry(n: number): InitiativeChange {
+  const date = `${2026 + (n % 4)}-0${1 + (n % 9)}-01`
+  switch (n % 5) {
+    case 0:
+      return retire(`c${n}`, `a${n}`, date)
+    case 1:
+      return remove(`c${n}`, `r${n}`, date)
+    case 2:
+      return introduce(`c${n}`, `a${n}`, date)
+    case 3:
+      return replace(`c${n}`, `a${n}`, `a${successorOf(n)}`, date)
+    default:
+      return {
+        id: `c${n}`,
+        kind: 'modify',
+        subject: `a${n}`,
+        field: 'technicalFit',
+        value: 4,
+        date: on(date),
+      }
+  }
+}
+
+/** Every third element has a lifecycle, live throughout 2028. */
+const dated = (i: number) => i % 3 === 0
+
+function scaleWorkspace(): Workspace {
+  const elements: Element[] = []
+  for (let i = 0; i < SCALE_ELEMENTS; i++) {
+    elements.push(
+      app(
+        `a${i}`,
+        dated(i)
+          ? {
+              phaseIn: '2025-01-01',
+              active: '2026-01-01',
+              phaseOut: '2029-01-01',
+              endOfLife: '2031-01-01',
+            }
+          : undefined,
+      ),
+    )
+  }
+  const relationships: Relationship[] = []
+  for (let i = 0; i < SCALE_RELATIONSHIPS; i++) {
+    relationships.push(
+      rel(
+        `r${i}`,
+        `a${i % SCALE_ELEMENTS}`,
+        `a${(i * 7 + 1) % SCALE_ELEMENTS}`,
+        i % 4 === 0 ? { validFrom: '2026-01-01' } : undefined,
+      ),
+    )
+  }
+  const statuses: InitiativeStatus[] = ['approved', 'inProgress', 'idea', 'done']
+  for (let i = 0; i < SCALE_ENTRIES / 100; i++) {
+    const changes = Array.from({ length: 100 }, (_, j) => scaleEntry(i * 100 + j))
+    elements.push(initiative(`i${i}`, statuses[i % 4]!, changes))
+  }
+  return workspace(elements, relationships)
+}
+
+/**
+ * What the scale plan does at 2028-06-01, counted straight from how
+ * `scaleWorkspace` builds it rather than read off `modelAt`. Initiatives
+ * `i2`, `i6`, `i10` and `i14` are ideas and left out. An element their
+ * entries introduce, and that has no lifecycle, is absent; one with a
+ * lifecycle keeps it.
+ */
+function expectedAtScale() {
   const reached = (n: number) => {
     const year = 2026 + (n % 4)
     return year < 2028 || (year === 2028 && 1 + (n % 9) <= 6)
   }
-  const taken = (n: number) => Math.floor(n / 100) % 4 !== 2 && reached(n)
-  const retired = new Set<number>()
+  const included = (n: number) => Math.floor(n / 100) % 4 !== 2
+  const states = new Map<number, ElementState | 'absent'>()
+  for (let i = 0; i < SCALE_ELEMENTS; i++) states.set(i, 'live')
   const removed = new Set<number>()
-  for (let n = 0; n < 1_600; n++) {
-    if (!taken(n)) continue
-    if (n % 2) retired.add(n)
-    else removed.add(n)
+  let modified = 0
+  let replaced = 0
+  /** An element an entry introduces at `n`. */
+  const introduced = (element: number, n: number) => {
+    if (included(n)) states.set(element, reached(n) ? 'live' : 'planned')
+    else if (!dated(element)) states.set(element, 'absent')
   }
+  for (let n = 0; n < SCALE_ENTRIES; n++) {
+    const taken = included(n) && reached(n)
+    switch (n % 5) {
+      case 0:
+        if (taken) states.set(n, 'retired')
+        break
+      case 1:
+        if (taken) removed.add(n)
+        break
+      case 2:
+        introduced(n, n)
+        break
+      case 3:
+        introduced(successorOf(n), n)
+        if (taken) {
+          states.set(n, 'retired')
+          replaced++
+        }
+        break
+      default:
+        if (taken) modified++
+    }
+  }
+  const of = (wanted: ElementState | 'absent') =>
+    [...states.values()].filter((value) => value === wanted).length
   let valid = 0
-  for (let k = 0; k < 15_000; k++) {
-    if (removed.has(k) || retired.has(k % 5_000) || retired.has((k * 7 + 1) % 5_000)) continue
-    valid++
+  for (let k = 0; k < SCALE_RELATIONSHIPS; k++) {
+    const live = (i: number) => states.get(i) === 'live'
+    if (!removed.has(k) && live(k % SCALE_ELEMENTS) && live((k * 7 + 1) % SCALE_ELEMENTS)) valid++
   }
-  return { retired: retired.size, valid }
+  return {
+    // The 16 initiatives are elements too, live and undated.
+    present: SCALE_ELEMENTS - of('absent') + SCALE_ENTRIES / 100,
+    retired: of('retired'),
+    planned: of('planned'),
+    valid,
+    modified,
+    replaced,
+  }
 }

@@ -116,11 +116,15 @@ entries of every initiative (`InitiativePlan`, a Work Package's plan of kind
   some initiative adds with no `validFrom`.
 - **A relationship is valid only while both endpoints are live.**
 
+A screen that moves its time point prepares once per model version and
+scenario (`preparePlan`) and evaluates with `stateAt`; `modelAt` does both.
+Which entries count is decided once, in the plan reader both functions share.
+
 `planConflicts(workspace, scenario?)` lists what ADR 0014 §6 calls conflicts,
 without refusing the plan. ADR 0020 records the choices ADR 0014 left open.
 `model-at.test.ts` pins every rule on both sides of its date, holds the
-invariant over 300 random workspaces, and asserts the 10 ms budget at 5,000
-elements and 15,000 relationships.
+invariant over 300 random workspaces, and asserts the budgets of ADR 0020
+point 9 at 5,000 elements and 15,000 relationships.
 
 ## Completeness scoring
 

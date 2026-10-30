@@ -4,6 +4,7 @@ import {
   archetypeIdOf,
   formatPlanDate,
   isAnchoredDate,
+  isInitiativePlan,
   isApplicability,
   isArchetype,
   isBlackout,
@@ -309,5 +310,28 @@ describe('the write path’s doors (#209)', () => {
     }
     const waves = wavesOf([...workspace.elements, tied], ROLLOUT_ID).map((wave) => wave.id)
     expect(waves).toEqual([waveId(0), 'wp-wave-0b', waveId(1), waveId(2), waveId(3), waveId(4)])
+  })
+})
+
+describe('isInitiativePlan (#61)', () => {
+  const plan = {
+    kind: 'initiative',
+    status: 'approved',
+    changes: [
+      { id: 'e', kind: 'retire', subject: 'a', date: { date: '2027-01-01', precision: 'day' } },
+    ],
+  }
+
+  it('accepts exactly the shape, and nothing beside it', () => {
+    expect(isInitiativePlan(plan)).toBe(true)
+    expect(isInitiativePlan({ ...plan, owner: 'PMO' })).toBe(false)
+    expect(isInitiativePlan({ ...plan, status: 'in progress' })).toBe(false)
+    expect(isInitiativePlan({ kind: 'initiative', changes: [] })).toBe(false)
+  })
+
+  it('refuses a change dated from a milestone, or two changes with one id', () => {
+    const anchored = { ...plan.changes[0], date: { anchor: 'cutover', offsetDays: 0 } }
+    expect(isInitiativePlan({ ...plan, changes: [anchored] })).toBe(false)
+    expect(isInitiativePlan({ ...plan, changes: [plan.changes[0], plan.changes[0]] })).toBe(false)
   })
 })
