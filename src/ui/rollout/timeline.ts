@@ -1,4 +1,5 @@
 import {
+  DAY_MS,
   SITE_PHASE_LABELS,
   dayAfterPeriod,
   dayStart,
@@ -42,7 +43,6 @@ import {
  * milestone starts. Each site row carries its phase at the time point.
  */
 
-const DAY_MS = 86_400_000
 /** Two pixels a day: a quarter is about 180px, a month about 60px. */
 export const PX_PER_DAY = 2
 export const LABEL_WIDTH = 168

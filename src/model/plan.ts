@@ -47,7 +47,8 @@ export function isPlanDatePrecision(value: unknown): value is PlanDatePrecision 
 }
 
 const ISO_DAY = /^(\d{4})-(\d{2})-(\d{2})$/
-const DAY_MS = 86_400_000
+/** A day in milliseconds: the plan's days are UTC, so every one is this long. */
+export const DAY_MS = 86_400_000
 
 /** A UTC midnight; `setUTCFullYear` because `Date.UTC` reads 0–99 as 1900–1999. */
 function utcDay(year: number, month: number, day: number): Date {
@@ -60,8 +61,10 @@ function pad(value: number, width = 2): string {
   return String(value).padStart(width, '0')
 }
 
-function isoDayOf(date: Date): string {
-  return `${pad(date.getUTCFullYear(), 4)}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())}`
+/** The UTC day of `date` (or of UTC ms), written `YYYY-MM-DD`. */
+export function isoDayOf(date: Date | number): string {
+  const day = typeof date === 'number' ? new Date(date) : date
+  return `${pad(day.getUTCFullYear(), 4)}-${pad(day.getUTCMonth() + 1)}-${pad(day.getUTCDate())}`
 }
 
 /** A real calendar day written `YYYY-MM-DD`: `2027-02-30` is not one. */
@@ -502,6 +505,19 @@ export function isSiteRag(value: unknown): value is SiteRag {
 }
 
 /**
+ * The decision taken at a site's go/no-go gate (proposal §5, L3): a human
+ * decision, recorded as the PMO returns it in the workbook, never derived.
+ * Absent means not decided yet. It does not move the phase: a milestone's
+ * actual day does (#215).
+ */
+export const GO_NO_GO_DECISIONS = ['go', 'no-go'] as const
+export type GoNoGo = (typeof GO_NO_GO_DECISIONS)[number]
+
+export function isGoNoGo(value: unknown): value is GoNoGo {
+  return (GO_NO_GO_DECISIONS as readonly unknown[]).includes(value)
+}
+
+/**
  * How a site deviates from the template (ADR 0013 point 4, proposal §4.4):
  * `skip` a template change, `add` a change only this site makes, or `modify`
  * a template change's offset or disposition.
@@ -596,7 +612,11 @@ export function isSiteException(value: unknown): value is SiteException {
   }
 }
 
-/** One Location's plan within one rollout (proposal §4.4). */
+/**
+ * One Location's plan within one rollout (proposal §4.4). The actual days,
+ * the RAG and the go/no-go decision are what the PMO returns in the rollout
+ * workbook (#215).
+ */
 export interface SitePlan {
   /** The Location element's id: the key of the record within its rollout. */
   location: string
@@ -609,6 +629,8 @@ export interface SitePlan {
   /** ISO day each milestone was actually reached, keyed by milestone id. */
   actuals?: Record<string, string>
   rag?: SiteRag
+  /** The go/no-go decision, when it has been taken (#215). */
+  goNoGo?: GoNoGo
   notes?: string
   /** Its deviations from the template (#214); a file sorts them by id. */
   exceptions?: SiteException[]
@@ -631,6 +653,7 @@ export function isSitePlan(value: unknown): value is SitePlan {
       'milestones',
       'actuals',
       'rag',
+      'goNoGo',
       'notes',
       'exceptions',
       'dependsOn',
@@ -642,6 +665,7 @@ export function isSitePlan(value: unknown): value is SitePlan {
     (value.milestones === undefined || isRecordOf(value.milestones, isPlanDate)) &&
     (value.actuals === undefined || isRecordOf(value.actuals, isIsoDay)) &&
     (value.rag === undefined || isSiteRag(value.rag)) &&
+    (value.goNoGo === undefined || isGoNoGo(value.goNoGo)) &&
     (value.notes === undefined || typeof value.notes === 'string') &&
     (value.exceptions === undefined || isUniqueList(value.exceptions, isSiteException)) &&
     (value.dependsOn === undefined || isIdSet(value.dependsOn)) &&

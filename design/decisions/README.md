@@ -21,3 +21,4 @@ Product ADRs for Archipelago. Fresh sequence started 2026-08 (the knowledge-base
 | [0015](0015-plan-dates-and-rollout-exchange-mapping.md) | Plan dates and the exchange mapping of rollouts | 2026-10-26 | Accepted |
 | [0016](0016-milestone-dates-and-site-phase.md) | Milestone dates: where they live, how they resolve, and the derived site phase | 2026-10-28 | Accepted; amended 2026-10-29 (accepted 2026-10-30, with 0017) |
 | [0017](0017-site-exceptions-dependencies-and-plan-checks.md) | Site exceptions, dependencies and blackouts, and the plan checks | 2026-10-29 | Accepted |
+| [0018](0018-rollout-progress-and-actuals.md) | Rollout progress: the burn-up, its checkpoints, and actuals from the PMO | 2026-10-29 | Proposed |

@@ -91,11 +91,13 @@ describe('reading plans from canonical JSON (#209)', () => {
         plan.milestones.push({ id: 'goLive', label: 'Go live', startsPhase: 'unplanned' })
         plan.sites.push({ ...plan.sites[0], notes: 'a second plan for site 1' })
         plan.sites[2]!.rag = 'blue'
+        plan.sites[2]!.goNoGo = 'maybe'
         plan.sites[3]!.milestones = { freezeStart: { date: '2027-05-11', precision: 'week' } }
         plan.future = true
       }),
     )
     const plan = rolloutOf(workspace!)!
+    expect(plan.sites.find((site) => site.location === siteId(3))?.goNoGo).toBeUndefined()
     expect(plan.milestones.map((m) => m.id)).not.toContain('goLive')
     expect(plan.milestones).toHaveLength(6)
     expect(plan.sites).toHaveLength(12)
@@ -106,7 +108,7 @@ describe('reading plans from canonical JSON (#209)', () => {
       expect.objectContaining({
         code: 'json.invalid-plan',
         subject: ROLLOUT_ID,
-        message: expect.stringContaining('5 parts'),
+        message: expect.stringMatching(/6 parts.*site "loc-site-003"\.goNoGo/s),
       }),
     ])
   })
@@ -291,6 +293,24 @@ describe('reading plans from exchange XML (#209)', () => {
     ])
   })
 
+  it('reads a site’s go/no-go back, and reports one no plan can hold (#215)', () => {
+    const site = (workspace: Workspace) =>
+      rolloutOf(workspace)!.sites.find((candidate) => candidate.location === siteId(6))!
+    expect(site(read(EXPORTED).workspace).goNoGo).toBe('no-go')
+    const { workspace, problems } = read(
+      setProperty(EXPORTED, SITE_WP(6), PLAN_KEYS.goNoGo, 'maybe'),
+    )
+    expect(site(workspace).goNoGo).toBeUndefined()
+    expect(site(workspace).wave).toBeDefined()
+    expect(problems).toEqual([
+      expect.objectContaining({
+        code: 'exchange.plan-site-content-dropped',
+        subject: ROLLOUT_ID,
+        message: expect.stringContaining('site "loc-site-006".goNoGo'),
+      }),
+    ])
+  })
+
   it('drops, and reports, a relationship someone drew to a site plan’s Work Package', () => {
     const xml = EXPORTED.replace(
       '  </relationships>',
@@ -462,6 +482,7 @@ describe('reading plans from an Archi model (#209)', () => {
       <property key="${PLAN_KEYS.location}" value="loc"/>
       <property key="${PLAN_KEYS.wave}" value="w"/>
       <property key="${PLAN_KEYS.rag}" value="amber"/>
+      <property key="${PLAN_KEYS.goNoGo}" value="no-go"/>
     </element>`),
     )
     expect(result.problems).toEqual([])
@@ -469,7 +490,7 @@ describe('reading plans from an Archi model (#209)', () => {
     expect(workspace.elements.map((candidate) => candidate.id).sort()).toEqual(['loc', 'r', 'w'])
     expect(workspace.relationships).toEqual([])
     expect(rolloutPlanOf(element(workspace, 'r'))?.sites).toEqual([
-      { location: 'loc', wave: 'w', rag: 'amber', notes: 'Works council first.' },
+      { location: 'loc', wave: 'w', rag: 'amber', goNoGo: 'no-go', notes: 'Works council first.' },
     ])
     expect(wavePlanOf(element(workspace, 'w'))).toEqual({
       kind: 'wave',

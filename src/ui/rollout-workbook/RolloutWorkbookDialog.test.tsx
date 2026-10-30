@@ -50,7 +50,7 @@ function Harness() {
 
 const SITES = 8
 
-/** The fixture with no actual dates or notes, so its export has nothing to report. */
+/** The fixture with no actual dates or notes, so its export has nothing to report or carry. */
 function plainRollout(): Workspace {
   const model = rolloutWorkspace(SITES)
   for (const site of rolloutPlanOf(model.elements.find((e) => e.id === ROLLOUT_ID))!.sites) {
@@ -153,16 +153,17 @@ describe('exporting', () => {
 
   it('stays open to say what the workbook cannot carry', async () => {
     const downloads = stubDownloads()
-    const { user } = open('writer', rolloutWorkspace(SITES))
+    // Actual dates are carried since #215; notes and blackouts are not yet.
+    const model = rolloutWorkspace(SITES)
+    rolloutPlanOf(model.elements.find((e) => e.id === ROLLOUT_ID))!.sites[2]!.notes = 'Noted'
+    const { user } = open('writer', model)
     await user.click(screen.getByRole('button', { name: 'Export rollout workbook…' }))
     await user.click(within(exportDialog()).getByRole('button', { name: 'Export workbook' }))
     expect(downloads.click).toHaveBeenCalledTimes(1)
     expect(exportDialog()).toHaveTextContent(
       'Downloaded local-data-to-the-central-lake-workbook.xlsx',
     )
-    expect(exportDialog()).toHaveTextContent(
-      '2 sites have actual dates, notes or blackouts of their own',
-    )
+    expect(exportDialog()).toHaveTextContent('1 site has notes or blackouts of its own')
     await user.click(within(exportDialog()).getByRole('button', { name: 'Done' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })

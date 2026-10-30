@@ -15,6 +15,8 @@ Points 5, 6 and 9 are extended by [ADR 0016](0016-milestone-dates-and-site-phase
 
 Points 4 and 10 are extended by [ADR 0017](0017-site-exceptions-dependencies-and-plan-checks.md) (proposed): what a site exception holds, a site's dependencies and own blackouts, the plan checks, and how exceptions and dependencies travel in the exchange format.
 
+Points 6 and 9 are extended by [ADR 0018](0018-rollout-progress-and-actuals.md) (Proposed): the burn-up and its checkpoints read the derived phase, a go/no-go decision does not move it, and the burn-up's colours.
+
 ## Context
 
 ADR 0012 starts multi-site rollout planning (#206) alongside the editor. The model it needs is laid out in `design/specs/migration-planning-proposal.md` §3–§4 and §8. The proposal's §11 left four points for this ADR: D2, D5, D6 and D7. The sponsor accepted all four as proposed on 2026-10-26 (#207).
@@ -51,8 +53,15 @@ The research behind the proposal (`migration-planning-research.md`) found that n
    | Load within capacity | `--lc-in` |
    | Load over capacity | `--lc-eol` |
    | Load none (no capacity) | `--lc-plan` |
+   | Burn-up: planned line | `--lc-plan` |
+   | Burn-up: actual line | `--lc-act` |
+   | Burn-up: time point | `--accent` |
+   | Checkpoint due, or not planned | `--lc-plan` |
+   | Checkpoint met | `--lc-act` |
+   | Checkpoint late | `--lc-eol` |
 
    Extended 2026-10-27 (#223): RAG and load rows, under D7.
+   Extended 2026-10-29 (#215, ADR 0018): burn-up and checkpoint rows, under D7.
 
    No new tokens.
 10. **What the exchange format carries.** Rollout, waves and site plans travel as Work Packages. A wave's end travels as a Plateau. Milestones and plan fields travel as namespaced `archipelago.plan.*` properties. The template and exceptions travel as canonical JSON in a property. Implementation Event and Gap are not used. Anything the exchange cannot carry is reported, never dropped.

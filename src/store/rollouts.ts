@@ -2,11 +2,13 @@ import {
   PLAN_ELEMENT_TYPE,
   archetypeIdOf,
   byLocation,
+  isGoNoGo,
   isIsoDay,
   isMilestonePhase,
   isPlanDate,
   isPlanDatePrecision,
   isRolloutPlan,
+  isSiteRag,
   periodOf,
   isWindowInOrder,
   isWavePlan,
@@ -593,6 +595,57 @@ export function setSiteMilestones(
       else setKey(milestones, id, value)
     }
     return withRecord(site, 'milestones', Object.keys(milestones).length ? milestones : undefined)
+  })
+}
+
+/**
+ * What a site's progress dialog changes (#215): actual days by milestone id,
+ * the RAG and the go/no-go decision. `null` clears a value; a key left out
+ * leaves it as it is.
+ */
+export interface SiteProgressChanges {
+  actuals?: Record<string, unknown>
+  rag?: unknown
+  goNoGo?: unknown
+}
+
+/**
+ * Set or clear one site's actual days, RAG and go/no-go, as one command, and
+ * nothing else of its plan. An actual is an ISO day (`isIsoDay`) for a
+ * milestone of the rollout, the RAG one of `SITE_RAGS` and the decision one of
+ * `GO_NO_GO_DECISIONS`; `null` clears each. One value that fails its guard
+ * refuses the whole change with `false`, so a `<select>`'s empty option or a
+ * half-typed day is never stored (CLAUDE.md, type guards on the write path).
+ */
+export function setSiteProgress(
+  store: ModelStore,
+  rolloutId: string,
+  locationId: string,
+  changes: SiteProgressChanges,
+): boolean {
+  assertWriter(store, 'set-site-progress')
+  const plan = rolloutPlanOf(store.element(rolloutId))
+  if (!plan || !plan.sites.some((site) => site.location === locationId)) return false
+  const known = new Set(plan.milestones.map((milestone) => milestone.id))
+  const actuals: [string, string | null][] = []
+  for (const [id, value] of Object.entries(changes.actuals ?? {})) {
+    if (!known.has(id)) return false
+    if (value === null || isIsoDay(value)) actuals.push([id, value])
+    else return false
+  }
+  const { rag, goNoGo } = changes
+  if (rag !== undefined && rag !== null && !isSiteRag(rag)) return false
+  if (goNoGo !== undefined && goNoGo !== null && !isGoNoGo(goNoGo)) return false
+  return updateSites(store, rolloutId, [locationId], false, (site) => {
+    const record: Record<string, string> = { ...site.actuals }
+    for (const [id, value] of actuals) {
+      if (value === null) delete record[id]
+      else setKey(record, id, value)
+    }
+    let next = withRecord(site, 'actuals', Object.keys(record).length ? record : undefined)
+    if (rag !== undefined) next = withRecord(next, 'rag', rag ?? undefined)
+    if (goNoGo !== undefined) next = withRecord(next, 'goNoGo', goNoGo ?? undefined)
+    return next
   })
 }
 

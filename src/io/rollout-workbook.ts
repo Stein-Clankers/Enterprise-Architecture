@@ -11,6 +11,7 @@ import {
   isDisposition,
   isExceptionClass,
   isExceptionKind,
+  isGoNoGo,
   isIsoDay,
   isPositiveInteger,
   isSiteException,
@@ -61,14 +62,14 @@ import {
  *
  * **Sheets.** `Sites` (one row per site's Location), `Waves` (with one column
  * per milestone for the date its sites inherit), `SitePlan` (wave, archetype,
- * RAG and one planned column per milestone of the rollout's set: the site's
- * own date, a blank cell making it inherit again, ADR 0016), `Exceptions`
- * (one row per site exception, keyed by its id; an `add`'s site-only change is
- * canonical JSON in one cell) and `Dependencies` (one row per pair of sites),
- * both #214's, and `Template` and `Milestones`, written for reference and
- * never read back (R1). Row 1 holds each column's technical key, the file's
- * contract, and row 2 its label. A site's own blackouts are not carried yet,
- * and the export says so.
+ * RAG, go/no-go, and two columns per milestone of the rollout's set: the
+ * site's own planned date, a blank cell making it inherit again, ADR 0016, and
+ * the day it was actually reached, #215), `Exceptions` (one row per site
+ * exception, keyed by its id; an `add`'s site-only change is canonical JSON in
+ * one cell) and `Dependencies` (one row per pair of sites), both #214's, and
+ * `Template` and `Milestones`, written for reference and never read back (R1).
+ * Row 1 holds each column's technical key, the file's contract, and row 2 its
+ * label. A site's own blackouts are not carried yet, and the export says so.
  *
  * **Removing a site** in the `Sites` sheet takes its exceptions and its
  * dependencies with it, and the other sites' dependencies on it: a row of
@@ -79,7 +80,13 @@ import {
  * the header does not name leaves every value of it untouched; a cell the
  * reader could not read leaves its value untouched, and the reader has said
  * so. A plan date is read by its form (`2027-Q2`, `2027-05`, `2027-W19`,
- * `2027-05-12`, ADR 0015), and a date cell as a day.
+ * `2027-05-12`, ADR 0015), and a date cell as a day. An actual is a day: a
+ * date cell, or text `2027-05-12`; anything else is reported and not stored.
+ *
+ * **Actuals change nothing else.** The PMO returns actual days, RAG and
+ * go/no-go in the SitePlan sheet (proposal §5, L3). Those columns write only
+ * those fields of a site plan, and the phase is derived from them, never
+ * stored (#215).
  *
  * **Nothing is skipped in silence.** Every value or row that is not applied is
  * a problem naming its sheet, row and column: an unknown site, wave, archetype
@@ -108,6 +115,11 @@ export const SITE_CODE_KEY = `${SITE_FIELD_PREFIX}code`
  * including a dot or the prefix itself, and still be read back as written.
  */
 export const MILESTONE_COLUMN_PREFIX = 'milestone.'
+/**
+ * The `SitePlan` column of a milestone's actual day is this prefix and its id,
+ * read as the milestone column is (#215).
+ */
+export const ACTUAL_COLUMN_PREFIX = 'actual.'
 
 /** The model the workbook is made from: a snapshot's elements and relationships. */
 export interface RolloutModel {
@@ -207,13 +219,26 @@ export function exportRolloutWorkbook(
   }
 
   const planColumns = sitePlanColumns(plan)
-  const notCarried = plan.sites.filter(
-    (site) => site.actuals || site.notes !== undefined || site.blackouts,
-  ).length
+  const notCarried = plan.sites.filter((site) => site.notes !== undefined || site.blackouts).length
   if (notCarried) {
     report(
       'rollout-workbook.not-carried',
-      `${notCarried} site${notCarried === 1 ? ' has' : 's have'} actual dates, notes or blackouts of ${notCarried === 1 ? 'its' : 'their'} own, which this workbook does not carry yet; an import of it leaves them as they are.`,
+      `${notCarried} site${notCarried === 1 ? ' has' : 's have'} notes or blackouts of ${notCarried === 1 ? 'its' : 'their'} own, which this workbook does not carry yet; an import of it leaves them as they are.`,
+    )
+  }
+  // A date for a milestone the set no longer has (validate() reports it) has
+  // no column to go in. The import starts from the plan as it is, so it keeps
+  // the date; the export says so, rather than leave it out unseen.
+  const known = new Set(plan.milestones.map((milestone) => milestone.id))
+  const strays = plan.sites.filter((site) =>
+    [...Object.keys(site.milestones ?? {}), ...Object.keys(site.actuals ?? {})].some(
+      (id) => !known.has(id),
+    ),
+  ).length
+  if (strays) {
+    report(
+      'rollout-workbook.dates-not-carried',
+      `${strays} site${strays === 1 ? ' has' : 's have'} planned or actual dates for milestones the rollout's set does not have, which have no column in this workbook; an import of it leaves them as they are.`,
     )
   }
   const sitePlanSheet: Sheet = {
@@ -226,7 +251,14 @@ export function exportRolloutWorkbook(
         site.wave === undefined ? EMPTY : textCell(site.wave),
         site.archetype === undefined ? EMPTY : textCell(site.archetype),
         site.rag === undefined ? EMPTY : textCell(site.rag),
-        ...plan.milestones.map((milestone) => planDateCell(getKey(site.milestones, milestone.id))),
+        site.goNoGo === undefined ? EMPTY : textCell(site.goNoGo),
+        ...plan.milestones.flatMap((milestone) => {
+          const actual = getKey(site.actuals, milestone.id)
+          return [
+            planDateCell(getKey(site.milestones, milestone.id)),
+            actual === undefined ? EMPTY : textCell(actual),
+          ]
+        }),
       ]),
     ),
   }
@@ -395,10 +427,17 @@ function sitePlanColumns(plan: RolloutPlan): Column[] {
     { key: 'wave', label: 'Wave (id)' },
     { key: 'archetype', label: 'Archetype (id)' },
     { key: 'rag', label: 'RAG (green, amber, red)' },
-    ...plan.milestones.map((milestone) => ({
-      key: `${MILESTONE_COLUMN_PREFIX}${milestone.id}`,
-      label: `${milestone.label} (set at the site; blank: inherit)`,
-    })),
+    { key: 'goNoGo', label: 'Go/no-go (go, no-go; blank: not decided)' },
+    ...plan.milestones.flatMap((milestone) => [
+      {
+        key: `${MILESTONE_COLUMN_PREFIX}${milestone.id}`,
+        label: `${milestone.label} (set at the site; blank: inherit)`,
+      },
+      {
+        key: `${ACTUAL_COLUMN_PREFIX}${milestone.id}`,
+        label: `${milestone.label}: actual day (2027-05-12; blank: not reached)`,
+      },
+    ]),
   ]
 }
 
@@ -851,6 +890,39 @@ class Row {
     return undefined
   }
 
+  /**
+   * Text that is one of a few words, such as a RAG: empty text is a blank, as
+   * an empty cell is, since nothing tells the two apart on screen (#226).
+   * `word` is the same for words a guard decides, and reports the rest.
+   */
+  choice(key: string): Field<string> {
+    const field = this.text(key)
+    return field?.value === '' ? BLANK : field
+  }
+
+  /**
+   * The day a milestone was actually reached (#215): a date cell, or text
+   * written as an ISO day. Empty text is a blank, as for `word`. Anything else,
+   * `2027-Q2` or `31/02/2027` among it, is reported and not applied, so a
+   * malformed day is never stored and never dropped unseen. `subject` is the
+   * site, as the RAG's and the decision's problems name it.
+   */
+  actualDay(key: string, subject: string): Field<string> {
+    const cell = this.cell(key)
+    if (cell === undefined || cell.kind === 'unreadable') return undefined
+    if (cell.kind === 'empty' || (cell.kind === 'string' && cell.value === '')) return BLANK
+    const day = cell.kind === 'date' || cell.kind === 'string' ? cell.value : undefined
+    if (isIsoDay(day)) return { value: day }
+    this.report(
+      'error',
+      'rollout-workbook.actual-unreadable',
+      `the cell holds ${describeCell(cell)}, which is no day: an actual is the day the milestone was reached, written 2027-05-12 or as a date. It was not applied.`,
+      key,
+      subject,
+    )
+    return undefined
+  }
+
   /** A site field keeps the kind of value Excel holds: text, a number or TRUE/FALSE; a date is its ISO day. */
   property(key: string): Field<PropertyValue> {
     const cell = this.cell(key)
@@ -1202,13 +1274,15 @@ function parentChange(
 
 const WAVE_KEYS = new Set(WAVE_COLUMNS.map((column) => column.key))
 
-/** Is `key` the column of a milestone of the rollout? */
-function isMilestoneColumn(context: ImportContext, key: string): boolean {
+/** Is `key` the column, under `prefix`, of a milestone of the rollout? */
+function isMilestoneColumn(
+  context: ImportContext,
+  key: string,
+  prefix: string = MILESTONE_COLUMN_PREFIX,
+): boolean {
   return (
-    key.startsWith(MILESTONE_COLUMN_PREFIX) &&
-    context.plan.milestones.some(
-      (milestone) => milestone.id === key.slice(MILESTONE_COLUMN_PREFIX.length),
-    )
+    key.startsWith(prefix) &&
+    context.plan.milestones.some((milestone) => milestone.id === key.slice(prefix.length))
   )
 }
 
@@ -1227,6 +1301,27 @@ function readMilestoneDates(
     const field = row.planDate(key)
     if (field === undefined) continue
     const milestone = key.slice(MILESTONE_COLUMN_PREFIX.length)
+    if (field.value === undefined) delete out[milestone]
+    else setKey(out, milestone, field.value)
+  }
+  return Object.keys(out).length ? out : undefined
+}
+
+/**
+ * Each actual column of `row` into `actuals`, which it changes: a day sets
+ * it, a blank deletes it, and a cell that is no day leaves it, reported (#215).
+ */
+function readActualDays(
+  row: Row,
+  keys: readonly string[],
+  actuals: Record<string, string> | undefined,
+  location: string,
+): Record<string, string> | undefined {
+  const out: Record<string, string> = { ...actuals }
+  for (const key of keys) {
+    const field = row.actualDay(key, location)
+    if (field === undefined) continue
+    const milestone = key.slice(ACTUAL_COLUMN_PREFIX.length)
     if (field.value === undefined) delete out[milestone]
     else setKey(out, milestone, field.value)
   }
@@ -1324,19 +1419,22 @@ function required(row: Row, key: string, field: Field<number>): number | undefin
   return field?.value
 }
 
-const SITE_PLAN_KEYS = new Set(['location', 'name', 'wave', 'archetype', 'rag'])
+const SITE_PLAN_KEYS = new Set(['location', 'name', 'wave', 'archetype', 'rag', 'goNoGo'])
 
 function importSitePlans(context: ImportContext, sheet: Sheet<ReadCell>): void {
   const table = readTable(
     context,
     sheet,
-    (key) => SITE_PLAN_KEYS.has(key) || isMilestoneColumn(context, key),
+    (key) =>
+      SITE_PLAN_KEYS.has(key) ||
+      isMilestoneColumn(context, key) ||
+      isMilestoneColumn(context, key, ACTUAL_COLUMN_PREFIX),
     'location',
   )
   if (!table) return
-  const milestoneKeys = [...table.columns.keys()].filter(
-    (key) => !SITE_PLAN_KEYS.has(key) && key.startsWith(MILESTONE_COLUMN_PREFIX),
-  )
+  const keys = [...table.columns.keys()]
+  const milestoneKeys = keys.filter((key) => key.startsWith(MILESTONE_COLUMN_PREFIX))
+  const actualKeys = keys.filter((key) => key.startsWith(ACTUAL_COLUMN_PREFIX))
   const original = new Map(context.plan.sites.map((site) => [site.location, site]))
   for (const [rowIndex, location] of rowKeys(context, table, 'location')) {
     const row = new Row(context, table, rowIndex)
@@ -1405,7 +1503,7 @@ function importSitePlans(context: ImportContext, sheet: Sheet<ReadCell>): void {
         )
       } else after.archetype = id
     }
-    const rag = row.text('rag')
+    const rag = row.choice('rag')
     if (rag?.value === undefined) {
       if (rag) delete after.rag
     } else if (isSiteRag(rag.value)) after.rag = rag.value
@@ -1418,9 +1516,25 @@ function importSitePlans(context: ImportContext, sheet: Sheet<ReadCell>): void {
         location,
       )
     }
+    const goNoGo = row.choice('goNoGo')
+    if (goNoGo?.value === undefined) {
+      if (goNoGo) delete after.goNoGo
+    } else if (isGoNoGo(goNoGo.value)) after.goNoGo = goNoGo.value
+    else {
+      row.report(
+        'error',
+        'rollout-workbook.go-no-go-unknown',
+        `${JSON.stringify(goNoGo.value)} is not a go/no-go decision; write go or no-go, or leave it blank while it is not taken. It was not applied.`,
+        'goNoGo',
+        location,
+      )
+    }
     const dates = readMilestoneDates(row, milestoneKeys, after.milestones)
     if (dates) after.milestones = dates
     else delete after.milestones
+    const actuals = readActualDays(row, actualKeys, after.actuals, location)
+    if (actuals) after.actuals = actuals
+    else delete after.actuals
 
     // A site the Sites sheet removes still has its row here, as exported; only
     // a row that would change its plan has something to say.

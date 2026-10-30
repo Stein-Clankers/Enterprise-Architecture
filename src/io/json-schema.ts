@@ -8,6 +8,7 @@ import {
   MILESTONE_PHASES,
   ROLLOUT_PRESET_IDS,
   PLAN_DATE_PRECISIONS,
+  GO_NO_GO_DECISIONS,
   SITE_RAGS,
   ELEMENT_TYPE_NAMES,
   FOLDER_ROOTS,
@@ -653,6 +654,10 @@ function planDefinitions(): Record<string, unknown> {
           additionalProperties: isoDay,
         },
         rag: { enum: [...SITE_RAGS] },
+        goNoGo: {
+          enum: [...GO_NO_GO_DECISIONS],
+          description: 'The decision taken at the go/no-go gate; absent is not decided yet.',
+        },
         notes: { type: 'string', minLength: 1 },
         exceptions: {
           type: 'array',

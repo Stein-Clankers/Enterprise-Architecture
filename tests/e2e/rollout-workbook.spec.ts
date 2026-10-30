@@ -68,9 +68,9 @@ test('export a rollout workbook, change three cells, and see the import count th
   await startEmpty(page)
   await importWithNothingToReport(page, FIXTURE, COUNTS)
 
-  // Export. Two sites have actual dates, which the workbook does not carry,
-  // so the dialog stays to say so after the download. (No site of the eight
-  // has a blackout of its own, which it would not carry either.)
+  // Export. The workbook carries the two sites' actual days (#215) and the
+  // fixture has no notes, so there is nothing to report and the dialog
+  // closes once the file is downloaded.
   await runFromPalette(page, 'Export rollout workbook…')
   const exportDialog = page.getByRole('dialog', { name: 'Export rollout workbook' })
   await expect(exportDialog.getByRole('combobox', { name: 'Rollout' })).toHaveValue(
@@ -82,11 +82,6 @@ test('export a rollout workbook, change three cells, and see the import count th
   expect(download.suggestedFilename()).toBe(WORKBOOK)
   const exported = testInfo.outputPath(WORKBOOK)
   await download.saveAs(exported)
-  await expect(exportDialog).toContainText(`Downloaded ${WORKBOOK}`)
-  await expect(exportDialog).toContainText(
-    '2 sites have actual dates, notes or blackouts of their own',
-  )
-  await exportDialog.getByRole('button', { name: 'Done' }).click()
   await expect(exportDialog).toBeHidden()
 
   // Rows 1 and 2 are keys and labels; site n is row n + 2 and wave w row w + 3.

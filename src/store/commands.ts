@@ -225,7 +225,8 @@ function describeMilestoneChange(before: Element, after: Element): string | unde
   const removed = describeMilestoneRemoval(before, after, 0)
   if (removed) return removed
   if (!sameApart(was, now, 'milestones')) {
-    return sameApart(was, now, 'sites') ? siteDatesText(was, now, rollout) : undefined
+    if (!sameApart(was, now, 'sites')) return undefined
+    return siteDatesText(was, now, rollout) ?? siteProgressText(was, now, rollout)
   }
   const wasIds = was.milestones.map((milestone) => milestone.id)
   const nowIds = now.milestones.map((milestone) => milestone.id)
@@ -314,6 +315,35 @@ function siteDatesText(was: RolloutPlan, now: RolloutPlan, rollout: string): str
     .map((milestone) => `“${milestone.label}”`)
   if (!labels.length) return undefined
   return `Updated the ${listed(labels)} ${labels.length === 1 ? 'date' : 'dates'} of ${plural(sites, 'site')} in ${rollout}`
+}
+
+/**
+ * Sites' actual days, RAG or go/no-go changed, and nothing else of them
+ * (#215): which of the three, and on how many sites.
+ */
+function siteProgressText(was: RolloutPlan, now: RolloutPlan, rollout: string): string | undefined {
+  const before = new Map(was.sites.map((site) => [site.location, site]))
+  if (before.size !== now.sites.length) return undefined
+  const fields = new Set<'actual dates' | 'RAG' | 'go/no-go'>()
+  let sites = 0
+  for (const site of now.sites) {
+    const old = before.get(site.location)
+    if (!old) return undefined
+    const { actuals: oldActuals, rag: oldRag, goNoGo: oldGoNoGo, ...oldRest } = old
+    const { actuals, rag, goNoGo, ...rest } = site
+    if (JSON.stringify(oldRest) !== JSON.stringify(rest)) return undefined
+    const changed = [
+      JSON.stringify(oldActuals) !== JSON.stringify(actuals) && ('actual dates' as const),
+      oldRag !== rag && ('RAG' as const),
+      oldGoNoGo !== goNoGo && ('go/no-go' as const),
+    ].filter((field) => field !== false)
+    if (!changed.length) continue
+    sites++
+    for (const field of changed) fields.add(field)
+  }
+  if (!sites) return undefined
+  const order = (['actual dates', 'RAG', 'go/no-go'] as const).filter((field) => fields.has(field))
+  return `Updated the ${listed(order)} of ${plural(sites, 'site')} in ${rollout}`
 }
 
 function isWaveUpdate(command: Command): boolean {

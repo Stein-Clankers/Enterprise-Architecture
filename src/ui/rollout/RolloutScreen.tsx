@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useModelSelector, useModelStoreContext } from '@/store'
 import { dayStart, isIsoDay, type Milestone } from '@/model'
 import { AddSitesDialog, WaveDialog } from './RolloutDialogs'
+import { BurnUp } from './BurnUp'
 import { MilestoneDialog, MilestoneSet } from './MilestoneSet'
 import { PlanChecks } from './PlanChecks'
 import { SiteDatesDialog } from './SiteDatesDialog'
@@ -19,8 +20,8 @@ import './rollout.css'
 
 /**
  * A rollout's home (#211, proposal §6 item 1) at `/rollout/:id`: its KPIs,
- * then the register, the board, the timeline, the milestone set and the plan
- * checks (#214) as tabs.
+ * then the register, the board, the timeline, the progress burn-up (#215),
+ * the milestone set and the plan checks (#214) as tabs.
  * The register derives each site's phase at today, taken once as the screen
  * mounts, so a phase does not change under the user between two renders. A
  * time point in the URL, `?at=2026-10-23`, takes its place, on every tab: the
@@ -33,7 +34,7 @@ import './rollout.css'
  * The tab is in the URL, so a tab is a link.
  */
 
-export const TABS = ['register', 'board', 'timeline', 'milestones', 'checks'] as const
+export const TABS = ['register', 'board', 'timeline', 'progress', 'milestones', 'checks'] as const
 
 /** The search parameter holding the screen's time point, an ISO day. */
 export const TIME_POINT_PARAM = 'at'
@@ -42,6 +43,7 @@ const TAB_LABELS: Record<Tab, string> = {
   register: 'Site register',
   board: 'Wave board',
   timeline: 'Timeline',
+  progress: 'Progress',
   milestones: 'Milestones',
   checks: 'Plan checks',
 }
@@ -103,7 +105,12 @@ export function RolloutScreen() {
     )
   }
 
-  const openSite = (locationId: string) => navigate(`/element/${locationId}`)
+  // A site opens on its Migration tab, at the screen's time point, so the
+  // phase there is the one the register shows (#215).
+  const openSite = (locationId: string) =>
+    navigate(
+      `/element/${encodeURIComponent(locationId)}?tab=migration${asOf ? `&${TIME_POINT_PARAM}=${asOf}` : ''}`,
+    )
 
   return (
     <div className="rollout">
@@ -190,6 +197,7 @@ export function RolloutScreen() {
           />
         )}
         {tab === 'timeline' && <WaveTimeline data={data} {...(asOf ? { asOf } : {})} />}
+        {tab === 'progress' && <BurnUp data={data} {...(asOf ? { asOf } : {})} />}
         {tab === 'checks' && <PlanChecks data={data} />}
         {tab === 'milestones' && (
           <MilestoneSet

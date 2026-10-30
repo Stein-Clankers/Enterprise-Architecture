@@ -30,7 +30,7 @@ export function siteId(n: number): string {
  * first programme, 160 sites, by default.
  *
  * Every field a plan can hold is set somewhere: milestone overrides at each
- * precision, actuals, RAG, notes with characters XML has to escape, unassigned
+ * precision, actuals, RAG, go/no-go, notes with characters XML has to escape, unassigned
  * sites, both archetypes, every kind of template change, both kinds of entry
  * date and every applicability rule, the preset, and every kind of site
  * exception, a site's dependencies and its own blackouts (#214). Deterministic,
@@ -241,6 +241,9 @@ export function rolloutWorkspace(siteCount = 160): Workspace {
     if (n === 1) setKey(site.actuals!, 'constructor', '2027-02-15')
     if (n % 5 === 0) site.rag = n % 10 === 0 ? 'amber' : 'green'
     if (n === 7) site.rag = 'red'
+    // The go/no-go decision the PMO returns (#215): one go, one no-go.
+    if (n === 1) site.goNoGo = 'go'
+    if (n === 6) site.goNoGo = 'no-go'
     if (n % 11 === 0) {
       site.notes = `Site ${code}: HR files stay <local> & "on site"\nuntil the works council agrees.`
     }
