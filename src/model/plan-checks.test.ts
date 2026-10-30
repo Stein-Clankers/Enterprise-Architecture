@@ -730,6 +730,28 @@ describe('the data-migration preset’s checks', () => {
       expect(messages(model)[0]).toContain('Mock load 1 has no date')
     })
 
+    it('takes an actual day over the plan, early or late, for the cutover and for each load', () => {
+      // A cut over on 10 February, before its mock load 2 (15 February).
+      const earlyCutover = changed((m) => (siteOf(m, A).actuals = { freezeStart: '2027-02-10' }))
+      expect(checked(earlyCutover)).toEqual([`rollout.mock-loads ${A}`])
+      // Mock load 2 is planned after the cutover, which actually happens later still.
+      const lateCutover = changed((m) => {
+        setSiteDate(m, A, 'mockLoad2', day('2027-03-12'))
+        setSiteDate(m, A, 'reconciliationSignedOff', day('2027-03-25'))
+        siteOf(m, A).actuals = { freezeStart: '2027-03-20' }
+      })
+      expect(checked(lateCutover)).toEqual([])
+      // Mock load 2 is planned on the cutover day, and actually ran on 1 March.
+      const earlyLoad = changed((m) => {
+        setSiteDate(m, A, 'mockLoad2', day('2027-03-12'))
+        siteOf(m, A).actuals = { mockLoad2: '2027-03-01' }
+      })
+      expect(checked(earlyLoad)).toEqual([])
+      // Mock load 2 was planned in good time, and actually ran on the cutover day.
+      const lateLoad = changed((m) => (siteOf(m, A).actuals = { mockLoad2: '2027-03-11' }))
+      expect(checked(lateLoad)).toEqual([`rollout.mock-loads ${A}`])
+    })
+
     it('counts the mock loads the milestone set still has', () => {
       const model = changed((m) => {
         planOf(m).milestones = planOf(m).milestones.filter((x) => x.id !== 'mockLoad2')
@@ -788,6 +810,32 @@ describe('the data-migration preset’s checks', () => {
       ])
     })
 
+    it('takes an actual day over the plan, early or late, at either end, to tell an inverted freeze', () => {
+      const inverted = (plan: Record<string, string>, actuals: Record<string, string>) =>
+        checked(
+          changed((m) => {
+            for (const [id, date] of Object.entries(plan)) setSiteDate(m, A, id, day(date))
+            siteOf(m, A).actuals = actuals
+          }),
+        )
+      const unchecked = [`rollout.freeze-unchecked ${A}`]
+      // Reconciliation, planned the 15th, actually signed off the 10th, before the freeze starts.
+      expect(inverted({}, { reconciliationSignedOff: '2027-03-10' })).toEqual(unchecked)
+      // The freeze, planned the 11th, actually starts the 16th, after reconciliation.
+      expect(inverted({}, { freezeStart: '2027-03-16' })).toEqual(unchecked)
+      // Reconciliation planned the 10th, before the freeze: actually signed off the 12th, after it.
+      expect(
+        inverted(
+          { reconciliationSignedOff: '2027-03-10' },
+          { reconciliationSignedOff: '2027-03-12' },
+        ),
+      ).toEqual([])
+      // The same plan, and the freeze actually started the 9th, before reconciliation.
+      expect(
+        inverted({ reconciliationSignedOff: '2027-03-10' }, { freezeStart: '2027-03-09' }),
+      ).toEqual([])
+    })
+
     it('reads a site’s own blackouts for that site only', () => {
       const model = changed((m) => (siteOf(m, B).blackouts = [blackout('2027-03-13')]))
       expect(checked(model)).toEqual([`rollout.freeze-in-blackout ${B}`])
@@ -810,9 +858,15 @@ describe('the data-migration preset’s checks', () => {
       expect(checked(before)).toEqual([])
     })
 
-    it('takes an actual day over the plan', () => {
+    it('takes an actual day over the plan, early or late', () => {
+      // Hypercare, planned to end 12 April, actually ended on the day of reconciliation.
       const model = changed((m) => (siteOf(m, A).actuals = { hypercareEnd: '2027-03-15' }))
       expect(checked(model)).toEqual([`rollout.reconciliation-late ${A}`])
+      // Reconciliation, planned the 15th, was actually signed off on the day hypercare ends.
+      const late = changed(
+        (m) => (siteOf(m, A).actuals = { reconciliationSignedOff: '2027-04-12' }),
+      )
+      expect(checked(late)).toEqual([`rollout.reconciliation-late ${A}`])
     })
 
     it('says it cannot judge a site whose hypercare has no end date', () => {
