@@ -56,6 +56,8 @@ Where the diff touches them, verify the CLAUDE.md invariants:
 
   **When two checks read one input, the ADR says whether one yields to the other.** #242's demo reported one cutover twice, as cutover-in-blackout and as freeze-in-blackout, and only the review asked whether that was intended (the sponsor ruled: checks are independent).
 
+  **A rule over "the members that make up a share" is a rule over every member counted, not the ones that arrived last:** test it with members of different precisions. #241's checkpoint took its period only from the sites migrating at that instant, so a day-dated site made a 75% checkpoint late while a quarter-dated site in the same share still had two months to go. **An instant asserted beside its period must not fall on the period's first day,** or the two cannot be told apart: every #241 fixture did, so drawing the point at the period's start passed.
+
   **When a test's expected list repeats one value, ask what the consumer does with the equal values.** #229's own spacing test expected `Q1, Q1, Q1, Q1, Q2`, and nobody asked which phase four milestones in one quarter yield: since a date is reached on its period's first day, the site read Migrated before any cutover.
 
   **When a PR body ships a guard-removal table, re-run the rows whose guard has more than one predicate, and narrow rather than delete.** Deleting is what the author already did, and it proves only the weakest predicate. #228's table said `!touchesBlackout(d, addDays(d, freeze))` was caught, because deleting the call put a cutover *day* in a blackout. Narrowing it to `touchesBlackout(d, d)` left all 42 seeded-problem tests green on all seven seeds, so nothing pinned the freeze window.
