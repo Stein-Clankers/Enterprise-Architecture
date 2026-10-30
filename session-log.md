@@ -21,7 +21,19 @@
   - **33 mutation probes,** all caught. Two survived on the first run, and their cases were added.
 - **ADR 0020 (Proposed)** records seven choices ADR 0014 left open, among them `validTo` as exclusive, valid only between live endpoints, earliest entry wins, and an open end not being a conflict. The sponsor should accept or change them before part 2 builds UI on them.
 - **Regenerated:** the three rollout fixtures and the demo, for the schema bump only.
+- **Reviewed (`/review-pr 246 high`), and changes requested.** The review ran in the authoring session, and a fresh agent did the generic pass. Findings:
+  - **CI is red:** the budget test runs under `test:coverage`, where the median is 21 ms against 3.8 ms locally. The "all passed" in the PR body was a local result.
+  - **Silent data behaviour:**
+    - a `replace` with a missing subject makes its successor vanish;
+    - `retired-twice` names a date `modelAt` ignores;
+    - an unparseable `validTo` opens the window for ever.
+  - **Test gaps:** 13 of the agent's 46 mutants survived.
+
+  **Harvested:**
+  - **CLAUDE.md:** budgets measured under coverage; green means CI is green.
+  - **Review skill:** one filter per list; the first PR to give a stored field meaning checks what the readers accept.
 - **Open:**
+  - fix the six blocking findings on #246;
   - the sponsor's call on ADR 0020;
   - #61 part 2, #60 and #64;
   - stale agent worktrees under `.claude/worktrees/` make a local `npm run lint` fail (CI is unaffected) and are worth sweeping.
