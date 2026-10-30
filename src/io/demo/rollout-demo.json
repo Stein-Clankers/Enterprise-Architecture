@@ -2488,6 +2488,7 @@
             "startsPhase": "done"
           }
         ],
+        "preset": "dataMigration",
         "sites": [
           {
             "archetype": "office",
@@ -2701,6 +2702,9 @@
           },
           {
             "archetype": "plant",
+            "dependsOn": [
+              "loc-site-ca-04"
+            ],
             "location": "loc-site-ca-05",
             "wave": "wp-wave-5"
           },
@@ -2739,6 +2743,25 @@
           },
           {
             "archetype": "warehouse",
+            "exceptions": [
+              {
+                "change": {
+                  "date": {
+                    "anchor": "mockLoad1",
+                    "offsetDays": -7
+                  },
+                  "id": "site-ch-02-lake-early",
+                  "kind": "introduce",
+                  "subject": "art-lake-ce"
+                },
+                "class": "operational",
+                "expires": "2027-12-31",
+                "id": "ex-ch-02-add",
+                "kind": "add",
+                "owner": "Regional data office",
+                "rationale": "Reporting reads the lake a week before the first mock load."
+              }
+            ],
             "location": "loc-site-ch-02",
             "milestones": {
               "freezeStart": {
@@ -2839,6 +2862,19 @@
           },
           {
             "archetype": "plant",
+            "exceptions": [
+              {
+                "change": "tc-art-quality-ce-retire",
+                "class": "legal",
+                "disposition": "archive",
+                "expires": "2028-06-30",
+                "id": "ex-de-07-modify",
+                "kind": "modify",
+                "offsetDays": 270,
+                "owner": "Quality assurance",
+                "rationale": "Quality records stay readable on site until the product audit closes."
+              }
+            ],
             "location": "loc-site-de-07",
             "wave": "wp-wave-2"
           },
@@ -2849,12 +2885,24 @@
           },
           {
             "archetype": "plant",
+            "dependsOn": [
+              "loc-site-at-09"
+            ],
             "location": "loc-site-de-09",
+            "notes": "Reads its stock data from Wien office 2, which must migrate first.",
             "rag": "amber",
             "wave": "wp-wave-1"
           },
           {
             "archetype": "office",
+            "blackouts": [
+              {
+                "end": "2027-07-02",
+                "id": "bo-de-10-stocktake",
+                "label": "Annual stocktake",
+                "start": "2027-06-28"
+              }
+            ],
             "location": "loc-site-de-10",
             "milestones": {
               "freezeStart": {
@@ -2978,6 +3026,17 @@
           },
           {
             "archetype": "office",
+            "exceptions": [
+              {
+                "change": "tc-art-files-we-retire",
+                "class": "preference",
+                "expires": "2028-12-31",
+                "id": "ex-fr-03-skip",
+                "kind": "skip",
+                "owner": "Site IT",
+                "rationale": "The works council keeps its share on site until its own move."
+              }
+            ],
             "location": "loc-site-fr-03",
             "wave": "wp-wave-3"
           },
@@ -3103,6 +3162,9 @@
           },
           {
             "archetype": "office",
+            "dependsOn": [
+              "loc-site-dk-01"
+            ],
             "location": "loc-site-ie-04",
             "wave": "wp-wave-4"
           },
@@ -3158,6 +3220,9 @@
           },
           {
             "archetype": "warehouse",
+            "dependsOn": [
+              "loc-site-it-02"
+            ],
             "location": "loc-site-it-03",
             "milestones": {
               "freezeStart": {
@@ -3235,6 +3300,9 @@
           },
           {
             "archetype": "plant",
+            "dependsOn": [
+              "loc-site-jp-02"
+            ],
             "location": "loc-site-jp-05",
             "wave": "wp-wave-6"
           },

@@ -142,6 +142,8 @@ describe('exporting', () => {
       'Sites',
       'Waves',
       'SitePlan',
+      'Exceptions',
+      'Dependencies',
       'Milestones',
       'Template',
     ])
@@ -158,7 +160,9 @@ describe('exporting', () => {
     expect(exportDialog()).toHaveTextContent(
       'Downloaded local-data-to-the-central-lake-workbook.xlsx',
     )
-    expect(exportDialog()).toHaveTextContent('2 sites have actual dates or notes')
+    expect(exportDialog()).toHaveTextContent(
+      '2 sites have actual dates, notes or blackouts of their own',
+    )
     await user.click(within(exportDialog()).getByRole('button', { name: 'Done' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
@@ -224,6 +228,8 @@ describe('importing', () => {
     ])
     expect(count('sites.unchanged')).toBe(String(SITES - 1))
     expect(count('sites.created')).toBe('0')
+    // Sites 3 and 6's exceptions and site 6's dependencies (#214) are read and unchanged.
+    expect([count('exceptions.unchanged'), count('dependencies.unchanged')]).toEqual(['4', '2'])
     expect(within(importDialog()).getByText('rollout.xlsx')).toBeInTheDocument()
     // Nothing has changed yet.
     expect(toCanonicalJson(store.snapshot())).toBe(before)

@@ -17,7 +17,8 @@ UI reference: `design/specs/open-ea-repository-ui-spec.md` §3.1, §2.2.
 | `plan.ts` | rollouts, waves and site plans; `PlanDate`; change entries; their guards (#209) |
 | `lifecycle.ts` | phase derivation from dates |
 | `site-phase.ts` | a site's milestone dates resolved (set, inherited or spaced) and its derived phase and overdue flag (#213, ADR 0016) |
-| `presets.ts` | the rollout presets, as data: milestone sets and default durations (#213) |
+| `presets.ts` | the rollout presets, as data: milestone sets, default durations and the checks each adds (#213, #214) |
+| `plan-checks.ts` | a rollout's plan checks at a time point: capacity, blackouts, dependency order, expiry, precision, the template's reach, and the preset's checks (#214, ADR 0017) |
 | `completeness.ts` | completeness scoring and model health |
 | `workspace.ts` | `Element`, `Relationship`, `View`, `Folder`, `ReportDefinition`, `Workspace` |
 | `views.ts` | pure view operations: node removal with lifting, absolute bounds |
@@ -25,7 +26,7 @@ UI reference: `design/specs/open-ea-repository-ui-spec.md` §3.1, §2.2.
 | `migrate.ts` | bringing a stored workspace from an earlier schema forward |
 | `validate.ts` | whole-model validation: Archipelago's integrity findings, and the validator's run |
 | `validate-views.ts` | referential integrity of views and folders |
-| `validate-plans.ts` | referential integrity of rollouts, waves and site plans |
+| `validate-plans.ts` | referential integrity of rollouts, waves, site plans and the template's references |
 | `checks.ts` | Archi 5.10's eight validator checks (#193) |
 | `nesting.ts` | what nesting one shape in another can mean: the prompt's and the validator's one rule |
 | `folders.ts` | where things may be filed: each kind's group, no folder inside itself |
@@ -207,8 +208,9 @@ Where the port follows Archi rather than the obvious reading:
 
 ADR 0013 and ADR 0014 decide the model; `plan.ts` holds the shapes and their
 guards, and nothing that evaluates them. Date inheritance, the derived site
-phase and presets are `site-phase.ts` and `presets.ts` (#213, ADR 0016);
-exceptions, dependencies and plan checks are #214.
+phase and presets are `site-phase.ts` and `presets.ts` (#213, ADR 0016); a
+site's exceptions, dependencies and own blackouts are fields of its site plan,
+and the plan checks are `plan-checks.ts` (#214, ADR 0017).
 
 - **A milestone date resolves from the site, else its wave, else its
   rollout** (`SitePlan.milestones`, `WavePlan.milestones`, `Milestone.date`).
@@ -258,5 +260,27 @@ exceptions, dependencies and plan checks are #214.
 Deleting a Location leaves its site plans where they are: a plan holds the
 dates, actuals and notes someone entered. `validate()` reports each reference
 a site plan or a wave holds that no longer holds (`plan.site-location-missing`,
-and the same for a wave, an archetype, a milestone, or a wave's rollout). The
-references in a rollout's template are not checked yet (#213, #214).
+and the same for a wave, an archetype, a milestone, or a wave's rollout), and
+each reference of the template (#214): a change's subject and successor, its
+applicability's element and archetypes, its date's anchor, and the keys of an
+archetype's durations. A site's exceptions and dependencies are checked the
+same way (`plan.exception-*`, `plan.site-dependency-*`).
+
+**Plan checks are not integrity findings** (#214, ADR 0017). `planChecks`
+judges a plan at a time point, `validate()` says it points at nothing; a check
+leaves a reference that does not hold to `validate()`. The checks of every
+rollout are a site in no wave, a wave over capacity, a cutover in a blackout,
+a dependency order violated, an expired exception (of any class), a site
+still at quarter precision in the next wave or a wave under way, a template
+change made at no site, and a site that lacks what a change retires; a rollout made from a preset (`RolloutPlan.preset`)
+runs that preset's checks too, which `presets.ts` holds as data. An order
+compares the days the phase is derived from (`reachedAt`); an overlap with a
+blackout compares the whole period a date is shown at. A coarse date in an
+order counts from its period's first day, so an order check does not flag a
+coarse order; the next-wave check keeps the near waves precise. No check is silent on
+input it lacks: it says, as an `advice`, what it could not judge and why.
+Checks are independent: one site may be reported by several, and none yields
+to another. A `preference` exception with no expiry is advice; a `legal` or
+`operational` one may be open-ended. A site that purges or retains a
+template `replace`'s data (a `modify` exception) moves none of it, so
+residency does not read that change at it.

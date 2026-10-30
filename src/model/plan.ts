@@ -1,3 +1,4 @@
+import { isRolloutPresetId, type RolloutPresetId } from './presets'
 import { isFitLevel, isTimeClassification, type FitLevel, type TimeClassification } from './profile'
 import type { Element } from './workspace'
 
@@ -13,8 +14,8 @@ import type { Element } from './workspace'
  *
  * This module holds the shapes and their type guards, and the calendar
  * arithmetic of plan dates. Date inheritance and the derived site phase are
- * `site-phase.ts` (#213), the presets `presets.ts`; exceptions, dependencies
- * and plan checks are #214. Every guard here is strict:
+ * `site-phase.ts` (#213), the presets `presets.ts`, and the plan checks
+ * `plan-checks.ts` (#214). Every guard here is strict:
  * it accepts exactly the shape, with no key it does not know, so a value it
  * passes is one canonical JSON writes back unchanged and the published schema
  * accepts. The store calls them on the write path, the readers on the read path.
@@ -474,7 +475,7 @@ export function isBlackout(value: unknown): value is Blackout {
   )
 }
 
-/** Rollout-wide constraints (ADR 0013 point 1); sites add their own blackouts later. */
+/** Rollout-wide constraints (ADR 0013 point 1); a site adds its own blackouts (`SitePlan.blackouts`, #214). */
 export interface RolloutConstraints {
   blackouts?: Blackout[]
   /** Sites per wave, for a wave that sets no capacity of its own. */
@@ -501,9 +502,101 @@ export function isSiteRag(value: unknown): value is SiteRag {
 }
 
 /**
- * One Location's plan within one rollout (proposal §4.4). Exceptions and
- * dependencies arrive with #214.
+ * How a site deviates from the template (ADR 0013 point 4, proposal §4.4):
+ * `skip` a template change, `add` a change only this site makes, or `modify`
+ * a template change's offset or disposition.
  */
+export const EXCEPTION_KINDS = ['skip', 'add', 'modify'] as const
+export type ExceptionKind = (typeof EXCEPTION_KINDS)[number]
+
+/**
+ * Why a site deviates (ADR 0013 point 4): a `legal` deviation is mandatory,
+ * an `operational` one justified, and a `preference` one is rejected by
+ * default (proposal §2, item 3).
+ */
+export const EXCEPTION_CLASSES = ['legal', 'operational', 'preference'] as const
+export type ExceptionClass = (typeof EXCEPTION_CLASSES)[number]
+
+/**
+ * What becomes of a data object at a site (proposal §4.8), the data
+ * equivalent of the cloud 7Rs. A site sets its own with a `modify` exception;
+ * a template change's own disposition is #230's to add.
+ */
+export const DISPOSITIONS = ['migrate', 'archive', 'purge', 'retain'] as const
+export type Disposition = (typeof DISPOSITIONS)[number]
+
+export function isExceptionKind(value: unknown): value is ExceptionKind {
+  return (EXCEPTION_KINDS as readonly unknown[]).includes(value)
+}
+
+export function isExceptionClass(value: unknown): value is ExceptionClass {
+  return (EXCEPTION_CLASSES as readonly unknown[]).includes(value)
+}
+
+export function isDisposition(value: unknown): value is Disposition {
+  return (DISPOSITIONS as readonly unknown[]).includes(value)
+}
+
+interface SiteExceptionBase {
+  /** Unique within the rollout: the workbook's Exceptions sheet is keyed by it. */
+  id: string
+  class: ExceptionClass
+  /** Who answers for it. */
+  owner?: string
+  /** The last day it holds, an ISO day: from the day after, it has expired. */
+  expires?: string
+  rationale?: string
+}
+
+/** One deviation of one site from its rollout's template (proposal §4.4, ADR 0017). */
+export type SiteException =
+  /** The template change with the id `change` is not made at this site. */
+  | (SiteExceptionBase & { kind: 'skip'; change: string })
+  /**
+   * The template change with the id `change` is made at this site at another
+   * offset from its anchor, with another disposition, or both: one is set.
+   */
+  | (SiteExceptionBase & {
+      kind: 'modify'
+      change: string
+      offsetDays?: number
+      disposition?: Disposition
+    })
+  /** A change only this site makes: a change entry of its own (ADR 0014 §2). */
+  | (SiteExceptionBase & { kind: 'add'; change: ChangeEntry })
+
+const EXCEPTION_KEYS = ['id', 'kind', 'change', 'class', 'owner', 'expires', 'rationale'] as const
+
+export function isSiteException(value: unknown): value is SiteException {
+  if (
+    !isRecord(value) ||
+    !isId(value.id) ||
+    !isExceptionClass(value.class) ||
+    !(value.owner === undefined || typeof value.owner === 'string') ||
+    !(value.expires === undefined || isIsoDay(value.expires)) ||
+    !(value.rationale === undefined || typeof value.rationale === 'string')
+  ) {
+    return false
+  }
+  switch (value.kind) {
+    case 'skip':
+      return hasOnlyKeys(value, EXCEPTION_KEYS) && isId(value.change)
+    case 'modify':
+      return (
+        hasOnlyKeys(value, [...EXCEPTION_KEYS, 'offsetDays', 'disposition']) &&
+        isId(value.change) &&
+        (value.offsetDays !== undefined || value.disposition !== undefined) &&
+        (value.offsetDays === undefined || Number.isSafeInteger(value.offsetDays)) &&
+        (value.disposition === undefined || isDisposition(value.disposition))
+      )
+    case 'add':
+      return hasOnlyKeys(value, EXCEPTION_KEYS) && isChangeEntry(value.change)
+    default:
+      return false
+  }
+}
+
+/** One Location's plan within one rollout (proposal §4.4). */
 export interface SitePlan {
   /** The Location element's id: the key of the record within its rollout. */
   location: string
@@ -517,6 +610,15 @@ export interface SitePlan {
   actuals?: Record<string, string>
   rag?: SiteRag
   notes?: string
+  /** Its deviations from the template (#214); a file sorts them by id. */
+  exceptions?: SiteException[]
+  /**
+   * The sites that must cut over before it, by Location id: a hub before its
+   * spokes (#214). Each is another site of the rollout; a file sorts them.
+   */
+  dependsOn?: string[]
+  /** Its own blackouts, besides the rollout's (#214); a file sorts them by id. */
+  blackouts?: Blackout[]
 }
 
 export function isSitePlan(value: unknown): value is SitePlan {
@@ -530,6 +632,9 @@ export function isSitePlan(value: unknown): value is SitePlan {
       'actuals',
       'rag',
       'notes',
+      'exceptions',
+      'dependsOn',
+      'blackouts',
     ]) &&
     isId(value.location) &&
     (value.wave === undefined || isId(value.wave)) &&
@@ -537,7 +642,10 @@ export function isSitePlan(value: unknown): value is SitePlan {
     (value.milestones === undefined || isRecordOf(value.milestones, isPlanDate)) &&
     (value.actuals === undefined || isRecordOf(value.actuals, isIsoDay)) &&
     (value.rag === undefined || isSiteRag(value.rag)) &&
-    (value.notes === undefined || typeof value.notes === 'string')
+    (value.notes === undefined || typeof value.notes === 'string') &&
+    (value.exceptions === undefined || isUniqueList(value.exceptions, isSiteException)) &&
+    (value.dependsOn === undefined || isIdSet(value.dependsOn)) &&
+    (value.blackouts === undefined || isUniqueList(value.blackouts, isBlackout))
   )
 }
 
@@ -546,6 +654,12 @@ export function isSitePlan(value: unknown): value is SitePlan {
 /** The plan profile of a rollout Work Package (ADR 0013 point 1). */
 export interface RolloutPlan {
   kind: 'rollout'
+  /**
+   * The preset the rollout was made from (#214). The milestone set is the
+   * rollout's own to change; the preset is kept for the checks it adds
+   * (proposal §4.8), which read the milestones they need by id.
+   */
+  preset?: RolloutPresetId
   /** Bumped when the template changes; each wave records the one it is locked to. */
   templateVersion: number
   /** Ordered: phase derivation walks it in this order (#213). */
@@ -604,6 +718,7 @@ export function isRolloutPlan(value: unknown): value is RolloutPlan {
     isRecord(value) &&
     hasOnlyKeys(value, [
       'kind',
+      'preset',
       'templateVersion',
       'milestones',
       'template',
@@ -612,6 +727,7 @@ export function isRolloutPlan(value: unknown): value is RolloutPlan {
       'sites',
     ]) &&
     value.kind === 'rollout' &&
+    (value.preset === undefined || isRolloutPresetId(value.preset)) &&
     isPositiveInteger(value.templateVersion) &&
     isUniqueList(value.milestones, isMilestone) &&
     isUniqueList(value.template, isTemplateChange) &&
@@ -619,8 +735,15 @@ export function isRolloutPlan(value: unknown): value is RolloutPlan {
     isUniqueList(value.archetypes, isArchetype) &&
     Array.isArray(value.sites) &&
     value.sites.every(isSitePlan) &&
-    new Set(value.sites.map((site: SitePlan) => site.location)).size === value.sites.length
+    new Set(value.sites.map((site: SitePlan) => site.location)).size === value.sites.length &&
+    hasUniqueExceptionIds(value.sites as SitePlan[])
   )
+}
+
+/** Exception ids are unique across a rollout's sites: the workbook's Exceptions sheet is keyed by them. */
+function hasUniqueExceptionIds(sites: readonly SitePlan[]): boolean {
+  const ids = sites.flatMap((site) => (site.exceptions ?? []).map((exception) => exception.id))
+  return new Set(ids).size === ids.length
 }
 
 export function isWavePlan(value: unknown): value is WavePlan {
@@ -671,11 +794,7 @@ export function wavesOf(elements: Iterable<Element>, rolloutId: string): Element
     if (plan?.rollout === rolloutId) waves.push({ element, order: plan.order })
   }
   return waves
-    .sort(
-      (a, b) =>
-        a.order - b.order ||
-        (a.element.id < b.element.id ? -1 : a.element.id > b.element.id ? 1 : 0),
-    )
+    .sort((a, b) => a.order - b.order || byCodeUnit(a.element.id, b.element.id))
     .map((wave) => wave.element)
 }
 
@@ -702,7 +821,12 @@ export function archetypeIdOf(value: unknown, plan: RolloutPlan): string | undef
 
 /** Code-unit order: collation depends on the machine's locale (ADR 0004). */
 export function byLocation(a: SitePlan, b: SitePlan): number {
-  return a.location < b.location ? -1 : a.location > b.location ? 1 : 0
+  return byCodeUnit(a.location, b.location)
+}
+
+/** Ids and keys by UTF-16 code unit, never by locale (ADR 0004): one order on every machine. */
+export function byCodeUnit(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0
 }
 
 // ── Guard helpers ────────────────────────────────────────────────────────────
@@ -719,6 +843,11 @@ function hasOnlyKeys(value: Record<string, unknown>, keys: readonly string[]): b
 /** A reference or key: any non-empty text. */
 function isId(value: unknown): value is string {
   return typeof value === 'string' && value !== ''
+}
+
+/** A list of ids, each once: a site's dependencies. */
+function isIdSet(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(isId) && new Set(value).size === value.length
 }
 
 /** A whole number from 1: a template version, a capacity. Shared with the readers, so they cannot drift. */

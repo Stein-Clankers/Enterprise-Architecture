@@ -28,8 +28,9 @@ import {
  * The wave timeline (#211, proposal §6 item 5): waves as bars on a
  * quarter-to-month axis, under the shared report chrome (UI spec §3.4), with
  * the time point drawn as a line. A wave expands to its sites (#213), each a
- * row of milestone ticks with its phase at the time point. Blackout bands are
- * #214's.
+ * row of milestone ticks with its phase at the time point. Blackouts are not
+ * drawn as bands yet: the Plan checks tab (#214) reports a cutover or a freeze
+ * in one, and drawing them here is a later issue.
  */
 
 function slug(name: string): string {

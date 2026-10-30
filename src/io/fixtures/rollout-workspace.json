@@ -226,6 +226,7 @@
             "startsPhase": "done"
           }
         ],
+        "preset": "dataMigration",
         "sites": [
           {
             "actuals": {
@@ -247,6 +248,41 @@
             "wave": "wp-wave-0"
           },
           {
+            "exceptions": [
+              {
+                "change": {
+                  "date": {
+                    "anchor": "hypercareEnd",
+                    "offsetDays": 14
+                  },
+                  "id": "site-003-retire",
+                  "kind": "retire",
+                  "subject": "sys-local-store"
+                },
+                "class": "legal",
+                "expires": "2028-12-31",
+                "id": "ex-003-add",
+                "kind": "add",
+                "owner": "Legal"
+              },
+              {
+                "change": "tc-retire-store",
+                "class": "operational",
+                "disposition": "archive",
+                "id": "ex-003-modify",
+                "kind": "modify",
+                "offsetDays": 60
+              },
+              {
+                "change": "tc-fit",
+                "class": "preference",
+                "expires": "2027-06-30",
+                "id": "ex-003-skip",
+                "kind": "skip",
+                "owner": "Site 003 IT",
+                "rationale": "The site keeps \"its own\" fit <rating> & review."
+              }
+            ],
             "location": "loc-site-003",
             "wave": "wp-wave-4"
           },
@@ -268,6 +304,19 @@
             "wave": "wp-wave-2"
           },
           {
+            "dependsOn": [
+              "loc-site-002",
+              "loc-site-005"
+            ],
+            "exceptions": [
+              {
+                "change": "tc-eliminate",
+                "class": "legal",
+                "disposition": "retain",
+                "id": "ex-006-modify",
+                "kind": "modify"
+              }
+            ],
             "location": "loc-site-006",
             "milestones": {
               "hypercareEnd": {

@@ -736,6 +736,9 @@ describe('milestone sets (#213)', () => {
     expect(plan(s, rollout.id).archetypes).toEqual([
       { id: 'standard', label: 'Standard (placeholder)', durations: preset.durations },
     ])
+    // The preset is kept, for the checks it adds (#214); a rollout from none has none.
+    expect(plan(s, rollout.id).preset).toBe('dataMigration')
+    expect(plan(s, createRollout(s, { name: 'Bare' })!.id)).not.toHaveProperty('preset')
   })
 
   it('adds a milestone with an id made from its label, unique in the set, one command each', () => {
@@ -841,12 +844,14 @@ describe('milestone sets (#213)', () => {
       // Plant's, and the Standard archetype the preset seeds.
       archetypes: 2,
       anchoredChanges: ['tc-replace-store'],
+      anchoredExceptions: [],
     })
     expect(milestoneUsage(s, ROLLOUT_ID, 'legacyDecommissioned')).toEqual({
       sites: 0,
       waves: 0,
       archetypes: 1,
       anchoredChanges: [],
+      anchoredExceptions: [],
     })
   })
 
@@ -858,6 +863,7 @@ describe('milestone sets (#213)', () => {
       waves: 2,
       archetypes: 2,
       anchoredChanges: [],
+      anchoredExceptions: [],
     })
     expect(removeMilestone(s, ROLLOUT_ID, 'reconciliationSignedOff')).toBe(true)
     expect(s.history.length).toBe(before.history + 1)
@@ -878,6 +884,32 @@ describe('milestone sets (#213)', () => {
     expect(removeMilestone(s, ROLLOUT_ID, 'freezeStart')).toBe(false)
     expect(removeMilestone(s, ROLLOUT_ID, 'nope')).toBe(false)
     expect(removeMilestone(s, waveId(1), 'freezeStart')).toBe(false)
+    expect(state(s)).toEqual(before)
+  })
+
+  it('refuses to delete a milestone only a site’s own change is anchored on (#214)', () => {
+    // Legacy decommissioned anchors no template change, and is deleted…
+    const free = store()
+    expect(removeMilestone(free, ROLLOUT_ID, 'legacyDecommissioned')).toBe(true)
+    // …until site 3's site-only change is dated from it.
+    const workspace = rolloutWorkspace(160)
+    const rollout = rolloutPlanOf(workspace.elements.find((e) => e.id === ROLLOUT_ID))!
+    const exception = rollout.sites
+      .find((site) => site.location === siteId(3))!
+      .exceptions!.find((candidate) => candidate.kind === 'add')!
+    if (exception.kind === 'add') {
+      exception.change.date = { anchor: 'legacyDecommissioned', offsetDays: 0 }
+    }
+    const s = new ModelStore(workspace)
+    const before = state(s)
+    expect(milestoneUsage(s, ROLLOUT_ID, 'legacyDecommissioned')).toEqual({
+      sites: 0,
+      waves: 0,
+      archetypes: 1,
+      anchoredChanges: [],
+      anchoredExceptions: ['ex-003-add'],
+    })
+    expect(removeMilestone(s, ROLLOUT_ID, 'legacyDecommissioned')).toBe(false)
     expect(state(s)).toEqual(before)
   })
 

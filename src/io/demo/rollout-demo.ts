@@ -6,6 +6,7 @@ import {
   periodOf,
   presetPlan,
   resolveSiteMilestones,
+  RESIDENCY_FIELD,
   ROLLOUT_PRESETS,
   switchMilestone,
   type Archetype,
@@ -14,8 +15,10 @@ import {
   type Milestone,
   type PlanDate,
   type Relationship,
+  type ResidencyClass,
   type ResolvedMilestone,
   type RolloutPlan,
+  type SiteException,
   type SitePlan,
   type SiteRag,
   type TemplateChange,
@@ -58,18 +61,27 @@ export { ROLLOUT_DEMO_AS_OF, ROLLOUT_DEMO_ID }
  * archetype (ADR 0016 point 2). The pilot is under way as of
  * `ROLLOUT_DEMO_AS_OF`, the day the rollout home opens at.
  *
- * **Seeded problems** for #214's plan checks, each placed by rule rather than
- * by the seed, so every seed has exactly one of each (`SEEDED`):
+ * **Seeded problems** for the plan checks (#214), each placed by rule rather
+ * than by the seed, so every seed has exactly one of each, each on a site of
+ * its own (`SEEDED`):
  * - one site in no wave;
  * - one wave over capacity;
- * - one cutover inside a blackout;
+ * - one cutover inside a blackout, whose freeze is in it too: checks are
+ *   independent (ADR 0017 point 5), so the preset's freeze check finds it as
+ *   well, and the five problems are six findings;
  * - one residency violation: a Swiss site whose data may not leave
- *   Switzerland, migrating to the lake at the Frankfurt hub.
+ *   Switzerland, migrating to the lake at the Frankfurt hub;
+ * - one dependency order violated: a W1 site waits for a hub site of its
+ *   region that cuts over in W2, so the spoke goes first.
  *
- * TODO(#214): the model has no site dependencies yet, so the demo seeds no
- * dependency-order violation. Add a hub-before-spokes dependency the plan
- * breaks once #214 adds them, and agree the residency classes below with the
- * residency check.
+ * Nothing else is a problem: the rollout records the data-migration preset,
+ * so its checks run (mock loads, freeze, reconciliation, residency); each
+ * pilot site is a hub its region's first later-wave site depends on, in the
+ * right order; three sites have an exception each, one of each kind, none
+ * expired; and one site has a blackout of its own, clear of its cutover. The
+ * residency classes are the model's (`RESIDENCY_CLASSES`), in the field the
+ * check reads (`RESIDENCY_FIELD`). None of this draws on the PRNG, so the
+ * sites, waves and dates are those of #212's demo.
  */
 
 /** The seed `npm run demo:generate` writes the checked-in demo with. */
@@ -88,11 +100,9 @@ export const SEEDED = {
   blackoutCutover: '2027-03-31',
   /** The country whose first site is the residency violation. */
   residencyCountry: 'ch',
+  /** The wave of the site that waits for a hub, and the later wave the hub cuts over in. */
+  dependency: { spokeWave: 'wp-wave-1', hubWave: 'wp-wave-2' },
 } as const
-
-/** A site may keep its data anywhere, in its region, or in its country. */
-export const RESIDENCY_CLASSES = ['none', 'region', 'country'] as const
-export type ResidencyClass = (typeof RESIDENCY_CLASSES)[number]
 
 /** The interim site fields (ADR 0013 point 8). */
 export const SITE_FIELDS = {
@@ -100,7 +110,7 @@ export const SITE_FIELDS = {
   volumeGb: 'archipelago.site.volumeGb',
   sourceSystems: 'archipelago.site.sourceSystems',
   dataQuality: 'archipelago.site.dataQuality',
-  residency: 'archipelago.site.residency',
+  residency: RESIDENCY_FIELD,
   headcount: 'archipelago.site.headcount',
 } as const
 
@@ -746,6 +756,8 @@ export function rolloutDemoWorkspace(seed: number = ROLLOUT_DEMO_SEED): Workspac
     ]),
   )
 
+  seedPlanChecks({ pilot, rest, waveOf, unassigned, residencySite, blackoutSite, plans })
+
   elements.push({
     id: ROLLOUT_DEMO_ID,
     type: 'WorkPackage',
@@ -755,6 +767,7 @@ export function rolloutDemoWorkspace(seed: number = ROLLOUT_DEMO_SEED): Workspac
     properties: { owner: 'Data Office' },
     plan: {
       kind: 'rollout',
+      preset: ROLLOUT_PRESETS.dataMigration.id,
       templateVersion: 2,
       milestones: MILESTONES,
       template,
@@ -781,6 +794,122 @@ export function rolloutDemoWorkspace(seed: number = ROLLOUT_DEMO_SEED): Workspac
     elements,
     relationships,
   }
+}
+
+/**
+ * What the plan checks (#214) read, placed by rule and drawing nothing from
+ * the PRNG: the dependency violation, the dependencies that hold, one
+ * exception of each kind and a site's own blackout. Each goes on a site of
+ * its own, none of them a seeded problem's, so every seed has the five
+ * problems, in six findings, and no other.
+ */
+function seedPlanChecks({
+  pilot,
+  rest,
+  waveOf,
+  unassigned,
+  residencySite,
+  blackoutSite,
+  plans,
+}: {
+  pilot: readonly Site[]
+  rest: readonly Site[]
+  waveOf: ReadonlyMap<Site, WaveSpec>
+  unassigned: Site
+  residencySite: Site
+  blackoutSite: Site
+  plans: SitePlan[]
+}): void {
+  const used = new Set<Site>([unassigned, residencySite, blackoutSite])
+  const planOf = (site: Site) => plans.find((plan) => plan.location === site.id)!
+  const waveNamed = (id: string) => WAVES.find((wave) => wave.id === id)!
+  /** The sites of `waves` no rule has used yet, in wave order and then in `rest`'s. */
+  const free = (waves: readonly WaveSpec[], archetype?: ArchetypeId) =>
+    waves.flatMap((wave) =>
+      rest.filter(
+        (site) =>
+          waveOf.get(site) === wave &&
+          !used.has(site) &&
+          (archetype === undefined || site.archetype === archetype),
+      ),
+    )
+  const take = (site: Site) => {
+    used.add(site)
+    return site
+  }
+
+  // The violation: W1's last free site reads its stock data from a hub site
+  // of its region that only cuts over in W2.
+  const spoke = take(free([waveNamed(SEEDED.dependency.spokeWave)]).at(-1)!)
+  const hubs = free([waveNamed(SEEDED.dependency.hubWave)])
+  const hub = take(hubs.find((site) => site.region === spoke.region) ?? hubs[0]!)
+  planOf(spoke).dependsOn = [hub.id]
+  planOf(spoke).notes = `Reads its stock data from ${hub.name}, which must migrate first.`
+
+  // Done right: each pilot site is the hub its region's first site of W3 or
+  // later depends on, and the pilot cuts over months before.
+  const later = WAVES.slice(3)
+  for (const hubSite of pilot) {
+    const follower = free(later).find((site) => site.region === hubSite.region)
+    if (follower) planOf(take(follower)).dependsOn = [hubSite.id]
+  }
+
+  // One exception of each kind, each with an owner and an expiry after the
+  // as-of day, so none has expired.
+  const exceptionOn = (site: Site | undefined, make: (site: Site) => SiteException) => {
+    if (site) planOf(take(site)).exceptions = [make(site)]
+  }
+  const near = WAVES.slice(1, 3)
+  const exceptionId = (site: Site, kind: SiteException['kind']) =>
+    `ex-${site.code.toLowerCase()}-${kind}`
+  // A plant keeps its quality records readable for longer, and archives them.
+  exceptionOn(free(near.slice(1), 'plant')[0] ?? free(near, 'plant')[0], (site) => ({
+    id: exceptionId(site, 'modify'),
+    kind: 'modify',
+    change: `tc-${qualityStore(site.region)}-retire`,
+    offsetDays: 270,
+    disposition: 'archive',
+    class: 'legal',
+    owner: 'Quality assurance',
+    expires: '2028-06-30',
+    rationale: 'Quality records stay readable on site until the product audit closes.',
+  }))
+  // An office keeps its file share past the template's retirement.
+  exceptionOn(free(later, 'office')[0] ?? free(later)[0], (site) => ({
+    id: exceptionId(site, 'skip'),
+    kind: 'skip',
+    change: `tc-${filesStore(site.region)}-retire`,
+    class: 'preference',
+    owner: 'Site IT',
+    expires: '2028-12-31',
+    rationale: 'The works council keeps its share on site until its own move.',
+  }))
+  // A site reads the lake a week before its first mock load, for its reports.
+  exceptionOn(free(near, 'warehouse')[0] ?? free(near)[0], (site) => ({
+    id: exceptionId(site, 'add'),
+    kind: 'add',
+    change: {
+      id: `site-${site.code.toLowerCase()}-lake-early`,
+      kind: 'introduce',
+      subject: lake(site.region),
+      date: { anchor: 'mockLoad1', offsetDays: -7 },
+    },
+    class: 'operational',
+    owner: 'Regional data office',
+    expires: '2027-12-31',
+    rationale: 'Reporting reads the lake a week before the first mock load.',
+  }))
+
+  // A blackout of a W1 site's own, months after its freeze.
+  const stocktake = free([WAVES[1]!])[0]!
+  planOf(take(stocktake)).blackouts = [
+    {
+      id: `bo-${stocktake.code.toLowerCase()}-stocktake`,
+      label: 'Annual stocktake',
+      start: '2027-06-28',
+      end: '2027-07-02',
+    },
+  ]
 }
 
 /** Volume in GB, source systems and headcount, from and to, per archetype. */
