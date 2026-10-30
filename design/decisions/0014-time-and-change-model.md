@@ -9,6 +9,8 @@ tags: [transformation, time, model, scenarios]
 
 # ADR 0014 — Time and change: dated validity, change entries owned by initiatives, scenarios as overlays
 
+§2 is amended by [ADR 0019](0019-site-relative-template-subjects.md): in a rollout's template, an entry's subject, like its date, may be a reference its owner resolves (a site-relative slot). Initiatives keep fixed subjects.
+
 ## Context
 
 Transformation planning (#72) and rollout planning (#206) have to answer three questions:
