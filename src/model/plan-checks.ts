@@ -358,17 +358,23 @@ function dependencyOrder(context: Context, out: Finding[]): void {
   }
 }
 
-/** An exception past its last day at the time point, or one with no expiry to judge. */
+/**
+ * An exception past its last day at the time point, whatever its class. A
+ * `legal` or `operational` exception may be open-ended: it holds until the
+ * law or the operation changes. A `preference` with no expiry is said, as it
+ * is rejected by default and is never found expired (sponsor, 2026-10-29).
+ */
 function expiredExceptions(context: Context, out: Finding[]): void {
   for (const site of context.sites) {
     for (const exception of site.plan.exceptions ?? []) {
       const what = `Exception "${exception.id}" of site “${site.name}” (${exception.class}${exception.owner ? `, owned by ${exception.owner}` : ''})`
       if (exception.expires === undefined) {
+        if (exception.class !== 'preference') continue
         out.push(
           finding(
             'advice',
             'rollout.exception-no-expiry',
-            `${what} has no expiry, so it is never found expired.`,
+            `${what} is a preference with no expiry, so it is never found expired.`,
             site.plan.location,
           ),
         )
@@ -387,24 +393,28 @@ function expiredExceptions(context: Context, out: Finding[]): void {
 }
 
 /**
- * The next wave: the first, in order, with sites, all of which are still
- * Planned at the time point (proposal §5: "detail only the next wave"). A
- * site of it whose cutover is still dated only to the quarter is reported.
+ * The waves that must be planned in detail (proposal §5: "detail only the
+ * next wave"): every wave, in order, up to and including the next, which is
+ * the first with sites, all of which are still Planned at the time point. A
+ * wave under way is detailed too, so a site of it still dated only to the
+ * quarter is reported, not skipped because a sibling has started (sponsor,
+ * 2026-10-29). With no such wave, every wave is under way.
  */
 function coarseNextWave(context: Context, out: Finding[]): void {
-  const next = context.waves.find((wave) => {
+  const next = context.waves.findIndex((wave) => {
     const sites = context.sites.filter((site) => site.wave === wave)
     return sites.length > 0 && sites.every((site) => site.phase === 'planned')
   })
-  if (!next) return
+  const detailed = next === -1 ? context.waves : context.waves.slice(0, next + 1)
   for (const site of datedSites(context)) {
-    if (site.wave !== next || site.cutover.actual !== undefined) continue
+    if (!detailed.includes(site.wave!) || site.cutover.actual !== undefined) continue
     if (site.cutover.planned!.precision !== 'quarter') continue
+    const which = site.wave === context.waves[next] ? 'the next wave' : 'a wave under way'
     out.push(
       finding(
         'warning',
         'rollout.next-wave-coarse',
-        `Site “${site.name}” is in ${waveName(next)}, the next wave, and its ${site.cutover.milestone.label} is still dated only to the quarter (${shown(site.cutover)}).`,
+        `Site “${site.name}” is in ${waveName(site.wave!)}, ${which}, and its ${site.cutover.milestone.label} is still dated only to the quarter (${shown(site.cutover)}).`,
         site.plan.location,
       ),
     )
@@ -524,16 +534,22 @@ function resolvedOf(site: Site, id: string): ResolvedMilestone | undefined {
 function mockLoads(context: Context, ids: readonly string[], out: Finding[]): void {
   for (const site of datedSites(context)) {
     const cutover = reachedDay(site.cutover)
-    const late = ids
+    // A mock load the set no longer has is said once, for the rollout: this
+    // counts the ones it has.
+    const present = ids
       .map((id) => resolvedOf(site, id))
       .filter((resolved): resolved is ResolvedMilestone => resolved !== undefined)
-      .filter((resolved) => !isDated(resolved) || reachedDay(resolved) >= cutover)
+    const late = present.filter((resolved) => !isDated(resolved) || reachedDay(resolved) >= cutover)
     if (!late.length) continue
+    const of =
+      present.length === ids.length
+        ? `${ids.length} mock loads its preset requires`
+        : `${present.length} mock load${present.length === 1 ? '' : 's'} the milestone set still has`
     out.push(
       finding(
         'warning',
         'rollout.mock-loads',
-        `Site “${site.name}” has ${ids.length - late.length} of the ${ids.length} mock loads its preset requires before its ${site.cutover.milestone.label} (${shown(site.cutover)}): ${late.map((resolved) => `${resolved.milestone.label} ${isDated(resolved) ? `is ${shown(resolved)}` : 'has no date'}`).join('; ')}.`,
+        `Site “${site.name}” has ${present.length - late.length} of the ${of} before its ${site.cutover.milestone.label} (${shown(site.cutover)}): ${late.map((resolved) => `${resolved.milestone.label} ${isDated(resolved) ? `is ${shown(resolved)}` : 'has no date'}`).join('; ')}.`,
         site.plan.location,
       ),
     )
@@ -560,6 +576,17 @@ function freezeInBlackouts(
             .filter((resolved) => !isDated(resolved))
             .map((resolved) => resolved.milestone.label)
             .join(' or ')}, so its freeze is not checked against blackouts.`,
+          site.plan.location,
+        ),
+      )
+      continue
+    }
+    if (reachedDay(end) < reachedDay(start)) {
+      out.push(
+        finding(
+          'advice',
+          'rollout.freeze-unchecked',
+          `The freeze of site “${site.name}” ends ${shown(end)} (${end.milestone.label}), before it starts ${shown(start)} (${start.milestone.label}), so it is not checked against blackouts.`,
           site.plan.location,
         ),
       )
@@ -712,13 +739,19 @@ function residency(context: Context, field: string, out: Finding[]): void {
   }
 }
 
-/** Where a site's data moves: each `replace` made at it, the template's and its own. */
+/**
+ * Where a site's data moves: each `replace` made at it, the template's and its
+ * own. A `modify` exception that purges or retains the data of a template
+ * `replace` moves none of it (sponsor, 2026-10-29); one that archives it is
+ * still read as a move, since the archive is the successor's.
+ */
 function targetsOf(context: Context, site: Site): { store: string; by: string }[] {
   const out: { store: string; by: string }[] = []
   for (const change of context.plan.template) {
     if (change.kind !== 'replace') continue
     if (!appliesTo(change.applicability, site.plan, context.aggregates)) continue
     if (skips(site.plan, change.id)) continue
+    if (keepsData(site.plan, change.id)) continue
     out.push({ store: change.successor, by: `template change "${change.id}"` })
   }
   for (const exception of site.plan.exceptions ?? []) {
@@ -726,6 +759,16 @@ function targetsOf(context: Context, site: Site): { store: string; by: string }[
     out.push({ store: exception.change.successor, by: `its exception "${exception.id}"` })
   }
   return out
+}
+
+/** Does the site purge or retain, rather than move, the data of the template change with this id? */
+function keepsData(site: SitePlan, changeId: string): boolean {
+  return (site.exceptions ?? []).some(
+    (exception) =>
+      exception.kind === 'modify' &&
+      exception.change === changeId &&
+      (exception.disposition === 'purge' || exception.disposition === 'retain'),
+  )
 }
 
 /** The Locations `depth` aggregation levels above `id`: its country at 1, its region at 2. */

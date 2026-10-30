@@ -546,7 +546,7 @@ describe.each(SEEDS)('the seeded problems, with seed %i (#212, #214)', (seed) =>
     expect(dayAfterPeriod(spoke.planned!) <= hub.planned!.date).toBe(true)
   })
 
-  it('finds the five seeded problems with the plan checks, and nothing else (#214)', () => {
+  it('finds six findings for the five seeded problems, and nothing else (#214)', () => {
     const found = data.checks.map((finding) => `${finding.code} ${finding.subjectId}`)
     expect(found.sort()).toEqual(
       [

@@ -179,6 +179,20 @@ const DROPPED_5_FROM_6 = {
   message: `Sheet “Sites”: the Sites sheet takes "${siteId(5)}" out of the rollout, so "${siteId(6)}" no longer depends on it.`,
 }
 
+/** What removing site `n` says of each of its exceptions, which leave with it (#214). */
+const exceptionsDropped = (n: number, ...ids: string[]) =>
+  ids.map((id) => ({
+    severity: 'info',
+    code: 'rollout-workbook.exception-dropped',
+    file: FILE,
+    sheet: 'Sites',
+    subject: siteId(n),
+    message: `Sheet “Sites”: the Sites sheet takes "${siteId(n)}" out of the rollout, and its exception "${id}" with it.`,
+  }))
+
+/** Site 3's three exceptions, by id. */
+const DROPPED_OF_3 = exceptionsDropped(3, 'ex-003-add', 'ex-003-modify', 'ex-003-skip')
+
 /** Every path whose value differs, elements and relationships keyed by id. */
 function changedPaths(before: Workspace, after: Workspace): string[] {
   const keyed = (model: Workspace) => ({
@@ -531,7 +545,8 @@ describe('export, edit, import (#210 acceptance)', () => {
     set(workbook, 'Sites', siteId(3), 'action', textCell('remove'))
     set(workbook, 'Sites', siteId(4), 'parent', EMPTY)
     const { dryRun, before, after } = commit(workspace(), workbook)
-    expect(dryRun.problems).toEqual([])
+    expect(dryRun.problems).toEqual(DROPPED_OF_3)
+    expect(dryRun.tallies.exceptions).toEqual(tallied({ deleted: 3, unchanged: 1 }))
     expect(dryRun.tallies.sites).toEqual(
       tallied({ created: 1, updated: 1, deleted: 1, unchanged: SITE_COUNT - 2 }),
     )
@@ -1820,6 +1835,76 @@ describe('the Exceptions sheet (#214)', () => {
     })
   })
 
+  it.each([
+    [
+      'an anchor the milestone set does not have',
+      { subject: 'sys-local-store', anchor: 'goLive' },
+      ['is dated from "goLive", which is not a milestone of the rollout'],
+    ],
+    [
+      'a subject the model does not have',
+      { subject: 'sys-nowhere', anchor: 'hypercareEnd' },
+      ['retires "sys-nowhere", which is not an element in the model'],
+    ],
+    [
+      'both',
+      { subject: 'sys-nowhere', anchor: 'goLive' },
+      ['retires "sys-nowhere"', '; and it is dated from "goLive"'],
+    ],
+  ])(
+    'an add’s change with %s is refused, so no change is anchored on nothing',
+    async (_, refs, parts) => {
+      const workbook = await exportedFile()
+      const entry = {
+        id: 'site-003-retire',
+        kind: 'retire',
+        subject: refs.subject,
+        date: { anchor: refs.anchor, offsetDays: 14 },
+      }
+      const where = set(
+        workbook,
+        'Exceptions',
+        'ex-003-add',
+        'entry',
+        textCell(JSON.stringify(entry)),
+      )
+      const { dryRun, before, after } = commit(workspace(), workbook)
+      expect(dryRun.problems).toEqual([
+        at(
+          'rollout-workbook.entry-reference-unknown',
+          'Exceptions',
+          where.row,
+          'entry',
+          where.cell,
+        ),
+      ])
+      for (const part of parts) expect(dryRun.problems[0]!.message).toContain(part)
+      expect(dryRun.problems[0]!.message).toContain('so the exception was left as it was.')
+      expect(toCanonicalJson(after)).toBe(toCanonicalJson(before))
+    },
+  )
+
+  it('a new add whose change names a relationship the model has is added', async () => {
+    const workbook = await exportedFile()
+    const relationship = workspace().relationships[0]!
+    addRow(workbook, 'Exceptions', {
+      kind: textCell('add'),
+      class: textCell('legal'),
+      location: textCell(siteId(4)),
+      entry: textCell(
+        JSON.stringify({
+          id: 'site-004-add',
+          kind: 'add',
+          subject: relationship.id,
+          date: { anchor: 'hypercareEnd', offsetDays: 0 },
+        }),
+      ),
+    })
+    const { dryRun, after } = commit(workspace(), workbook)
+    expect(dryRun.problems).toEqual([])
+    expect(exceptionsOf(after, siteId(4))!.map((e) => e.id)).toEqual(['ex-new-1'])
+  })
+
   it('a value in the column of another kind is said, on either side', async () => {
     const workbook = await exportedFile()
     const toSkip = set(workbook, 'Exceptions', 'ex-003-skip', 'entry', textCell('{}'))
@@ -1902,7 +1987,10 @@ describe('the Exceptions sheet (#214)', () => {
     expect(dryRun.problems).toEqual([
       at('rollout-workbook.site-removed', 'Exceptions', edited.row, 'id', `A${edited.row}`),
       at('rollout-workbook.site-removed', 'Exceptions', moved.row, 'location', moved.cell),
+      ...DROPPED_OF_3,
     ])
+    // Each leaves once, whatever its row says.
+    expect(dryRun.tallies.exceptions).toEqual(tallied({ deleted: 3 }))
     expect(sitePlan(after, siteId(3))).toBeUndefined()
     expect(exceptionsOf(after, siteId(6))!.map((e) => e.id)).toEqual(['ex-006-modify'])
   })
@@ -2045,6 +2133,7 @@ describe('the Dependencies sheet (#214)', () => {
     const { dryRun, after } = commit(workspace(), workbook)
     expect(dryRun.problems).toEqual([
       at('rollout-workbook.site-removed', 'Dependencies', added, 'dependsOn', `B${added}`),
+      ...exceptionsDropped(6, 'ex-006-modify'),
     ])
     expect(dependsOnOf(after, siteId(9))).toBeUndefined()
     expect(dependsOnOf(after, siteId(5))).toEqual([siteId(4)])

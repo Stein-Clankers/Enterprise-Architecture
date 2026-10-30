@@ -794,11 +794,7 @@ export function wavesOf(elements: Iterable<Element>, rolloutId: string): Element
     if (plan?.rollout === rolloutId) waves.push({ element, order: plan.order })
   }
   return waves
-    .sort(
-      (a, b) =>
-        a.order - b.order ||
-        (a.element.id < b.element.id ? -1 : a.element.id > b.element.id ? 1 : 0),
-    )
+    .sort((a, b) => a.order - b.order || byCodeUnit(a.element.id, b.element.id))
     .map((wave) => wave.element)
 }
 
@@ -825,7 +821,12 @@ export function archetypeIdOf(value: unknown, plan: RolloutPlan): string | undef
 
 /** Code-unit order: collation depends on the machine's locale (ADR 0004). */
 export function byLocation(a: SitePlan, b: SitePlan): number {
-  return a.location < b.location ? -1 : a.location > b.location ? 1 : 0
+  return byCodeUnit(a.location, b.location)
+}
+
+/** Ids and keys by UTF-16 code unit, never by locale (ADR 0004): one order on every machine. */
+export function byCodeUnit(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0
 }
 
 // ── Guard helpers ────────────────────────────────────────────────────────────

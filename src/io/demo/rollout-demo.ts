@@ -66,8 +66,9 @@ export { ROLLOUT_DEMO_AS_OF, ROLLOUT_DEMO_ID }
  * its own (`SEEDED`):
  * - one site in no wave;
  * - one wave over capacity;
- * - one cutover inside a blackout (whose freeze is in it too, so the
- *   data-migration preset's freeze check finds it as well);
+ * - one cutover inside a blackout, whose freeze is in it too: checks are
+ *   independent (ADR 0017 point 5), so the preset's freeze check finds it as
+ *   well, and the five problems are six findings;
  * - one residency violation: a Swiss site whose data may not leave
  *   Switzerland, migrating to the lake at the Frankfurt hub;
  * - one dependency order violated: a W1 site waits for a hub site of its
@@ -800,7 +801,7 @@ export function rolloutDemoWorkspace(seed: number = ROLLOUT_DEMO_SEED): Workspac
  * the PRNG: the dependency violation, the dependencies that hold, one
  * exception of each kind and a site's own blackout. Each goes on a site of
  * its own, none of them a seeded problem's, so every seed has the five
- * problems and no other.
+ * problems, in six findings, and no other.
  */
 function seedPlanChecks({
   pilot,

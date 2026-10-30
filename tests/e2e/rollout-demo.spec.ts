@@ -89,10 +89,11 @@ test('the rollout demo opens on its home: 160 sites in 8 waves', async ({ page }
 })
 
 /**
- * The demo's five seeded problems (#214), as the plan checks find them at the
- * as-of day: the subject and code of each, hard-coded from the checked-in
- * demo. The blackout site's freeze is in the Q1 close too, so the
- * data-migration preset's freeze check finds it as well.
+ * The six findings of the demo's five seeded problems (#214), as the plan
+ * checks find them at the as-of day: the subject and code of each, hard-coded
+ * from the checked-in demo. The blackout site's freeze is in the Q1 close
+ * too, and checks are independent (ADR 0017 point 5): its cutover and its
+ * freeze are each found.
  */
 const SEEDED_PROBLEMS = [
   ['rollout.site-unassigned', 'loc-site-us-06'],
@@ -103,7 +104,7 @@ const SEEDED_PROBLEMS = [
   ['rollout.residency', 'loc-site-ch-01'],
 ] as const
 
-test('the plan checks find the demo’s five seeded problems, and nothing else (#214)', async ({
+test('the plan checks find six findings for the demo’s five seeded problems, and nothing else (#214)', async ({
   page,
 }) => {
   await openDemo(page)

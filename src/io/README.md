@@ -457,8 +457,11 @@ all, since a half-changed exception may be none: a row with no id adds one, a
 row naming another site moves it there, and `remove` deletes it. A
 Dependencies row adds its pair, and `remove` deletes it. A site removed in
 Sites takes its exceptions and dependencies with it, and the other sites'
-dependencies on it, each one said. A site's own blackouts are not carried yet,
-and the export says so.
+dependencies on it, each one said and counted as deleted. An `add` row's
+change is checked as `validate()` checks a template change, and refused when
+its anchor, subject or successor is not there
+(`rollout-workbook.entry-reference-unknown`). A site's own blackouts are not
+carried yet, and the export says so.
 
 **Every problem names its sheet, row and column**, as an `ImportProblem` with
 `row` and `column` and a message that starts with them. A row whose identity

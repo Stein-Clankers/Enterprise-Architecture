@@ -1,5 +1,6 @@
 import {
   PLAN_ELEMENT_TYPE,
+  byCodeUnit,
   byLocation,
   isArchetype,
   isBlackout,
@@ -100,11 +101,6 @@ export function canonicalException(exception: SiteException): Record<string, unk
     change:
       typeof exception.change === 'string' ? exception.change : prune({ ...exception.change }),
   })
-}
-
-/** Code-unit order: collation depends on the machine's locale (ADR 0004). */
-function byCodeUnit(a: string, b: string): number {
-  return a < b ? -1 : a > b ? 1 : 0
 }
 
 // ── Reading ──────────────────────────────────────────────────────────────────

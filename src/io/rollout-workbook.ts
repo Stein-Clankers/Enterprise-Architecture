@@ -3,7 +3,9 @@ import {
   EXCEPTION_CLASSES,
   EXCEPTION_KINDS,
   archetypeIdOf,
+  byCodeUnit,
   byLocation,
+  entryReferences,
   formatPlanDate,
   isChangeEntry,
   isDisposition,
@@ -20,6 +22,7 @@ import {
   wavesOf,
   type ChangeEntry,
   type Element,
+  type EntryReferences,
   type PlanDate,
   type PropertyValue,
   type Relationship,
@@ -621,6 +624,7 @@ export function planRolloutImport(
   if (exceptionsSheet) importExceptions(context, exceptionsSheet)
   const dependenciesSheet = sheets.get(SHEET_NAMES.dependencies)
   if (dependenciesSheet) importDependencies(context, dependenciesSheet)
+  dropExceptionsOfRemoved(context)
   dropDependenciesOnRemoved(context)
   const milestones = sheets.get(SHEET_NAMES.milestones)
   if (milestones) checkReadOnly(context, milestones, milestonesSheet(plan), 'milestone set')
@@ -1457,6 +1461,13 @@ function importExceptions(context: ImportContext, sheet: Sheet<ReadCell>): void 
   if (!table) return
   const tallies = context.result.tallies.exceptions
   const changes = new Set(context.plan.template.map((change) => change.id))
+  // What an add's own change may name, as validate() checks it (ADR 0016's
+  // amendment: a change is never left anchored on nothing by the app).
+  const refs: EntryReferences = {
+    elements: context.index.elements,
+    relationships: new Set(context.index.relationships.map((relationship) => relationship.id)),
+    milestones: new Set(context.plan.milestones.map((milestone) => milestone.id)),
+  }
   /** The site holding each exception, by exception id, as the rows so far leave it. */
   const holder = new Map<string, string>()
   for (const site of context.sites.values()) {
@@ -1610,6 +1621,17 @@ function importExceptions(context: ImportContext, sheet: Sheet<ReadCell>): void 
         'rollout-workbook.change-unknown',
         `${JSON.stringify(draft.change)} is not a change of the rollout's template, so the exception was ${before ? 'left as it was' : 'not added'}.`,
         'change',
+        id || undefined,
+      )
+      continue
+    }
+    const broken = draft.kind === 'add' ? entryReferences(draft.change, refs) : []
+    if (broken.length) {
+      row.report(
+        'error',
+        'rollout-workbook.entry-reference-unknown',
+        `its site-only change ${broken.map(([, message]) => message.replace(/\.$/, '')).join('; and it ')}, so the exception was ${before ? 'left as it was' : 'not added'}.`,
+        'entry',
         id || undefined,
       )
       continue
@@ -1790,6 +1812,26 @@ function importDependencies(context: ImportContext, sheet: Sheet<ReadCell>): voi
  * (`plan.site-dependency-unknown`). Each one dropped is said, with the site
  * that loses it, and counted as a dependency deleted.
  */
+/**
+ * A site the Sites sheet removes takes its exceptions with it: each is said,
+ * and counted as deleted, whether or not the Exceptions sheet lists it.
+ */
+function dropExceptionsOfRemoved(context: ImportContext): void {
+  for (const site of context.plan.sites) {
+    if (!context.removed.has(site.location)) continue
+    const ids = (site.exceptions ?? []).map((exception) => exception.id).sort(byCodeUnit)
+    for (const id of ids) {
+      context.result.tallies.exceptions.deleted++
+      context.report(
+        'info',
+        'rollout-workbook.exception-dropped',
+        `the Sites sheet takes ${JSON.stringify(site.location)} out of the rollout, and its exception ${JSON.stringify(id)} with it.`,
+        { sheet: SHEET_NAMES.sites, subject: site.location },
+      )
+    }
+  }
+}
+
 function dropDependenciesOnRemoved(context: ImportContext): void {
   if (!context.removed.size) return
   for (const [location, plan] of context.sites) {
@@ -1843,11 +1885,6 @@ function checkReadOnly(
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-/** Code-unit order: collation depends on the machine's locale (ADR 0004). */
-function byCodeUnit(a: string, b: string): number {
-  return a < b ? -1 : a > b ? 1 : 0
-}
 
 /** Equal as JSON with sorted keys, so two objects built in another key order compare equal. */
 function sameJson(a: unknown, b: unknown): boolean {

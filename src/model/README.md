@@ -270,10 +270,15 @@ same way (`plan.exception-*`, `plan.site-dependency-*`).
 judges a plan at a time point, `validate()` says it points at nothing; a check
 leaves a reference that does not hold to `validate()`. The checks of every
 rollout are a site in no wave, a wave over capacity, a cutover in a blackout,
-a dependency order violated, an expired exception, a next-wave site still at
-quarter precision, a template change made at no site, and a site that lacks
-what a change retires; a rollout made from a preset (`RolloutPlan.preset`)
+a dependency order violated, an expired exception (of any class), a site
+still at quarter precision in the next wave or a wave under way, a template
+change made at no site, and a site that lacks what a change retires; a rollout made from a preset (`RolloutPlan.preset`)
 runs that preset's checks too, which `presets.ts` holds as data. An order
 compares the days the phase is derived from (`reachedAt`); an overlap with a
 blackout compares the whole period a date is shown at. No check is silent on
 input it lacks: it says, as an `advice`, what it could not judge and why.
+Checks are independent: one site may be reported by several, and none yields
+to another. A `preference` exception with no expiry is advice; a `legal` or
+`operational` one may be open-ended. A site that purges or retains a
+template `replace`'s data (a `modify` exception) moves none of it, so
+residency does not read that change at it.

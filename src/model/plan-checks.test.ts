@@ -3,6 +3,7 @@ import {
   addDays,
   dayStart,
   type Blackout,
+  type Disposition,
   type PlanDate,
   type RolloutPlan,
   type SiteException,
@@ -380,6 +381,23 @@ describe('a dependency order violated', () => {
     expect(checked(actual)).toEqual([])
   })
 
+  it('takes an early actual over the plan, on both sides', () => {
+    // A was planned for the 11th and cut over on the 9th: B, planned for the 10th, comes after it.
+    const hubEarly = changed((m) => {
+      siteOf(m, B).dependsOn = [A]
+      setSiteDate(m, B, 'freezeStart', day('2027-03-10'))
+      siteOf(m, A).actuals = { freezeStart: '2027-03-09' }
+    })
+    expect(checked(hubEarly)).toEqual([])
+    // B was planned for the 12th, after A, and cut over on the 10th, before it.
+    const spokeEarly = changed((m) => {
+      siteOf(m, B).dependsOn = [A]
+      setSiteDate(m, B, 'freezeStart', day('2027-03-12'))
+      siteOf(m, B).actuals = { freezeStart: '2027-03-10' }
+    })
+    expect(checked(spokeEarly)).toEqual([`rollout.dependency-order ${B}`])
+  })
+
   it('says it cannot judge a dependency on a site in no wave, or with no cutover date', () => {
     const noWave = changed((m) => delete siteOf(m, A).wave)
     expect(checked(noWave)).toEqual([
@@ -428,9 +446,31 @@ describe('an expired exception', () => {
     expect(checked(model, dayStart('2027-02-01'))).toEqual([`rollout.exception-expired ${B}`])
   })
 
-  it('says an exception with no expiry is never found expired', () => {
-    const model = changed((m) => delete siteOf(m, B).exceptions![0]!.expires)
-    expect(checked(model)).toEqual([`rollout.exception-no-expiry ${B}`])
+  it.each(['legal', 'operational', 'preference'] as const)(
+    'has expired from the day after its last, as a %s exception',
+    (kind) => {
+      const model = changed((m) => {
+        const ex = siteOf(m, B).exceptions![0]!
+        ex.expires = '2027-01-31'
+        ex.class = kind
+      })
+      expect(checked(model, dayStart('2027-02-01'))).toEqual([`rollout.exception-expired ${B}`])
+    },
+  )
+
+  it('says a preference with no expiry, and lets a legal or operational one be open-ended', () => {
+    const open = (kind: SiteException['class']) =>
+      changed((m) => {
+        const ex = siteOf(m, B).exceptions![0]!
+        delete ex.expires
+        ex.class = kind
+      })
+    expect(checked(open('preference'))).toEqual([`rollout.exception-no-expiry ${B}`])
+    expect(messages(open('preference'))[0]).toBe(
+      'Exception "ex-b" of site “Site B” (preference, owned by Ops) is a preference with no expiry, so it is never found expired.',
+    )
+    expect(checked(open('legal'))).toEqual([])
+    expect(checked(open('operational'))).toEqual([])
   })
 })
 
@@ -456,10 +496,45 @@ describe('a next-wave site still at coarse precision', () => {
     expect(coarse('month')).toEqual([])
   })
 
-  it('moves on once a site of the first wave has started', () => {
-    // A's mapping is signed off on 4 January: W1 has started, W2 is next.
+  it('takes in the next wave once the first has started, and keeps the first', () => {
+    // W1's mapping is signed off on 4 January: W1 is under way, W2 is next.
     expect(coarse('quarter', dayStart('2027-01-04') - 1)).toEqual([`rollout.next-wave-coarse ${A}`])
-    expect(coarse('quarter', dayStart('2027-01-04'))).toEqual([`rollout.next-wave-coarse ${C}`])
+    expect(coarse('quarter', dayStart('2027-01-04'))).toEqual([
+      `rollout.next-wave-coarse ${A}`,
+      `rollout.next-wave-coarse ${C}`,
+    ])
+  })
+
+  it('counts a wave as under way once one of its sites has started, while another is Planned', () => {
+    // A signed its mapping off early; B is still Planned. W1 is under way, so W2 is next.
+    const at = dayStart('2026-12-15')
+    const model = changed((m) => {
+      withoutPreset(m)
+      setSiteDate(m, A, 'freezeStart', { date: '2027-04-01', precision: 'quarter' })
+      setSiteDate(m, B, 'freezeStart', { date: '2027-04-01', precision: 'quarter' })
+      setSiteDate(m, C, 'freezeStart', { date: '2027-10-01', precision: 'quarter' })
+      siteOf(m, A).actuals = { mappingSignedOff: '2026-12-01' }
+    })
+    expect(checked(model, at)).toEqual([
+      `rollout.next-wave-coarse ${A}`,
+      `rollout.next-wave-coarse ${B}`,
+      `rollout.next-wave-coarse ${C}`,
+    ])
+    expect(messages(model, at)[1]).toContain('is in W1, a wave under way, and its')
+    expect(messages(model, at)[2]).toContain('is in W2, the next wave, and its')
+  })
+
+  it('takes in every wave when none is wholly Planned', () => {
+    const model = changed((m) => {
+      withoutPreset(m)
+      setSiteDate(m, A, 'freezeStart', { date: '2027-04-01', precision: 'quarter' })
+      setSiteDate(m, C, 'freezeStart', { date: '2027-10-01', precision: 'quarter' })
+      siteOf(m, C).actuals = { mappingSignedOff: '2026-10-01' }
+    })
+    expect(checked(model, dayStart('2027-01-04'))).toEqual([
+      `rollout.next-wave-coarse ${A}`,
+      `rollout.next-wave-coarse ${C}`,
+    ])
   })
 
   it('skips a wave with no sites', () => {
@@ -655,6 +730,19 @@ describe('the data-migration preset’s checks', () => {
       expect(messages(model)[0]).toContain('Mock load 1 has no date')
     })
 
+    it('counts the mock loads the milestone set still has', () => {
+      const model = changed((m) => {
+        planOf(m).milestones = planOf(m).milestones.filter((x) => x.id !== 'mockLoad2')
+        dropWaveDate(m, W1, 'mockLoad1')
+      })
+      expect(checked(model)).toEqual([
+        `rollout.preset-milestone-missing ${ROLLOUT}`,
+        `rollout.mock-loads ${A}`,
+        `rollout.mock-loads ${B}`,
+      ])
+      expect(messages(model)[1]).toContain('has 0 of the 1 mock load the milestone set still has')
+    })
+
     it('reads each mock load the preset names', () => {
       expect(checked(changed((m) => setSiteDate(m, A, 'mockLoad1', day('2027-03-12'))))).toEqual([
         `rollout.mock-loads ${A}`,
@@ -671,6 +759,33 @@ describe('the data-migration preset’s checks', () => {
       ])
       expect(checked(changed((m) => addBlackout(m, blackout('2027-03-15'))))).toHaveLength(2)
       expect(checked(changed((m) => addBlackout(m, blackout('2027-03-16'))))).toEqual([])
+    })
+
+    it('is reported on its first day, beside the cutover: neither check yields to the other', () => {
+      expect(checked(changed((m) => addBlackout(m, blackout('2027-03-11'))))).toEqual([
+        `rollout.cutover-in-blackout ${A}`,
+        `rollout.cutover-in-blackout ${B}`,
+        `rollout.freeze-in-blackout ${A}`,
+        `rollout.freeze-in-blackout ${B}`,
+      ])
+    })
+
+    it('says a freeze that ends before it starts is not checked, and judges one that ends on its first day', () => {
+      const inverted = changed((m) =>
+        setSiteDate(m, A, 'reconciliationSignedOff', day('2027-03-10')),
+      )
+      expect(checked(inverted)).toEqual([`rollout.freeze-unchecked ${A}`])
+      expect(messages(inverted)[0]).toBe(
+        'The freeze of site “Site A” ends 2027-03-10 (Reconciliation signed off), before it starts 2027-03-11 (Freeze starts), so it is not checked against blackouts.',
+      )
+      const oneDay = changed((m) => {
+        setSiteDate(m, A, 'reconciliationSignedOff', day('2027-03-11'))
+        siteOf(m, A).blackouts = [blackout('2027-03-11')]
+      })
+      expect(checked(oneDay)).toEqual([
+        `rollout.cutover-in-blackout ${A}`,
+        `rollout.freeze-in-blackout ${A}`,
+      ])
     })
 
     it('reads a site’s own blackouts for that site only', () => {
@@ -770,6 +885,24 @@ describe('the data-migration preset’s checks', () => {
         siteOf(m, A).exceptions = [exception({ kind: 'skip', change: 'tc-replace' })]
       })
       expect(checked(skipped)).toEqual([])
+    })
+
+    it('reads a purge or retain as keeping the data, and an archive or migrate as a move', () => {
+      const disposed = (disposition: Disposition, change = 'tc-replace') =>
+        checked(
+          changed((m) => {
+            toGermany(m)
+            element(m, B).properties[RESIDENCY_FIELD] = 'none'
+            element(m, C).properties[RESIDENCY_FIELD] = 'none'
+            siteOf(m, A).exceptions = [exception({ kind: 'modify', change, disposition })]
+          }),
+        )
+      expect(disposed('purge')).toEqual([])
+      expect(disposed('retain')).toEqual([])
+      expect(disposed('archive')).toEqual([`rollout.residency ${A}`])
+      expect(disposed('migrate')).toEqual([`rollout.residency ${A}`])
+      // Another change's purge keeps nothing of this one's data.
+      expect(disposed('purge', 'tc-other')).toEqual([`rollout.residency ${A}`])
     })
 
     it('is one finding per site, naming every move out of its area', () => {

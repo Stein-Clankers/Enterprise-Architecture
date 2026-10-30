@@ -63,7 +63,11 @@ export function planFindings(
     const archetypes = new Set(plan.archetypes.map((archetype) => archetype.id))
     const changes = new Map(plan.template.map((change) => [change.id, change]))
     const siteIds = new Set(plan.sites.map((site) => site.location))
-    const refs: References = { elements: elementsById, relationships: relationshipIds, milestones }
+    const refs: EntryReferences = {
+      elements: elementsById,
+      relationships: relationshipIds,
+      milestones,
+    }
     const finding = (code: string, message: string): Finding => ({
       severity: 'warning',
       code,
@@ -228,7 +232,7 @@ const VERBS: Record<ChangeKind, string> = {
 }
 
 /** What a change entry's references are checked against. */
-interface References {
+export interface EntryReferences {
   elements: ReadonlyMap<string, Element>
   relationships: ReadonlySet<string>
   milestones: ReadonlySet<string>
@@ -240,7 +244,7 @@ interface References {
  * other kind an element (ADR 0014 §2); `replace` names its successor; an
  * anchored date names a milestone of the rollout.
  */
-function entryReferences(entry: ChangeEntry, refs: References): [string, string][] {
+export function entryReferences(entry: ChangeEntry, refs: EntryReferences): [string, string][] {
   const out: [string, string][] = []
   const datesRelationship = entry.kind === 'add' || entry.kind === 'remove'
   const subjectHolds = datesRelationship
