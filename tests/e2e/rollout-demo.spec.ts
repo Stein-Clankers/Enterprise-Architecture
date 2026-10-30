@@ -302,9 +302,12 @@ test('actual days typed into the workbook move the phases, the burn-up and the M
   await exportDialog.getByRole('button', { name: 'Export workbook' }).click()
   const exported = testInfo.outputPath(WORKBOOK)
   await (await started).saveAs(exported)
-  // The demo's notes are the one thing the workbook leaves out (#215 carries
-  // the actual days), and the dialog stays to say so.
-  await expect(exportDialog).toContainText('3 sites have notes, which this workbook does not carry')
+  // The demo's notes and its sites' own blackouts (#214) are what the
+  // workbook leaves out (#215 carries the actual days), and the dialog stays
+  // to say so.
+  await expect(exportDialog).toContainText(
+    '5 sites have notes or blackouts of their own, which this workbook does not carry',
+  )
   await expect(exportDialog).not.toContainText('actual')
   await exportDialog.getByRole('button', { name: 'Done' }).click()
   await expect(exportDialog).toBeHidden()

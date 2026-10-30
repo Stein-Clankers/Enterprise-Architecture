@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { SITE_PHASE_LABELS, formatPlanDate } from '@/model'
+import { SITE_PHASE_LABELS, formatPlanDate, type SiteException } from '@/model'
 import { useModelSelector } from '@/store'
 import { WaveHeading } from './WaveHeading'
 import { PlanSource } from './SiteRegister'
@@ -9,6 +9,7 @@ import { SiteProgressDialog } from './SiteProgressDialog'
 import {
   GO_NO_GO_LABELS,
   RAG_TOKENS,
+  type SiteRow,
   SITE_PHASE_TOKENS,
   siteRollouts,
   sourceText,
@@ -29,12 +30,13 @@ import './rollout.css'
  * (CLAUDE.md, key on the route param).
  *
  * Its edits are the rollout screens' own dialogs, each one command on save.
- * A reader sees no edit button, a dialog open as a writer closes when the tab
- * becomes a reader and does not reopen, and the render gate keeps it off
- * screen in the commit that makes the tab a reader (CLAUDE.md, reader rules).
+ * A reader sees no edit button, and a dialog open as a writer closes when the
+ * tab becomes a reader and does not reopen (CLAUDE.md, reader rules).
  *
- * Exceptions and dependencies (proposal §4.4) are #214's, and are not shown
- * until the model has them.
+ * Each block also shows the site's exceptions and dependencies (proposal
+ * §4.4, ADR 0017) and the plan checks' findings about the site (#214) at the
+ * same time point. They are read here; the workbook's Exceptions and
+ * Dependencies sheets edit them.
  */
 
 type Dialog = { kind: 'dates' | 'progress'; rollout: string }
@@ -234,6 +236,148 @@ function MigrationBlock({
           ))}
         </tbody>
       </table>
+      <Exceptions data={data} exceptions={plan.exceptions ?? []} />
+      <Dependencies data={data} locationId={locationId} query={query} />
+      <SiteFindings data={data} locationId={locationId} />
+    </section>
+  )
+}
+
+const EXCEPTION_KIND_LABELS: Record<SiteException['kind'], string> = {
+  skip: 'Skips',
+  modify: 'Modifies',
+  add: 'Adds',
+}
+
+/** What an exception changes: a template change by its id, or the site's own entry. */
+function exceptionChange(exception: SiteException): string {
+  if (exception.kind !== 'add') return exception.change
+  return `${exception.change.kind} ${exception.change.subject} (site only)`
+}
+
+function Exceptions({
+  data,
+  exceptions,
+}: {
+  data: RolloutData
+  exceptions: readonly SiteException[]
+}) {
+  const name = data.rollout.name
+  return (
+    <section className="migration__part" aria-label={`Exceptions in ${name}`}>
+      <h3 className="section-label">Exceptions</h3>
+      {exceptions.length ? (
+        <table className="migration__milestones">
+          <thead>
+            <tr>
+              <th scope="col">Exception</th>
+              <th scope="col">Change</th>
+              <th scope="col">Class</th>
+              <th scope="col">Owner</th>
+              <th scope="col">Expires</th>
+            </tr>
+          </thead>
+          <tbody>
+            {exceptions.map((exception) => (
+              <tr key={exception.id} data-exception={exception.id}>
+                <th scope="row">
+                  {EXCEPTION_KIND_LABELS[exception.kind]}{' '}
+                  <span className="mono migration__id">{exception.id}</span>
+                </th>
+                <td className="mono" data-field="change">
+                  {exceptionChange(exception)}
+                </td>
+                <td className="mono" data-field="class">
+                  {exception.class}
+                </td>
+                <td data-field="owner">
+                  {exception.owner ?? <span className="migration__none">No owner</span>}
+                </td>
+                <td className="mono" data-field="expires">
+                  {exception.expires ?? '—'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p className="migration__empty">No exceptions: the site follows the template.</p>
+      )}
+    </section>
+  )
+}
+
+/** A site of the rollout by its code or name, linked to its own Migration tab. */
+function SiteLink({ row, id, query }: { row: SiteRow | undefined; id: string; query: string }) {
+  const params = query ? `${query}&tab=migration` : '?tab=migration'
+  return (
+    <Link to={`/element/${encodeURIComponent(id)}${params}`} data-site={id}>
+      {row ? (row.code ?? row.name) : <span className="mono">{id}</span>}
+    </Link>
+  )
+}
+
+function Dependencies({
+  data,
+  locationId,
+  query,
+}: {
+  data: RolloutData
+  locationId: string
+  query: string
+}) {
+  const name = data.rollout.name
+  const rows = new Map(data.sites.map((row) => [row.location, row]))
+  const own = data.plan.sites.find((site) => site.location === locationId)?.dependsOn ?? []
+  const of = data.plan.sites
+    .filter((site) => site.dependsOn?.includes(locationId))
+    .map((site) => site.location)
+  const list = (ids: readonly string[], key: string, empty: string) =>
+    ids.length ? (
+      <ul className="migration__sites" data-dependencies={key}>
+        {ids.map((id) => (
+          <li key={id}>
+            <SiteLink row={rows.get(id)} id={id} query={query} />
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <p className="migration__empty" data-dependencies={key}>
+        {empty}
+      </p>
+    )
+  return (
+    <section className="migration__part" aria-label={`Dependencies in ${name}`}>
+      <h3 className="section-label">Cuts over after</h3>
+      {list(own, 'on', 'No site must cut over before this one.')}
+      <h3 className="section-label">Cuts over before</h3>
+      {list(of, 'of', 'No site waits for this one.')}
+    </section>
+  )
+}
+
+function SiteFindings({ data, locationId }: { data: RolloutData; locationId: string }) {
+  const name = data.rollout.name
+  const findings = data.checks.filter((finding) => finding.subjectId === locationId)
+  return (
+    <section className="migration__part" aria-label={`Plan checks in ${name}`}>
+      <h3 className="section-label">Plan checks</h3>
+      {findings.length ? (
+        <ul className="migration__findings">
+          {findings.map((finding, index) => (
+            <li
+              key={`${finding.code}:${index}`}
+              data-code={finding.code}
+              data-severity={finding.severity}
+            >
+              <span>{finding.message}</span>{' '}
+              <span className="mono migration__id">{finding.code}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="migration__empty">No plan check finds anything about this site.</p>
+      )}
     </section>
   )
 }

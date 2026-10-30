@@ -972,6 +972,59 @@ button.register__name:hover {
   font-size: 11px;
 }
 
+/* Exceptions, dependencies and plan-check findings (#214's data). */
+.migration__part {
+  border-top: 1px solid var(--bd);
+  padding: 10px 0 4px;
+}
+
+.migration__part > .section-label {
+  margin: 0 14px 6px;
+}
+
+.migration__empty {
+  margin: 0 14px 8px;
+  font: 400 12px/1.4 var(--font-ui);
+  color: var(--ink3);
+}
+
+.migration__id {
+  font-size: 10.5px;
+  color: var(--ink3);
+}
+
+.migration__sites,
+.migration__findings {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0 14px;
+  font: 400 12px/1.4 var(--font-ui);
+  color: var(--ink);
+}
+
+.migration__sites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
+.migration__sites a {
+  color: var(--ink);
+}
+
+.migration__sites a:hover {
+  color: var(--accent);
+}
+
+.migration__findings li {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--bd);
+}
+
+.migration__findings li:last-child {
+  border-bottom: 0;
+}
+
 /* ── Plan checks (#214) ─────────────────────────────────────────────────── */
 
 /* The validator's list (validator.css), in a scrolling pane of the screen. */

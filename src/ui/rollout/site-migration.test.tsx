@@ -154,6 +154,88 @@ describe('a site’s Migration tab (#215)', () => {
   })
 })
 
+describe('a site’s exceptions, dependencies and plan checks on its Migration tab (#214)', () => {
+  const part = (label: string) => screen.getByRole('region', { name: `${label} in ${ROLLOUT}` })
+  const cells = (row: HTMLElement) =>
+    [...row.querySelectorAll('th, td')].map((cell) => cell.textContent!.trim())
+
+  it('lists each exception: what it does, to which change, its class, owner and expiry', () => {
+    sheet('writer', siteId(3))
+    const rows = part('Exceptions').querySelectorAll<HTMLElement>('tbody tr')
+    expect([...rows].map((row) => row.getAttribute('data-exception'))).toEqual([
+      'ex-003-skip',
+      'ex-003-modify',
+      'ex-003-add',
+    ])
+    expect([...rows].map(cells)).toEqual([
+      ['Skips ex-003-skip', 'tc-fit', 'preference', 'Site 003 IT', '2027-06-30'],
+      ['Modifies ex-003-modify', 'tc-retire-store', 'operational', 'No owner', '—'],
+      ['Adds ex-003-add', 'retire sys-local-store (site only)', 'legal', 'Legal', '2028-12-31'],
+    ])
+  })
+
+  it('says a site with no exception follows the template', () => {
+    sheet('writer', siteId(1))
+    // Present first: the block, then the empty part.
+    expect(fact('wave')).toHaveTextContent('Pilot')
+    expect(part('Exceptions')).toHaveTextContent('No exceptions: the site follows the template.')
+    expect(part('Exceptions').querySelector('table')).toBeNull()
+  })
+
+  it('shows the sites a site waits for, and the sites that wait for it, each linked', () => {
+    sheet('writer', siteId(6))
+    const on = part('Dependencies').querySelector('[data-dependencies="on"]')!
+    expect([...on.querySelectorAll('a')].map((link) => link.textContent)).toEqual(['005', '002'])
+    expect(on.querySelector('a')).toHaveAttribute(
+      'href',
+      `/element/${siteId(5)}?at=${AT}&tab=migration`,
+    )
+    expect(part('Dependencies').querySelector('[data-dependencies="of"]')).toHaveTextContent(
+      'No site waits for this one.',
+    )
+  })
+
+  it('shows, on the site waited for, who waits for it', () => {
+    sheet('writer', siteId(2))
+    const of = part('Dependencies').querySelector('[data-dependencies="of"]')!
+    expect([...of.querySelectorAll('a')].map((link) => link.textContent)).toEqual(['006'])
+    expect(part('Dependencies').querySelector('[data-dependencies="on"]')).toHaveTextContent(
+      'No site must cut over before this one.',
+    )
+  })
+
+  it('lists the plan checks’ findings about this site alone, at the time point', () => {
+    const codes = () =>
+      [...part('Plan checks').querySelectorAll('li')].map((item) => item.getAttribute('data-code'))
+    const first = sheet('writer', siteId(3))
+    // At ?at=2027-03-15 site 3 is undated; its preference exception holds
+    // until 2027-06-30. Site 5's blackout finding is site 5's, not shown here.
+    expect(codes()).toEqual(['rollout.site-undated'])
+    expect(part('Plan checks')).toHaveTextContent('Site “Site 003” has no Freeze starts date')
+    first.unmount()
+    sheet('writer', siteId(3), '?tab=migration&at=2027-07-01')
+    expect(codes()).toEqual(['rollout.site-undated', 'rollout.exception-expired'])
+    expect(
+      part('Plan checks').querySelector('[data-code="rollout.exception-expired"]'),
+    ).toHaveAttribute('data-severity', 'warning')
+  })
+
+  it('says when no plan check finds anything about the site', () => {
+    const model = workspace()
+    // Site 4's one finding is that it lacks the store the template retires;
+    // skipping that change for the site leaves nothing to find.
+    const rollout = rolloutPlanOf(model.elements.find((element) => element.id === ROLLOUT_ID))!
+    const four = rollout.sites.find((plan) => plan.location === siteId(4))!
+    four.exceptions = [
+      { id: 'ex-004-skip', kind: 'skip', change: 'tc-retire-store', class: 'operational' },
+    ]
+    sheet('writer', siteId(4), `?tab=migration&at=${AT}`, model)
+    expect(part('Exceptions').querySelector('[data-exception="ex-004-skip"]')).not.toBeNull()
+    expect(part('Plan checks')).toHaveTextContent('No plan check finds anything about this site.')
+    expect(part('Plan checks').querySelector('li')).toBeNull()
+  })
+})
+
 describe('editing from the Migration tab (#215)', () => {
   it('saves actual days, the RAG and the decision as one command, and focus goes back', async () => {
     const h = sheet('writer', siteId(4))
