@@ -13,7 +13,7 @@ Extends ADR 0013 points 5, 6 and 9, and ADR 0015 point 3. Nothing either ADR say
 
 **Amended 2026-10-28**, after the #229 review, by the sponsor's decisions on two of its points: a spaced date is reached on its chain's exact day (point 4), and a site in no wave follows its actual dates (points 4 and 5). Points 7 and 8 now also say what the interface shows. See [Amendment of 2026-10-28](#amendment-of-2026-10-28) for what changed and why.
 
-**Amended 2026-10-29** by ADR 0017 point 12, with #214: the refusal to delete an anchored milestone (point 8) stays, and now also covers a site's own change anchored on it. See [Amendment of 2026-10-29](#amendment-of-2026-10-29). Pending the sponsor's acceptance with ADR 0017.
+**Amended 2026-10-29** by ADR 0017 point 12, with #214: the refusal to delete an anchored milestone (point 8) stays, and now also covers a site's own change anchored on it. See [Amendment of 2026-10-29](#amendment-of-2026-10-29). The sponsor accepted it with ADR 0017 on 2026-10-30.
 
 ## Context
 

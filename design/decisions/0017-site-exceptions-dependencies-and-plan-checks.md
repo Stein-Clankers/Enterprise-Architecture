@@ -2,14 +2,14 @@
 adr: '0017'
 title: 'Site exceptions, dependencies and blackouts, and the plan checks'
 date: 2026-10-29
-status: Proposed
+status: Accepted
 scope: project
 tags: [transformation, rollout, model, exchange-format, validation]
 ---
 
 # ADR 0017 — Site exceptions, dependencies and blackouts, and the plan checks
 
-Extends ADR 0013 points 4 and 10, ADR 0015 point 3 and ADR 0016 point 8. Nothing they say is reversed. Proposed with #214; it waits for the sponsor's acceptance. Four points were decided by the sponsor on 2026-10-29, after the review of #242, and are marked so: checks are independent (point 5), what "the next wave" covers (point 6), which exceptions need an expiry (points 1 and 7), and what a disposition means for residency (point 5). One more was confirmed on 2026-10-30, after the second review: how an order reads a coarse date (point 6).
+Extends ADR 0013 points 4 and 10, ADR 0015 point 3 and ADR 0016 point 8. Nothing they say is reversed. Proposed with #214; the sponsor accepted it on 2026-10-30. Four points were decided by the sponsor on 2026-10-29, after the review of #242, and are marked so: checks are independent (point 5), what "the next wave" covers (point 6), which exceptions need an expiry (points 1 and 7), and what a disposition means for residency (point 5). One more was confirmed on 2026-10-30, after the second review: how an order reads a coarse date (point 6).
 
 ## Context
 
